@@ -15,11 +15,10 @@ export type SeedSummary = {
   bookings: number;
 };
 
-// Populate the database with realistic demo data. Designed to be safe to run
-// from a serverless function (batched writes to minimise round trips).
-// Always starts from a clean slate so re-running gives a predictable result.
+// Populate the database with realistic demo data for Dwell Studio. Designed to
+// be safe to run from a serverless function (batched writes), and always starts
+// from a clean slate so re-running gives a predictable result.
 export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
-  // Clear existing data (order matters because of foreign keys).
   await prisma.booking.deleteMany();
   await prisma.membership.deleteMany();
   await prisma.membershipPlan.deleteMany();
@@ -33,17 +32,17 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
 
   // ---- Owner + demo member -------------------------------------------------
   const owner = await prisma.user.create({
-    data: { email: "owner@demo.com", passwordHash: pw, firstName: "Breyanna", lastName: "Owner", role: "OWNER" },
+    data: { email: "owner@demo.com", passwordHash: pw, firstName: "Breyanna", lastName: "Broeker", role: "OWNER" },
   });
   const demoMember = await prisma.user.create({
-    data: { email: "member@demo.com", passwordHash: pw, firstName: "Demo", lastName: "Member", phone: "(555) 123-4567", role: "MEMBER" },
+    data: { email: "member@demo.com", passwordHash: pw, firstName: "Demo", lastName: "Member", phone: "(402) 555-0142", role: "MEMBER" },
   });
 
-  // ---- Extra members (batched) --------------------------------------------
+  // ---- Members (a community of women) -------------------------------------
   const names: [string, string][] = [
-    ["Ava", "Johnson"], ["Liam", "Smith"], ["Sophia", "Brown"], ["Noah", "Davis"],
-    ["Mia", "Wilson"], ["Ethan", "Garcia"], ["Isabella", "Martinez"], ["Lucas", "Anderson"],
-    ["Charlotte", "Taylor"], ["Mason", "Thomas"], ["Amelia", "Moore"], ["Harper", "Lee"],
+    ["Ava", "Johnson"], ["Grace", "Miller"], ["Sophia", "Brown"], ["Olivia", "Davis"],
+    ["Mia", "Wilson"], ["Hannah", "Garcia"], ["Isabella", "Martinez"], ["Emma", "Anderson"],
+    ["Charlotte", "Taylor"], ["Lily", "Thomas"], ["Amelia", "Moore"], ["Harper", "Lee"],
   ];
   await prisma.user.createMany({
     data: names.map(([first, last]) => ({
@@ -61,37 +60,35 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
   const members = [demoMember, ...extraMembers];
 
   // ---- Instructors & rooms -------------------------------------------------
-  const [maya, jordan, priya, alex] = await Promise.all([
-    prisma.instructor.create({ data: { name: "Maya Chen", bio: "Yoga & mobility specialist." } }),
-    prisma.instructor.create({ data: { name: "Jordan Blake", bio: "HIIT and strength coach." } }),
-    prisma.instructor.create({ data: { name: "Priya Nair", bio: "Reformer Pilates instructor." } }),
-    prisma.instructor.create({ data: { name: "Alex Rivera", bio: "Spin & endurance coach." } }),
+  const [breyanna, hannah, grace, rachel] = await Promise.all([
+    prisma.instructor.create({ data: { name: "Breyanna Broeker", bio: "Founder. Cycle & worship." } }),
+    prisma.instructor.create({ data: { name: "Hannah Reed", bio: "Strength & sculpt coach." } }),
+    prisma.instructor.create({ data: { name: "Grace Olsen", bio: "Dance cardio & sculpt." } }),
+    prisma.instructor.create({ data: { name: "Rachel Kim", bio: "Cycle & core." } }),
   ]);
-  const [studioA, studioB] = await Promise.all([
-    prisma.room.create({ data: { name: "Studio A", capacity: 16 } }),
-    prisma.room.create({ data: { name: "Studio B", capacity: 10 } }),
+  const [mainStudio, cycleRoom] = await Promise.all([
+    prisma.room.create({ data: { name: "Main Studio", capacity: 20 } }),
+    prisma.room.create({ data: { name: "Cycle Room", capacity: 16 } }),
   ]);
 
-  // ---- Class types ---------------------------------------------------------
-  const [yoga, hiit, pilates, spin, strength] = await Promise.all([
-    prisma.classType.create({ data: { name: "Vinyasa Yoga", description: "Flowing, breath-led yoga.", duration: 60, capacity: 16, color: "#8b5cf6" } }),
-    prisma.classType.create({ data: { name: "HIIT Blast", description: "High-intensity interval training.", duration: 45, capacity: 14, color: "#ef4444" } }),
-    prisma.classType.create({ data: { name: "Reformer Pilates", description: "Low-impact strength & control.", duration: 50, capacity: 10, creditCost: 2, color: "#ec4899" } }),
-    prisma.classType.create({ data: { name: "Spin Ride", description: "Heart-pumping indoor cycling.", duration: 45, capacity: 16, color: "#f59e0b" } }),
-    prisma.classType.create({ data: { name: "Strength 101", description: "Build full-body strength.", duration: 60, capacity: 12, color: "#10b981" } }),
-  ]);
+  // ---- Class types (Dwell's offerings) ------------------------------------
+  const dwellCycle = await prisma.classType.create({ data: { name: "Dwell Cycle", description: "Heart-pumping indoor cycling set to worship.", duration: 45, capacity: 16, color: "#E8913C" } });
+  const worshipCycle = await prisma.classType.create({ data: { name: "Worship Cycle", description: "Ride and worship — candlelit cycle.", duration: 45, capacity: 16, color: "#B14AA0" } });
+  const steadfast = await prisma.classType.create({ data: { name: "Steadfast Cycle & Bible Study", description: "Cycle plus time in the Word.", duration: 60, capacity: 16, color: "#7C5AA6" } });
+  const fullBody = await prisma.classType.create({ data: { name: "Full Body Strength", description: "Build full-body strength.", duration: 50, capacity: 18, color: "#7C8454" } });
+  const lowerBody = await prisma.classType.create({ data: { name: "Lower Body Sculpt", description: "Targeted lower-body sculpting.", duration: 45, capacity: 18, color: "#C0617F" } });
+  const armsCore = await prisma.classType.create({ data: { name: "Arms & Core Sculpt", description: "Sculpt arms and core.", duration: 45, capacity: 18, color: "#D43E63" } });
+  const mommyMe = await prisma.classType.create({ data: { name: "Mommy & Me Sculpt", description: "Bring the littles — sculpt together.", duration: 45, capacity: 14, color: "#E1737E" } });
+  const danceCardio = await prisma.classType.create({ data: { name: "Dance Cardio", description: "Joyful, sweaty dance cardio.", duration: 45, capacity: 18, color: "#EF6F8E" } });
+  const community = await prisma.classType.create({ data: { name: "Community Movement & Bible Study", description: "Saturdays at Dwell — outdoor movement & Bible study for the whole community.", duration: 105, capacity: 24, color: "#939B69" } });
 
   // ---- Plans ---------------------------------------------------------------
-  const unlimited = await prisma.membershipPlan.create({
-    data: { name: "Unlimited Monthly", description: "Unlimited classes, billed monthly.", kind: "UNLIMITED", priceCents: 14900, durationDays: 30 },
-  });
-  const pack10 = await prisma.membershipPlan.create({
-    data: { name: "10-Class Pack", description: "10 credits, use within 90 days.", kind: "PACK", credits: 10, priceCents: 12000, durationDays: 90 },
-  });
+  const unlimited = await prisma.membershipPlan.create({ data: { name: "Unlimited Monthly", description: "Unlimited classes, billed monthly.", kind: "UNLIMITED", priceCents: 12900, durationDays: 30 } });
+  const pack8 = await prisma.membershipPlan.create({ data: { name: "8-Class Pack", description: "8 credits, use within 60 days.", kind: "PACK", credits: 8, priceCents: 11200, durationDays: 60 } });
   await prisma.membershipPlan.createMany({
     data: [
-      { name: "5-Class Pack", description: "5 credits, use within 60 days.", kind: "PACK", credits: 5, priceCents: 6500, durationDays: 60 },
-      { name: "Drop-In", description: "Single class.", kind: "DROP_IN", credits: 1, priceCents: 1800, durationDays: 14 },
+      { name: "4-Class Pack", description: "4 credits, use within 45 days.", kind: "PACK", credits: 4, priceCents: 6000, durationDays: 45 },
+      { name: "Single Class", description: "One drop-in class.", kind: "DROP_IN", credits: 1, priceCents: 1800, durationDays: 14 },
     ],
   });
 
@@ -108,31 +105,53 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
       membershipRows.push({ userId: m.id, planId: unlimited.id, creditsRemaining: 0, expiresAt: in30, pricePaidCents: unlimited.priceCents });
       bookableUserIds.push(m.id);
     } else if (i % 3 === 0) {
-      membershipRows.push({ userId: m.id, planId: pack10.id, creditsRemaining: 7, expiresAt: in60, pricePaidCents: pack10.priceCents });
+      membershipRows.push({ userId: m.id, planId: pack8.id, creditsRemaining: 6, expiresAt: in60, pricePaidCents: pack8.priceCents });
       bookableUserIds.push(m.id);
     }
   });
   await prisma.membership.createMany({ data: membershipRows });
 
-  // ---- Recurring schedule (next 14 days, batched) -------------------------
-  const template = [
-    { ct: yoga.id, instr: maya.id, room: studioA.id, cap: 16, h: 7, m: 0 },
-    { ct: hiit.id, instr: jordan.id, room: studioB.id, cap: 10, h: 12, m: 0 },
-    { ct: spin.id, instr: alex.id, room: studioA.id, cap: 16, h: 18, m: 0 },
-    { ct: pilates.id, instr: priya.id, room: studioB.id, cap: 10, h: 9, m: 30 },
-    { ct: strength.id, instr: jordan.id, room: studioA.id, cap: 12, h: 17, m: 30 },
-    { ct: yoga.id, instr: maya.id, room: studioA.id, cap: 16, h: 19, m: 0 },
-  ];
+  // ---- Weekly schedule (Sun = rest day) -----------------------------------
+  type Slot = { ct: string; cap: number; instr: string; room: string; h: number; m: number };
+  const byWeekday: Record<number, Slot[]> = {
+    0: [], // Sunday — rest
+    1: [
+      { ct: dwellCycle.id, cap: 16, instr: breyanna.id, room: cycleRoom.id, h: 6, m: 0 },
+      { ct: mommyMe.id, cap: 14, instr: hannah.id, room: mainStudio.id, h: 9, m: 30 },
+      { ct: fullBody.id, cap: 18, instr: grace.id, room: mainStudio.id, h: 18, m: 15 },
+    ],
+    2: [
+      { ct: lowerBody.id, cap: 18, instr: hannah.id, room: mainStudio.id, h: 9, m: 0 },
+      { ct: worshipCycle.id, cap: 16, instr: breyanna.id, room: cycleRoom.id, h: 18, m: 15 },
+    ],
+    3: [
+      { ct: steadfast.id, cap: 16, instr: breyanna.id, room: cycleRoom.id, h: 8, m: 15 },
+      { ct: armsCore.id, cap: 18, instr: rachel.id, room: mainStudio.id, h: 12, m: 0 },
+      { ct: danceCardio.id, cap: 18, instr: grace.id, room: mainStudio.id, h: 18, m: 15 },
+    ],
+    4: [
+      { ct: mommyMe.id, cap: 14, instr: hannah.id, room: mainStudio.id, h: 9, m: 0 },
+      { ct: dwellCycle.id, cap: 16, instr: breyanna.id, room: cycleRoom.id, h: 18, m: 15 },
+    ],
+    5: [
+      { ct: fullBody.id, cap: 18, instr: grace.id, room: mainStudio.id, h: 9, m: 0 },
+      { ct: worshipCycle.id, cap: 16, instr: rachel.id, room: cycleRoom.id, h: 18, m: 15 },
+    ],
+    6: [
+      { ct: community.id, cap: 24, instr: breyanna.id, room: mainStudio.id, h: 8, m: 15 },
+    ],
+  };
+
   const sessionRows: any[] = [];
   for (let day = 0; day < 14; day++) {
-    for (let k = 0; k < 3; k++) {
-      const t = template[(day + k) % template.length];
+    const weekday = at(day, 0).getDay();
+    for (const slot of byWeekday[weekday]) {
       sessionRows.push({
-        classTypeId: t.ct,
-        instructorId: t.instr,
-        roomId: t.room,
-        startsAt: at(day, t.h, t.m),
-        capacity: t.cap,
+        classTypeId: slot.ct,
+        instructorId: slot.instr,
+        roomId: slot.room,
+        startsAt: at(day, slot.h, slot.m),
+        capacity: slot.cap,
       });
     }
   }
@@ -142,7 +161,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
   // ---- Bookings (batched) -------------------------------------------------
   const bookingRows: { userId: string; sessionId: string; status: string }[] = [];
   let counter = 0;
-  for (const s of sessions.slice(0, 18)) {
+  for (const s of sessions.slice(0, 16)) {
     const target = Math.min(
       bookableUserIds.length,
       Math.round(s.capacity * (0.4 + ((counter % 7) / 10)))

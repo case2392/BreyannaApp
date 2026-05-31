@@ -35,14 +35,14 @@ export default async function ClassesPage() {
                   className="h-8 w-1.5 rounded-full"
                   style={{ backgroundColor: c.color }}
                 />
-                <div className="flex-1">
-                  <div className="font-medium">{c.name}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{c.name}</div>
                   <div className="text-xs text-ink-500">
                     {c.duration} min · cap {c.capacity} · {c.creditCost} credit
                     {c.creditCost === 1 ? "" : "s"}
                   </div>
                 </div>
-                <div className="text-xs text-ink-400">
+                <div className="shrink-0 text-xs text-ink-400">
                   {c._count.sessions} sessions
                 </div>
               </div>

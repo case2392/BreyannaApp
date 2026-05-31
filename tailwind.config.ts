@@ -8,29 +8,50 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: "#fdf2f8",
-          100: "#fce7f3",
-          200: "#fbcfe8",
-          300: "#f9a8d4",
-          400: "#f472b6",
-          500: "#ec4899",
-          600: "#db2777",
-          700: "#be185d",
-          800: "#9d174d",
-          900: "#831843",
-        },
+        // Warm neutral / espresso — used for text, surfaces and the cream bg.
         ink: {
-          50: "#f8fafc",
-          100: "#f1f5f9",
-          200: "#e2e8f0",
-          500: "#64748b",
-          700: "#334155",
-          900: "#0f172a",
+          50: "#FAF6F0",
+          100: "#F2EADF",
+          200: "#E7DAC9",
+          300: "#D5C2A9",
+          400: "#AC9580",
+          500: "#86715D",
+          600: "#6B594A",
+          700: "#4E4035",
+          800: "#362C24",
+          900: "#261E18",
+        },
+        // Primary accent — a soft berry-rose that complements the sunset logo.
+        brand: {
+          50: "#FDECEF",
+          100: "#FAD6DE",
+          200: "#F3AEBC",
+          300: "#EB8398",
+          400: "#E15C7B",
+          500: "#D43E63",
+          600: "#BE3358",
+          700: "#9E2A49",
+          800: "#7C2540",
+          900: "#5E1E32",
+        },
+        // Secondary accent — the sage green from the Dwell brand.
+        sage: {
+          50: "#F2F3EC",
+          100: "#E4E7D6",
+          200: "#CBD0B2",
+          300: "#AEB58A",
+          400: "#939B69",
+          500: "#7C8454",
+          600: "#636B43",
+          700: "#4C5234",
         },
       },
       fontFamily: {
+        serif: ["var(--font-serif)", "Georgia", "Cambria", "serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+      },
+      boxShadow: {
+        soft: "0 1px 2px rgba(38,30,24,0.04), 0 8px 24px -12px rgba(38,30,24,0.12)",
       },
     },
   },

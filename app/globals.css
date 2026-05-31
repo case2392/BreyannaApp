@@ -2,38 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-}
-
-html,
-body {
-  @apply bg-ink-50 text-ink-900 antialiased;
+@layer base {
+  html {
+    /* Prevent any stray element from causing sideways scrolling on mobile. */
+    overflow-x: hidden;
+  }
+  body {
+    @apply overflow-x-hidden bg-ink-50 font-sans text-ink-900 antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-serif;
+    letter-spacing: -0.01em;
+  }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
   }
+  /* Primary = warm espresso for an elegant, premium feel. */
   .btn-primary {
+    @apply btn bg-ink-900 text-ink-50 hover:bg-ink-800;
+  }
+  .btn-brand {
     @apply btn bg-brand-600 text-white hover:bg-brand-700;
   }
   .btn-secondary {
-    @apply btn border border-ink-200 bg-white text-ink-700 hover:bg-ink-100;
+    @apply btn border border-ink-200 bg-white text-ink-800 hover:bg-ink-100;
   }
   .btn-ghost {
     @apply btn text-ink-700 hover:bg-ink-100;
   }
   .card {
-    @apply rounded-2xl border border-ink-200 bg-white shadow-sm;
+    @apply rounded-2xl border border-ink-200 bg-white shadow-soft;
   }
   .input {
-    @apply w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
+    @apply w-full rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100;
   }
   .label {
     @apply mb-1 block text-sm font-medium text-ink-700;
   }
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  /* Horizontal pill nav that scrolls on small screens without widening the page. */
+  .scroll-nav {
+    @apply flex gap-1 overflow-x-auto;
+    scrollbar-width: none;
+  }
+  .scroll-nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  /* The Dwell sunset ring (amber → pink → magenta → violet). */
+  .bg-sunset {
+    background: conic-gradient(
+      from 200deg at 50% 50%,
+      #f6b73c,
+      #ef6f8e,
+      #b14aa0,
+      #7c5aa6,
+      #f6b73c
+    );
+  }
+  .text-sunset {
+    background: linear-gradient(100deg, #e8913c, #e1577f, #b14aa0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }

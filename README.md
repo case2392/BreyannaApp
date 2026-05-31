@@ -1,4 +1,4 @@
-# Breyanna Fitness
+# Dwell Studio
 
 A booking + membership + CRM web app for a fitness studio, inspired by
 [bsport](https://bsport.io). One responsive web app serves two audiences:

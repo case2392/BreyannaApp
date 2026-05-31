@@ -1,4 +1,4 @@
-// Breyanna Fitness — data model
+// Dwell Studio — data model
 // A booking + membership + CRM platform for a fitness studio, inspired by bsport.
 
 generator client {

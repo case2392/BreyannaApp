@@ -4,7 +4,7 @@ Guidance for working in this repository.
 
 ## What this is
 
-Breyanna Fitness — a studio booking + membership + CRM web app (think bsport),
+Dwell Studio — a studio booking + membership + CRM web app (think bsport),
 built as a single Next.js app. See `README.md` for the full overview.
 
 ## Stack

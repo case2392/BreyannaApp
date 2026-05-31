@@ -23,8 +23,8 @@ export default async function MembersPage() {
       <h1 className="mb-1 text-2xl font-bold">Members</h1>
       <p className="mb-6 text-sm text-ink-500">{members.length} members</p>
 
-      <div className="card overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="card overflow-x-auto">
+        <table className="w-full min-w-[28rem] text-sm">
           <thead className="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">
             <tr>
               <th className="px-4 py-3">Member</th>

@@ -31,8 +31,8 @@ export default async function PlansPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <div className="card overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="card overflow-x-auto">
+            <table className="w-full min-w-[34rem] text-sm">
               <thead className="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">
                 <tr>
                   <th className="px-4 py-3">Plan</th>
