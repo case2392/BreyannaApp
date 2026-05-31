@@ -1,0 +1,164 @@
+// Breyanna Fitness — data model
+// A booking + membership + CRM platform for a fitness studio, inspired by bsport.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// People
+// ----------------------------------------------------------------------------
+
+// Role values: "MEMBER" | "STAFF" | "OWNER"
+// (SQLite via Prisma does not support native enums, so these are validated strings.)
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  firstName    String
+  lastName     String
+  phone        String?
+  role         String   @default("MEMBER")
+  // Optional emergency / health notes the studio keeps on a member (CRM)
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  bookings    Booking[]
+  memberships Membership[]
+  // Classes this user teaches (when they are an instructor)
+  instructor  Instructor?
+}
+
+model Instructor {
+  id        String   @id @default(cuid())
+  name      String
+  bio       String?
+  // Optionally link an instructor to a login account
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  sessions ClassSession[]
+}
+
+// ----------------------------------------------------------------------------
+// Studio configuration
+// ----------------------------------------------------------------------------
+
+model Room {
+  id       String @id @default(cuid())
+  name     String
+  capacity Int    @default(12)
+
+  sessions ClassSession[]
+}
+
+// A type/template of class, e.g. "Vinyasa Yoga", "HIIT", "Reformer Pilates"
+model ClassType {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  // Minutes
+  duration    Int     @default(60)
+  // Default capacity (a session can override)
+  capacity    Int     @default(12)
+  // How many credits a member spends to book this class
+  creditCost  Int     @default(1)
+  color       String  @default("#ec4899")
+  active      Boolean @default(true)
+
+  sessions ClassSession[]
+}
+
+// A concrete scheduled class on the calendar
+model ClassSession {
+  id           String   @id @default(cuid())
+  classTypeId  String
+  classType    ClassType @relation(fields: [classTypeId], references: [id])
+  instructorId String
+  instructor   Instructor @relation(fields: [instructorId], references: [id])
+  roomId       String?
+  room         Room?     @relation(fields: [roomId], references: [id])
+  startsAt     DateTime
+  // Capacity for this specific session (defaults from class type at creation)
+  capacity     Int
+  cancelled    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  bookings Booking[]
+
+  @@index([startsAt])
+}
+
+// ----------------------------------------------------------------------------
+// Memberships & packs
+// ----------------------------------------------------------------------------
+
+// PlanKind values: "UNLIMITED" (unlimited bookings) | "PACK" (bucket of credits) | "DROP_IN" (single credit)
+
+model MembershipPlan {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  kind        String
+  // For PACK / DROP_IN: number of credits granted. Ignored for UNLIMITED.
+  credits     Int      @default(0)
+  // Price in cents
+  priceCents  Int
+  // How many days the membership stays valid after purchase
+  durationDays Int     @default(30)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  memberships Membership[]
+}
+
+// MembershipStatus values: "ACTIVE" | "EXPIRED" | "CANCELLED"
+
+// A plan a member has purchased
+model Membership {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  planId          String
+  plan            MembershipPlan @relation(fields: [planId], references: [id])
+  status          String   @default("ACTIVE")
+  // Credits left (for PACK/DROP_IN). Unlimited plans ignore this.
+  creditsRemaining Int     @default(0)
+  startsAt        DateTime @default(now())
+  expiresAt       DateTime
+  pricePaidCents  Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  bookings Booking[]
+}
+
+// ----------------------------------------------------------------------------
+// Bookings
+// ----------------------------------------------------------------------------
+
+// BookingStatus values: "BOOKED" | "WAITLISTED" | "CANCELLED" | "ATTENDED" | "NO_SHOW"
+
+model Booking {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  sessionId    String
+  session      ClassSession @relation(fields: [sessionId], references: [id])
+  status       String   @default("BOOKED")
+  // Which membership paid for this booking (credit refunded on cancel)
+  membershipId String?
+  membership   Membership? @relation(fields: [membershipId], references: [id])
+  // Position used to order the waitlist
+  createdAt    DateTime @default(now())
+
+  // A member can only hold one active booking per session
+  @@unique([userId, sessionId])
+  @@index([sessionId])
+}

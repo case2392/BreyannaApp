@@ -1,0 +1,91 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/db";
+import { dayLabel, timeLabel } from "@/lib/format";
+import { AttendanceControls } from "@/components/admin/SessionControls";
+
+export const dynamic = "force-dynamic";
+
+export default async function RosterPage({
+  params,
+}: {
+  params: { id: string };
+}) {
+  const session = await prisma.classSession.findUnique({
+    where: { id: params.id },
+    include: {
+      classType: true,
+      instructor: true,
+      room: true,
+      bookings: {
+        where: { status: { not: "CANCELLED" } },
+        include: { user: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  if (!session) notFound();
+
+  const confirmed = session.bookings.filter((b) => b.status !== "WAITLISTED");
+  const waitlist = session.bookings.filter((b) => b.status === "WAITLISTED");
+
+  return (
+    <div>
+      <Link href="/admin/schedule" className="text-sm text-brand-600">
+        ← Back to schedule
+      </Link>
+      <h1 className="mt-2 text-2xl font-bold">{session.classType.name}</h1>
+      <p className="mb-6 text-sm text-ink-500">
+        {dayLabel(session.startsAt)} · {timeLabel(session.startsAt)} ·{" "}
+        {session.instructor.name}
+        {session.room ? ` · ${session.room.name}` : ""}
+        {session.cancelled && (
+          <span className="badge ml-2 bg-red-100 text-red-700">Cancelled</span>
+        )}
+      </p>
+
+      <div className="card p-5">
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="font-semibold">
+            Roster ({confirmed.length}/{session.capacity})
+          </h2>
+        </div>
+        {confirmed.length === 0 ? (
+          <p className="text-sm text-ink-500">No-one booked yet.</p>
+        ) : (
+          <ul className="divide-y divide-ink-100">
+            {confirmed.map((b) => (
+              <li
+                key={b.id}
+                className="flex items-center justify-between py-3"
+              >
+                <div>
+                  <div className="font-medium">
+                    {b.user.firstName} {b.user.lastName}
+                  </div>
+                  <div className="text-xs text-ink-500">{b.user.email}</div>
+                </div>
+                <AttendanceControls bookingId={b.id} status={b.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      {waitlist.length > 0 && (
+        <div className="card mt-4 p-5">
+          <h2 className="mb-3 font-semibold">Waitlist ({waitlist.length})</h2>
+          <ol className="list-inside list-decimal space-y-2 text-sm">
+            {waitlist.map((b) => (
+              <li key={b.id}>
+                {b.user.firstName} {b.user.lastName}{" "}
+                <span className="text-ink-500">— {b.user.email}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
+}
