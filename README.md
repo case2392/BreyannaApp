@@ -18,17 +18,27 @@ A booking + membership + CRM web app for a fitness studio, inspired by
 
 - **Next.js 14** (App Router, React Server Components, Server Actions)
 - **TypeScript**
-- **Prisma** ORM with a **SQLite** database (a single `dev.db` file — zero setup)
+- **Prisma** ORM with a **PostgreSQL** database
 - **Tailwind CSS**
 - Lightweight built-in auth (scrypt password hashing + signed session cookie,
   no third-party auth service)
 
-## Getting started
+## 🚀 Just want it online?
+
+If you want a live web link to use on your phone (no coding), follow
+**[DEPLOY.md](DEPLOY.md)** — a step-by-step, beginner-friendly guide using free
+hosting. You do **not** need the local setup below for that.
+
+## Running locally (for development)
+
+You need a PostgreSQL database. The easiest free option is a
+[Neon](https://neon.tech) database — create one and copy its connection string.
 
 ```bash
-npm install        # install dependencies
-npm run setup      # generate client + create the database + load demo data
-npm run dev        # start the dev server at http://localhost:3000
+cp .env.example .env      # then paste your DATABASE_URL into .env
+npm install               # install dependencies
+npm run setup             # create tables + load demo data
+npm run dev               # start the dev server at http://localhost:3000
 ```
 
 Then open http://localhost:3000.
