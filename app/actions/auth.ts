@@ -8,6 +8,7 @@ import {
   setSessionCookie,
   clearSessionCookie,
 } from "@/lib/auth";
+import { fireAutomation } from "@/lib/automations";
 
 export async function login(_prev: unknown, formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
@@ -51,6 +52,8 @@ export async function register(_prev: unknown, formData: FormData) {
       role: "MEMBER",
     },
   });
+
+  await fireAutomation("welcome", user, {});
 
   setSessionCookie(user.id);
   redirect("/schedule");

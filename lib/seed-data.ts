@@ -1,5 +1,6 @@
 import type { PrismaClient } from "@prisma/client";
 import { hashPassword } from "./password";
+import { ensureAutomations } from "./automations";
 
 // Build a Date for an upcoming day offset from today at a given hour:minute.
 function at(dayOffset: number, hour: number, minute = 0): Date {
@@ -19,6 +20,8 @@ export type SeedSummary = {
 // be safe to run from a serverless function (batched writes), and always starts
 // from a clean slate so re-running gives a predictable result.
 export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
+  await prisma.messageLog.deleteMany();
+  await prisma.campaign.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.membership.deleteMany();
   await prisma.membershipPlan.deleteMany();
@@ -179,6 +182,9 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
     }
   }
   await prisma.booking.createMany({ data: bookingRows, skipDuplicates: true });
+
+  // Make sure the automation rows exist (disabled by default).
+  await ensureAutomations();
 
   return { members: members.length, sessions: sessions.length, bookings: bookingRows.length };
 }

@@ -53,6 +53,20 @@ export const DumbbellIcon = ({ className = base }: P) => (
   </svg>
 );
 
+export const MegaphoneIcon = ({ className = base }: P) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path d="M3 11v2a1 1 0 0 0 1 1h2l8 4V6L6 10H4a1 1 0 0 0-1 1Z" strokeLinejoin="round" />
+    <path d="M18 8a4 4 0 0 1 0 8" strokeLinecap="round" />
+    <path d="M7 14v4a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-3" strokeLinejoin="round" />
+  </svg>
+);
+
+export const BoltIcon = ({ className = base }: P) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" strokeLinejoin="round" />
+  </svg>
+);
+
 export const TagIcon = ({ className = base }: P) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path d="M3 12V5a2 2 0 0 1 2-2h7l9 9-9 9-9-9Z" strokeLinejoin="round" />

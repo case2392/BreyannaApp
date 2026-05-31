@@ -162,3 +162,63 @@ model Booking {
   @@unique([userId, sessionId])
   @@index([sessionId])
 }
+
+// ----------------------------------------------------------------------------
+// Messaging — email/SMS campaigns and automations
+// ----------------------------------------------------------------------------
+
+// A one-off mass message sent to an audience of members.
+// channel: "EMAIL" | "SMS"
+// audience: a segment key (see lib/audiences.ts), e.g. "all" | "active" | "lapsed"
+// status: "DRAFT" | "SENT" | "FAILED"
+model Campaign {
+  id             String   @id @default(cuid())
+  channel        String
+  subject        String?  // email only
+  body           String
+  audience       String
+  status         String   @default("DRAFT")
+  recipientCount Int      @default(0)
+  sentCount      Int      @default(0)
+  failedCount    Int      @default(0)
+  // True when delivered in simulation mode (no provider key configured).
+  simulated      Boolean  @default(false)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  sentAt         DateTime?
+
+  logs MessageLog[]
+
+  @@index([createdAt])
+}
+
+// A per-recipient delivery record (for campaigns and automated messages).
+// channel: "EMAIL" | "SMS"
+// kind: "campaign" | "welcome" | "booking_confirmation" | "waitlist_promotion" | "reminder"
+// status: "SENT" | "FAILED" | "SIMULATED" | "SKIPPED"
+model MessageLog {
+  id         String   @id @default(cuid())
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id])
+  userId     String?
+  channel    String
+  to         String
+  kind       String
+  status     String
+  error      String?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// An event-triggered automated message. One row per trigger key.
+// key: "welcome" | "booking_confirmation" | "waitlist_promotion" | "class_reminder"
+// channel: "EMAIL" | "SMS" | "BOTH"
+model Automation {
+  key       String   @id
+  channel   String   @default("EMAIL")
+  enabled   Boolean  @default(false)
+  subject   String?
+  template  String
+  updatedAt DateTime @updatedAt
+}

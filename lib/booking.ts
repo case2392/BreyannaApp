@@ -110,7 +110,10 @@ export async function bookClass(
 export async function cancelBooking(
   userId: string,
   bookingId: string
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<
+  | { ok: false; error: string }
+  | { ok: true; promotedUserId: string | null; sessionId: string }
+> {
   const booking = await prisma.booking.findUnique({
     where: { id: bookingId },
     include: { session: { include: { classType: true } } },
@@ -119,6 +122,10 @@ export async function cancelBooking(
     return { ok: false, error: "Booking not found." };
   if (booking.status === "CANCELLED")
     return { ok: false, error: "Already cancelled." };
+
+  // Captures who (if anyone) was promoted off the waitlist, so the caller can
+  // notify them. Set inside the transaction.
+  let promotedUserId: string | null = null;
 
   await prisma.$transaction(async (tx) => {
     // Refund the credit that was spent, if any.
@@ -175,11 +182,12 @@ export async function cancelBooking(
               data: { creditsRemaining: { decrement: cost } },
             });
           }
+          promotedUserId = next.userId;
         }
         // If they have no usable membership, leave them waitlisted.
       }
     }
   });
 
-  return { ok: true };
+  return { ok: true, promotedUserId, sessionId: booking.sessionId };
 }
