@@ -1,8 +1,341 @@
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import Link from "next/link";
+import { prisma } from "@/lib/db";
+import { getCurrentUser, isStaff } from "@/lib/auth";
+import { money, dayLabel, timeLabel } from "@/lib/format";
+import { MarketingHeader } from "@/components/MarketingHeader";
+import { DwellSeal, Logo } from "@/components/Brand";
 
-export default async function Home() {
+export const dynamic = "force-dynamic";
+
+const pillars = [
+  {
+    title: "Worship",
+    body: "Every class is set to worship — a space to praise, pray, and be present with Jesus while you move.",
+    icon: "M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z",
+  },
+  {
+    title: "Workout",
+    body: "Cycle, strength, sculpt, and dance cardio led by coaches who meet you exactly where you are.",
+    icon: "M6.5 6.5l11 11M4 9l2-2M9 4l-2 2M20 15l-2 2M15 20l2-2",
+  },
+  {
+    title: "Grow",
+    body: "Bible study, community, and real friendship — leave stronger in body and in spirit.",
+    icon: "M12 3v18M5 10l7-7 7 7",
+  },
+];
+
+const kindLabel: Record<string, string> = {
+  UNLIMITED: "Unlimited",
+  PACK: "Class pack",
+  DROP_IN: "Drop-in",
+};
+
+export default async function LandingPage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  redirect(user.role === "MEMBER" ? "/schedule" : "/admin");
+  const authed = Boolean(user);
+  const dashboardHref = user && isStaff(user.role) ? "/admin" : "/schedule";
+  const now = new Date();
+
+  const [classTypes, plans, upcoming] = await Promise.all([
+    prisma.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    prisma.membershipPlan.findMany({ where: { active: true }, orderBy: { priceCents: "asc" } }),
+    prisma.classSession.findMany({
+      where: { cancelled: false, startsAt: { gt: now } },
+      orderBy: { startsAt: "asc" },
+      take: 6,
+      include: { classType: true, instructor: true },
+    }),
+  ]);
+
+  return (
+    <div className="bg-ink-50">
+      <MarketingHeader authed={authed} dashboardHref={dashboardHref} />
+
+      {/* Hero */}
+      <section className="relative overflow-hidden">
+        <div className="bg-sunset absolute inset-0 opacity-[0.13]" />
+        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-sunset opacity-20 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-sage-300 opacity-20 blur-3xl" />
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 py-20 text-center md:py-28">
+          <DwellSeal size={104} />
+          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.35em] text-brand-600">
+            Lincoln, Nebraska
+          </p>
+          <h1 className="mt-4 max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 sm:text-6xl">
+            A movement studio for women to worship &amp; flourish
+          </h1>
+          <p className="mt-5 max-w-xl text-lg text-ink-600">
+            A Christ-centered space to worship, workout, and grow closer to
+            Jesus. Feed your spirit. Find community. Flourish in freedom.
+          </p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href="/register" className="btn-primary px-6 py-3 text-base">
+              Book your first class
+            </Link>
+            <a href="#membership" className="btn-secondary px-6 py-3 text-base">
+              View memberships
+            </a>
+          </div>
+          <p className="mt-4 text-sm text-ink-500">
+            Already a member?{" "}
+            <Link href="/login" className="font-semibold text-brand-600">
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </section>
+
+      {/* Pillars */}
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <div className="grid gap-6 md:grid-cols-3">
+          {pillars.map((p) => (
+            <div key={p.title} className="card p-7 text-center">
+              <span className="bg-sunset mx-auto flex h-14 w-14 items-center justify-center rounded-full">
+                <span className="flex h-full w-full items-center justify-center rounded-full bg-ink-50">
+                  <svg className="h-6 w-6 text-ink-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                    <path d={p.icon} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+              </span>
+              <h3 className="mt-4 text-2xl font-semibold">{p.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-ink-600">{p.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* About */}
+      <section id="about" className="scroll-mt-20 bg-white py-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-2">
+          <div className="bg-sunset aspect-[4/5] w-full rounded-3xl p-1.5 shadow-soft">
+            <div className="flex h-full w-full flex-col items-center justify-center rounded-[1.35rem] bg-ink-50 p-8 text-center">
+              <DwellSeal size={96} />
+              <p className="mt-6 font-serif text-2xl italic text-ink-700">
+                &ldquo;It&apos;s real, raw, and makes hell tremble.&rdquo;
+              </p>
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+              Our heart
+            </p>
+            <h2 className="mt-3 text-4xl font-semibold">More than a workout</h2>
+            <p className="mt-5 text-ink-600">
+              Dwell Studio is a community of women trading the noise of worldly
+              fitness culture for a space filled with worship, truth, and
+              movement that leads us closer to Jesus.
+            </p>
+            <p className="mt-4 text-ink-600">
+              Mothers are being stirred. Women are growing closer to Jesus,
+              trading worldly ruts for God-honoring rhythms, and doing life
+              together. It&apos;s not a trend — it&apos;s a revolution of unity,
+              discipling the next generation.
+            </p>
+            <div className="mt-7 flex gap-3">
+              <Link href="/register" className="btn-primary">
+                Start your journey
+              </Link>
+              <a href="#schedule" className="btn-secondary">
+                See the schedule
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Classes */}
+      <section id="classes" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+            Move with us
+          </p>
+          <h2 className="mt-3 text-4xl font-semibold">Our classes</h2>
+          <p className="mx-auto mt-3 max-w-xl text-ink-600">
+            From candlelit worship cycle to strength, sculpt, dance cardio, and
+            Mommy &amp; Me — there&apos;s a place for every season.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {classTypes.map((c) => (
+            <div key={c.id} className="card overflow-hidden">
+              <div className="h-2 w-full" style={{ backgroundColor: c.color }} />
+              <div className="p-6">
+                <h3 className="text-xl font-semibold">{c.name}</h3>
+                <p className="mt-2 text-sm text-ink-600">{c.description}</p>
+                <p className="mt-3 text-xs uppercase tracking-wide text-ink-400">
+                  {c.duration} minutes
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Schedule preview */}
+      <section id="schedule" className="scroll-mt-20 bg-white py-20">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+              This week
+            </p>
+            <h2 className="mt-3 text-4xl font-semibold">Upcoming classes</h2>
+            <p className="mx-auto mt-3 max-w-xl text-ink-600">
+              Reserve your spot in seconds. New here? Create a free account to
+              book your first class.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-10 max-w-3xl divide-y divide-ink-100 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-soft">
+            {upcoming.length === 0 ? (
+              <p className="p-8 text-center text-ink-500">
+                New classes are being scheduled — check back soon!
+              </p>
+            ) : (
+              upcoming.map((s) => (
+                <div key={s.id} className="flex items-center gap-4 p-4">
+                  <span className="h-12 w-1.5 rounded-full" style={{ backgroundColor: s.classType.color }} />
+                  <div className="w-28 shrink-0">
+                    <div className="text-sm font-semibold">{dayLabel(s.startsAt)}</div>
+                    <div className="text-xs text-ink-500">{timeLabel(s.startsAt)}</div>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-medium">{s.classType.name}</div>
+                    <div className="truncate text-sm text-ink-500">{s.instructor.name}</div>
+                  </div>
+                  <Link href="/login" className="btn-secondary shrink-0 text-xs">
+                    Reserve
+                  </Link>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="mt-8 text-center">
+            <Link href="/register" className="btn-primary px-6 py-3">
+              Create an account to book
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Membership */}
+      <section id="membership" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+            Join the community
+          </p>
+          <h2 className="mt-3 text-4xl font-semibold">Memberships &amp; passes</h2>
+          <p className="mx-auto mt-3 max-w-xl text-ink-600">
+            Whether you&apos;re here every day or dropping in, there&apos;s an
+            option for you.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {plans.map((p, i) => {
+            const featured = p.kind === "UNLIMITED";
+            return (
+              <div
+                key={p.id}
+                className={`card flex flex-col p-6 ${
+                  featured ? "ring-2 ring-brand-400" : ""
+                }`}
+              >
+                {featured && (
+                  <span className="badge mb-2 self-start bg-brand-600 text-white">
+                    Most popular
+                  </span>
+                )}
+                <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
+                  {kindLabel[p.kind]}
+                </span>
+                <h3 className="mt-1 text-xl font-semibold">{p.name}</h3>
+                <div className="mt-3">
+                  <span className="font-serif text-4xl font-semibold">
+                    {money(p.priceCents)}
+                  </span>
+                </div>
+                <ul className="mt-4 space-y-1 text-sm text-ink-600">
+                  <li>
+                    {p.kind === "UNLIMITED"
+                      ? "Unlimited classes"
+                      : `${p.credits} class credit${p.credits === 1 ? "" : "s"}`}
+                  </li>
+                  <li>Valid {p.durationDays} days</li>
+                </ul>
+                <Link href="/register" className="btn-primary mt-6">
+                  Get started
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Saturday community CTA */}
+      <section className="px-4 pb-20">
+        <div className="bg-sunset relative mx-auto max-w-6xl overflow-hidden rounded-3xl p-1.5">
+          <div className="rounded-[1.35rem] bg-ink-900 px-8 py-14 text-center text-white">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
+              Every Saturday · 8:15 AM
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
+              Community Movement &amp; Bible Study
+            </h2>
+            <p className="mx-auto mt-4 max-w-xl text-white/85">
+              Bring a friend for outdoor movement and time in the Word. All are
+              welcome — come as you are.
+            </p>
+            <Link href="/register" className="btn-brand mt-7 px-6 py-3">
+              Save my spot
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Visit / footer */}
+      <footer id="visit" className="scroll-mt-20 border-t border-ink-200 bg-white">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-3">
+          <div>
+            <Logo />
+            <p className="mt-4 max-w-xs text-sm text-ink-600">
+              A Christ-centered movement studio for women. Feed your spirit.
+              Find community. Flourish in freedom.
+            </p>
+          </div>
+          <div>
+            <h4 className="font-serif text-lg font-semibold">Visit us</h4>
+            <p className="mt-3 text-sm text-ink-600">
+              800 W Stockwell St<br />
+              Lincoln, NE
+            </p>
+            <a
+              href="https://instagram.com/dwellstudio.lnk"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-3 inline-block text-sm font-semibold text-brand-600 hover:underline"
+            >
+              @dwellstudio.lnk →
+            </a>
+          </div>
+          <div>
+            <h4 className="font-serif text-lg font-semibold">Get started</h4>
+            <div className="mt-3 flex flex-col gap-2 text-sm">
+              <Link href="/register" className="font-semibold text-brand-600 hover:underline">
+                Create an account
+              </Link>
+              <Link href="/login" className="text-ink-600 hover:underline">
+                Member sign in
+              </Link>
+              <a href="#classes" className="text-ink-600 hover:underline">
+                Browse classes
+              </a>
+            </div>
+          </div>
+        </div>
+        <div className="border-t border-ink-100 py-5 text-center text-xs text-ink-400">
+          © {new Date().getFullYear()} Dwell Studio · Lincoln, NE
+        </div>
+      </footer>
+    </div>
+  );
 }

@@ -6,6 +6,7 @@
   html {
     /* Prevent any stray element from causing sideways scrolling on mobile. */
     overflow-x: hidden;
+    scroll-behavior: smooth;
   }
   body {
     @apply overflow-x-hidden bg-ink-50 font-sans text-ink-900 antialiased;
