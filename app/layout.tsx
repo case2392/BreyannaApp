@@ -18,14 +18,14 @@ const sans = Inter({
 export const metadata: Metadata = {
   title: "Dwell Studio",
   description:
-    "A Christ-centered movement studio for women to worship, workout, and grow closer to Jesus. Feed your spirit. Find community. Flourish in freedom.",
+    "A Christ-centered movement studio for women to worship, workout, and grow closer to Jesus. Honoring the body as God's dwelling place through cycle, movement, and dance.",
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#FAF6F0",
+  themeColor: "#F4F1EC",
 };
 
 export default function RootLayout({

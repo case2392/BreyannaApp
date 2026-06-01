@@ -4,25 +4,36 @@ import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel } from "@/lib/format";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { DwellSeal, Logo } from "@/components/Brand";
+import { BrandImage } from "@/components/BrandImage";
 
 export const dynamic = "force-dynamic";
 
-const pillars = [
+const coreValues = [
   {
-    title: "Worship",
-    body: "Every class is set to worship — a space to praise, pray, and be present with Jesus while you move.",
+    title: "Feed Your Spirit",
+    body: "Worship-filled classes that nourish your soul as you move — praise, prayer, and presence with Jesus.",
     icon: "M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z",
   },
   {
-    title: "Workout",
-    body: "Cycle, strength, sculpt, and dance cardio led by coaches who meet you exactly where you are.",
-    icon: "M6.5 6.5l11 11M4 9l2-2M9 4l-2 2M20 15l-2 2M15 20l2-2",
+    title: "Find Community",
+    body: "Real friendship and encouragement alongside women walking the same road of faith.",
+    icon: "M9 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 0c-3.3 0-6 2.2-6 5m12-5a3 3 0 1 0-2-5.2M21 13c0-2.8-2.7-5-6-5",
   },
   {
-    title: "Grow",
-    body: "Bible study, community, and real friendship — leave stronger in body and in spirit.",
+    title: "Flourish in Freedom",
+    body: "Trade comparison and striving for the wholeness and freedom Christ died to give you.",
     icon: "M12 3v18M5 10l7-7 7 7",
   },
+];
+
+const reflections = [
+  "Do you wish any of your features were different?",
+  "Have you felt convicted about the words, music, or environment you've been working out in?",
+  "Do you compare your body type or your looks to others?",
+  "Are you more concerned with the size of your waist than the condition of your heart?",
+  "Do you ever find yourself obsessing over working out or pushing yourself too hard because you “deserve it”?",
+  "When you eat, are you constantly thinking about how it'll affect your weight?",
+  "Do you ever have trouble thanking God for how He made you?",
 ];
 
 const kindLabel: Record<string, string> = {
@@ -54,20 +65,30 @@ export default async function LandingPage() {
 
       {/* Hero */}
       <section className="relative overflow-hidden">
-        <div className="bg-sunset absolute inset-0 opacity-[0.13]" />
-        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-sunset opacity-20 blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-sage-300 opacity-20 blur-3xl" />
+        {/* Optional hero photo (shows if /photos/hero.jpg exists). */}
+        <BrandImage
+          src="/photos/hero.jpg"
+          alt=""
+          hideOnError
+          className="absolute inset-0 h-full w-full opacity-25"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-sage-100/80 via-ink-50/70 to-ink-50" />
+        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-200 opacity-40 blur-3xl" />
+        <div className="absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-clay-200 opacity-50 blur-3xl" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 py-20 text-center md:py-28">
           <DwellSeal size={104} />
           <p className="mt-8 text-xs font-semibold uppercase tracking-[0.35em] text-brand-600">
             Lincoln, Nebraska
           </p>
           <h1 className="mt-4 max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 sm:text-6xl">
-            A movement studio for women to worship &amp; flourish
+            A Christ-centered movement studio for women
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-600">
-            A Christ-centered space to worship, workout, and grow closer to
-            Jesus. Feed your spirit. Find community. Flourish in freedom.
+            Honoring the body as God&apos;s dwelling place through cycle,
+            movement, and dance.
+          </p>
+          <p className="mt-4 font-serif text-lg italic text-brand-600">
+            Feed your spirit. Find community. Flourish in freedom.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link href="/register" className="btn-primary px-6 py-3 text-base">
@@ -86,10 +107,10 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Pillars */}
+      {/* Core values */}
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div className="grid gap-6 md:grid-cols-3">
-          {pillars.map((p) => (
+          {coreValues.map((p) => (
             <div key={p.title} className="card p-7 text-center">
               <span className="bg-sunset mx-auto flex h-14 w-14 items-center justify-center rounded-full">
                 <span className="flex h-full w-full items-center justify-center rounded-full bg-ink-50">
@@ -108,11 +129,11 @@ export default async function LandingPage() {
       {/* About */}
       <section id="about" className="scroll-mt-20 bg-white py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-2">
-          <div className="bg-sunset aspect-[4/5] w-full rounded-3xl p-1.5 shadow-soft">
-            <div className="flex h-full w-full flex-col items-center justify-center rounded-[1.35rem] bg-ink-50 p-8 text-center">
-              <DwellSeal size={96} />
-              <p className="mt-6 font-serif text-2xl italic text-ink-700">
-                &ldquo;It&apos;s real, raw, and makes hell tremble.&rdquo;
+          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl shadow-soft">
+            <BrandImage src="/photos/about.jpg" alt="Women worshipping and moving together at Dwell Studio" className="h-full w-full" />
+            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/60 to-transparent p-6">
+              <p className="font-serif text-xl italic text-white">
+                &ldquo;Look at what the Lord has done.&rdquo;
               </p>
             </div>
           </div>
@@ -120,17 +141,17 @@ export default async function LandingPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
               Our heart
             </p>
-            <h2 className="mt-3 text-4xl font-semibold">More than a workout</h2>
+            <h2 className="mt-3 text-4xl font-semibold">Set apart for believers</h2>
             <p className="mt-5 text-ink-600">
-              Dwell Studio is a community of women trading the noise of worldly
-              fitness culture for a space filled with worship, truth, and
-              movement that leads us closer to Jesus.
+              Welcome to a space set apart for believers, where you no longer
+              have to compromise your conviction or your walk with Jesus to move
+              your body. Instead, be encouraged in your relationship with the
+              Lord, challenged to live higher, and experience the wholeness that
+              He died to give you.
             </p>
             <p className="mt-4 text-ink-600">
-              Mothers are being stirred. Women are growing closer to Jesus,
-              trading worldly ruts for God-honoring rhythms, and doing life
-              together. It&apos;s not a trend — it&apos;s a revolution of unity,
-              discipling the next generation.
+              Trade the noise of worldly fitness culture for a space filled with
+              worship, truth, and movement that leads you closer to Jesus.
             </p>
             <div className="mt-7 flex gap-3">
               <Link href="/register" className="btn-primary">
@@ -144,6 +165,32 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* Is this for me? */}
+      <section className="bg-sage-100 py-20">
+        <div className="mx-auto max-w-3xl px-4">
+          <div className="text-center">
+            <h2 className="text-4xl font-semibold">How do I know this is for me?</h2>
+            <p className="mt-3 text-ink-600">
+              If your answer is yes to any of these, you&apos;re in the right
+              place.
+            </p>
+          </div>
+          <ul className="mx-auto mt-8 max-w-2xl space-y-3">
+            {reflections.map((q) => (
+              <li key={q} className="flex items-start gap-3 rounded-2xl bg-white/70 px-5 py-4 shadow-soft">
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-500" />
+                <span className="text-ink-700">{q}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-8 text-center">
+            <Link href="/register" className="btn-primary px-6 py-3">
+              This is for me — let&apos;s begin
+            </Link>
+          </p>
+        </div>
+      </section>
+
       {/* Classes */}
       <section id="classes" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
         <div className="text-center">
@@ -152,8 +199,8 @@ export default async function LandingPage() {
           </p>
           <h2 className="mt-3 text-4xl font-semibold">Our classes</h2>
           <p className="mx-auto mt-3 max-w-xl text-ink-600">
-            From candlelit worship cycle to strength, sculpt, dance cardio, and
-            Mommy &amp; Me — there&apos;s a place for every season.
+            Cycle, strength, sculpt, dance, and more — every class set to
+            worship.
           </p>
         </div>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -172,107 +219,128 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Schedule preview */}
-      <section id="schedule" className="scroll-mt-20 bg-white py-20">
+      {/* Community gallery */}
+      <section className="bg-white py-20">
         <div className="mx-auto max-w-6xl px-4">
-          <div className="text-center">
+          <div className="mb-10 text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
-              This week
+              Our community
             </p>
-            <h2 className="mt-3 text-4xl font-semibold">Upcoming classes</h2>
-            <p className="mx-auto mt-3 max-w-xl text-ink-600">
-              Reserve your spot in seconds. New here? Create a free account to
-              book your first class.
-            </p>
+            <h2 className="mt-3 text-4xl font-semibold">Stronger together</h2>
           </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              { src: "/photos/cycle.jpg", alt: "Dwell cycle class" },
+              { src: "/photos/community.jpg", alt: "Dwell community" },
+              { src: "/photos/movement.jpg", alt: "Movement and worship at Dwell" },
+            ].map((img) => (
+              <div key={img.src} className="aspect-[4/5] overflow-hidden rounded-2xl shadow-soft">
+                <BrandImage src={img.src} alt={img.alt} className="h-full w-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-          <div className="mx-auto mt-10 max-w-3xl divide-y divide-ink-100 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-soft">
-            {upcoming.length === 0 ? (
-              <p className="p-8 text-center text-ink-500">
-                New classes are being scheduled — check back soon!
-              </p>
-            ) : (
-              upcoming.map((s) => (
-                <div key={s.id} className="flex items-center gap-4 p-4">
-                  <span className="h-12 w-1.5 rounded-full" style={{ backgroundColor: s.classType.color }} />
-                  <div className="w-28 shrink-0">
-                    <div className="text-sm font-semibold">{dayLabel(s.startsAt)}</div>
-                    <div className="text-xs text-ink-500">{timeLabel(s.startsAt)}</div>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate font-medium">{s.classType.name}</div>
-                    <div className="truncate text-sm text-ink-500">{s.instructor.name}</div>
-                  </div>
-                  <Link href="/login" className="btn-secondary shrink-0 text-xs">
-                    Reserve
-                  </Link>
+      {/* Schedule preview */}
+      <section id="schedule" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
+        <div className="text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+            This week
+          </p>
+          <h2 className="mt-3 text-4xl font-semibold">Upcoming classes</h2>
+          <p className="mx-auto mt-3 max-w-xl text-ink-600">
+            Reserve your spot in seconds. New here? Create a free account to
+            book your first class.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-10 max-w-3xl divide-y divide-ink-100 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-soft">
+          {upcoming.length === 0 ? (
+            <p className="p-8 text-center text-ink-500">
+              New classes are being scheduled — check back soon!
+            </p>
+          ) : (
+            upcoming.map((s) => (
+              <div key={s.id} className="flex items-center gap-4 p-4">
+                <span className="h-12 w-1.5 rounded-full" style={{ backgroundColor: s.classType.color }} />
+                <div className="w-28 shrink-0">
+                  <div className="text-sm font-semibold">{dayLabel(s.startsAt)}</div>
+                  <div className="text-xs text-ink-500">{timeLabel(s.startsAt)}</div>
                 </div>
-              ))
-            )}
-          </div>
-          <div className="mt-8 text-center">
-            <Link href="/register" className="btn-primary px-6 py-3">
-              Create an account to book
-            </Link>
-          </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate font-medium">{s.classType.name}</div>
+                  <div className="truncate text-sm text-ink-500">{s.instructor.name}</div>
+                </div>
+                <Link href="/login" className="btn-secondary shrink-0 text-xs">
+                  Reserve
+                </Link>
+              </div>
+            ))
+          )}
+        </div>
+        <div className="mt-8 text-center">
+          <Link href="/register" className="btn-primary px-6 py-3">
+            Create an account to book
+          </Link>
         </div>
       </section>
 
       {/* Membership */}
-      <section id="membership" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
-        <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
-            Join the community
-          </p>
-          <h2 className="mt-3 text-4xl font-semibold">Memberships &amp; passes</h2>
-          <p className="mx-auto mt-3 max-w-xl text-ink-600">
-            Whether you&apos;re here every day or dropping in, there&apos;s an
-            option for you.
-          </p>
-        </div>
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {plans.map((p, i) => {
-            const featured = p.kind === "UNLIMITED";
-            return (
-              <div
-                key={p.id}
-                className={`card flex flex-col p-6 ${
-                  featured ? "ring-2 ring-brand-400" : ""
-                }`}
-              >
-                {featured && (
-                  <span className="badge mb-2 self-start bg-brand-600 text-white">
-                    Most popular
+      <section id="membership" className="scroll-mt-20 bg-white py-20">
+        <div className="mx-auto max-w-6xl px-4">
+          <div className="text-center">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+              Join the community
+            </p>
+            <h2 className="mt-3 text-4xl font-semibold">Memberships &amp; passes</h2>
+            <p className="mx-auto mt-3 max-w-xl text-ink-600">
+              Whether you&apos;re here every day or dropping in, there&apos;s an
+              option for you.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {plans.map((p) => {
+              const featured = p.kind === "UNLIMITED";
+              return (
+                <div key={p.id} className={`card flex flex-col p-6 ${featured ? "ring-2 ring-brand-400" : ""}`}>
+                  {featured && (
+                    <span className="badge mb-2 self-start bg-brand-500 text-white">
+                      Most popular
+                    </span>
+                  )}
+                  <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
+                    {kindLabel[p.kind]}
                   </span>
-                )}
-                <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
-                  {kindLabel[p.kind]}
-                </span>
-                <h3 className="mt-1 text-xl font-semibold">{p.name}</h3>
-                <div className="mt-3">
-                  <span className="font-serif text-4xl font-semibold">
-                    {money(p.priceCents)}
-                  </span>
+                  <h3 className="mt-1 text-xl font-semibold">{p.name}</h3>
+                  <div className="mt-3">
+                    <span className="font-serif text-4xl font-semibold">{money(p.priceCents)}</span>
+                    {p.kind === "UNLIMITED" && <span className="text-sm text-ink-500">/month</span>}
+                  </div>
+                  <ul className="mt-4 space-y-1 text-sm text-ink-600">
+                    <li>
+                      {p.kind === "UNLIMITED"
+                        ? "Unlimited classes"
+                        : `${p.credits} class credit${p.credits === 1 ? "" : "s"}`}
+                    </li>
+                    <li>
+                      {p.kind === "UNLIMITED"
+                        ? "Auto-renews monthly · cancel anytime"
+                        : `Valid for ${p.durationDays} days`}
+                    </li>
+                  </ul>
+                  <Link href="/register" className="btn-primary mt-6">
+                    Get started
+                  </Link>
                 </div>
-                <ul className="mt-4 space-y-1 text-sm text-ink-600">
-                  <li>
-                    {p.kind === "UNLIMITED"
-                      ? "Unlimited classes"
-                      : `${p.credits} class credit${p.credits === 1 ? "" : "s"}`}
-                  </li>
-                  <li>Valid {p.durationDays} days</li>
-                </ul>
-                <Link href="/register" className="btn-primary mt-6">
-                  Get started
-                </Link>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* Saturday community CTA */}
-      <section className="px-4 pb-20">
+      <section className="px-4 py-20">
         <div className="bg-sunset relative mx-auto max-w-6xl overflow-hidden rounded-3xl p-1.5">
           <div className="rounded-[1.35rem] bg-ink-900 px-8 py-14 text-center text-white">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
@@ -292,7 +360,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Visit / footer */}
+      {/* Footer */}
       <footer id="visit" className="scroll-mt-20 border-t border-ink-200 bg-white">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-3">
           <div>

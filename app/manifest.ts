@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
       "A Christ-centered movement studio for women — book classes and manage your membership.",
     start_url: "/",
     display: "standalone",
-    background_color: "#FAF6F0",
-    theme_color: "#FAF6F0",
+    background_color: "#F4F1EC",
+    theme_color: "#F4F1EC",
     icons: [
       { src: "/icon", sizes: "256x256", type: "image/png" },
       { src: "/apple-icon", sizes: "180x180", type: "image/png" },
