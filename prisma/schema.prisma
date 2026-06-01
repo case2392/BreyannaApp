@@ -27,6 +27,8 @@ model User {
   role         String   @default("MEMBER")
   // Optional emergency / health notes the studio keeps on a member (CRM)
   notes        String?
+  // Stripe customer id (created on first checkout)
+  stripeCustomerId String? @unique
   createdAt    DateTime @default(now())
 
   bookings    Booking[]
@@ -134,6 +136,9 @@ model Membership {
   startsAt        DateTime @default(now())
   expiresAt       DateTime
   pricePaidCents  Int      @default(0)
+  // Auto-renewing subscriptions (Stripe). One-time packs leave these null/false.
+  autoRenew            Boolean @default(false)
+  stripeSubscriptionId String? @unique
   createdAt       DateTime @default(now())
 
   bookings Booking[]

@@ -95,6 +95,32 @@ New members can create their own accounts with the **Create an account** link.
   and reloads sample data. A dedicated "clean studio" setup can be added when you
   go live for real.)
 
+## Turning on payments (Stripe)
+
+The app works without payments (plans are granted instantly). To take real
+card payments for memberships, packs and drop-ins:
+
+1. Create a free account at **https://stripe.com**. Start in **Test mode**
+   (toggle at the top of the Stripe dashboard) so you can try it with fake
+   cards first.
+2. In Stripe, go to **Developers → API keys** and copy your **Secret key**
+   (starts with `sk_test_...`).
+3. In Vercel → your project → **Settings → Environment Variables**, add:
+   - `STRIPE_SECRET_KEY` = the secret key from step 2
+   - `NEXT_PUBLIC_BASE_URL` = your site URL (e.g. `https://breyanna-app.vercel.app`)
+4. Set up the webhook so memberships activate after payment:
+   - In Stripe: **Developers → Webhooks → Add endpoint**.
+   - Endpoint URL: `https://YOUR-APP.vercel.app/api/webhooks/stripe`
+   - Select events: `checkout.session.completed`, `invoice.paid`,
+     `customer.subscription.deleted`.
+   - After creating it, copy the **Signing secret** (`whsec_...`) and add it in
+     Vercel as `STRIPE_WEBHOOK_SECRET`.
+5. **Redeploy** (Vercel → Deployments → ⋯ → Redeploy) so the new variables take
+   effect.
+6. Test with Stripe's test card `4242 4242 4242 4242`, any future expiry, any
+   CVC. When you're ready for real money, switch Stripe to **Live mode**, repeat
+   the key + webhook steps with the live values, and redeploy.
+
 ## If something goes wrong
 
 - **Build failed:** double-check the `DATABASE_URL` value is the full Neon string

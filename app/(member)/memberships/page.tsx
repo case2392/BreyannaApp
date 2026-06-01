@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { money, shortDate } from "@/lib/format";
-import { BuyButton } from "@/components/BuyButton";
+import { stripeEnabled } from "@/lib/stripe";
+import { BuyButton, ManageBillingButton } from "@/components/BuyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,14 @@ const kindLabel: Record<string, string> = {
   DROP_IN: "Drop-in",
 };
 
-export default async function MembershipsPage() {
+export default async function MembershipsPage({
+  searchParams,
+}: {
+  searchParams: { status?: string };
+}) {
   const user = (await getCurrentUser())!;
   const now = new Date();
+  const payments = stripeEnabled();
 
   const [mine, plans] = await Promise.all([
     prisma.membership.findMany({
@@ -27,6 +33,8 @@ export default async function MembershipsPage() {
     }),
   ]);
 
+  const hasSubscription = mine.some((m) => m.autoRenew);
+
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold">Memberships &amp; passes</h1>
@@ -34,20 +42,32 @@ export default async function MembershipsPage() {
         Your active plans and everything available at the studio.
       </p>
 
+      {searchParams.status === "success" && (
+        <div className="mb-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+          Thank you! Your purchase is confirmed — you&apos;re all set to book.
+        </div>
+      )}
+      {searchParams.status === "cancel" && (
+        <div className="mb-6 rounded-xl border border-ink-200 bg-ink-100 px-4 py-3 text-sm text-ink-700">
+          Checkout cancelled — no charge was made.
+        </div>
+      )}
+
       {mine.length > 0 && (
         <section className="mb-8">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
-            Your active plans
-          </h2>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-500">
+              Your active plans
+            </h2>
+            {payments && hasSubscription && <ManageBillingButton />}
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {mine.map((m) => (
               <div key={m.id} className="card p-5">
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="font-semibold">{m.plan.name}</div>
-                    <div className="text-xs text-ink-500">
-                      {kindLabel[m.plan.kind]}
-                    </div>
+                    <div className="text-xs text-ink-500">{kindLabel[m.plan.kind]}</div>
                   </div>
                   <span className="badge bg-green-100 text-green-700">Active</span>
                 </div>
@@ -65,7 +85,7 @@ export default async function MembershipsPage() {
                     )}
                   </div>
                   <div className="text-right text-xs text-ink-500">
-                    Expires
+                    {m.autoRenew ? "Renews" : "Expires"}
                     <br />
                     {shortDate(m.expiresAt)}
                   </div>
@@ -92,6 +112,9 @@ export default async function MembershipsPage() {
               )}
               <div className="my-4">
                 <span className="text-3xl font-bold">{money(p.priceCents)}</span>
+                {p.kind === "UNLIMITED" && (
+                  <span className="text-sm text-ink-500">/month</span>
+                )}
               </div>
               <ul className="mb-5 space-y-1 text-sm text-ink-700">
                 <li>
@@ -99,7 +122,11 @@ export default async function MembershipsPage() {
                     ? "Unlimited classes"
                     : `${p.credits} class credit${p.credits === 1 ? "" : "s"}`}
                 </li>
-                <li>Valid for {p.durationDays} days</li>
+                <li>
+                  {p.kind === "UNLIMITED"
+                    ? "Auto-renews monthly · cancel anytime"
+                    : `Valid for ${p.durationDays} days`}
+                </li>
               </ul>
               <div className="mt-auto">
                 <BuyButton planId={p.id} />
@@ -107,10 +134,13 @@ export default async function MembershipsPage() {
             </div>
           ))}
         </div>
-        <p className="mt-4 text-xs text-ink-400">
-          Card payments are not enabled in this version — selecting a plan grants
-          it instantly so you can try out booking.
-        </p>
+        {!payments && (
+          <p className="mt-4 text-xs text-ink-400">
+            Card payments aren&apos;t switched on yet — selecting a plan grants it
+            instantly so you can try booking. Add your Stripe keys to take real
+            payments.
+          </p>
+        )}
       </section>
     </div>
   );
