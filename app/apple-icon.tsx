@@ -1,0 +1,40 @@
+import { ImageResponse } from "next/og";
+
+// Apple touch icon for "Add to Home Screen" on iPhones.
+export const size = { width: 180, height: 180 };
+export const contentType = "image/png";
+
+export default function AppleIcon() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(135deg, #f6b73c, #ef6f8e, #b14aa0)",
+        }}
+      >
+        <div
+          style={{
+            width: "78%",
+            height: "78%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: "50%",
+            background: "#FAF6F0",
+            color: "#261E18",
+            fontSize: 96,
+            fontWeight: 700,
+          }}
+        >
+          D
+        </div>
+      </div>
+    ),
+    size
+  );
+}
