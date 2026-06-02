@@ -2,7 +2,11 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { money, shortDate } from "@/lib/format";
 import { stripeEnabled } from "@/lib/stripe";
-import { BuyButton, ManageBillingButton } from "@/components/BuyButton";
+import {
+  BuyButton,
+  ManageBillingButton,
+  CancelPlanButton,
+} from "@/components/BuyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +93,9 @@ export default async function MembershipsPage({
                     <br />
                     {shortDate(m.expiresAt)}
                   </div>
+                </div>
+                <div className="mt-3 flex justify-end border-t border-ink-100 pt-3">
+                  <CancelPlanButton membershipId={m.id} />
                 </div>
               </div>
             ))}

@@ -2,7 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { startCheckout, openBillingPortal } from "@/app/actions/checkout";
+import {
+  startCheckout,
+  openBillingPortal,
+  cancelMembership,
+} from "@/app/actions/checkout";
 
 export function BuyButton({ planId }: { planId: string }) {
   const [pending, startTransition] = useTransition();
@@ -34,6 +38,30 @@ export function BuyButton({ planId }: { planId: string }) {
       </button>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>
+  );
+}
+
+export function CancelPlanButton({ membershipId }: { membershipId: string }) {
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function cancel() {
+    if (!confirm("Cancel this membership? This removes access right away."))
+      return;
+    startTransition(async () => {
+      await cancelMembership(membershipId);
+      router.refresh();
+    });
+  }
+
+  return (
+    <button
+      onClick={cancel}
+      disabled={pending}
+      className="text-xs font-medium text-ink-400 hover:text-red-600"
+    >
+      {pending ? "Cancelling…" : "Cancel"}
+    </button>
   );
 }
 

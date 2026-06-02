@@ -92,3 +92,30 @@ export async function openBillingPortal() {
   });
   return { ok: true, url: portal.url };
 }
+
+// Cancel a membership immediately (and its Stripe subscription, if any).
+export async function cancelMembership(membershipId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false, error: "Please sign in." };
+
+  const m = await prisma.membership.findUnique({ where: { id: membershipId } });
+  if (!m || m.userId !== user.id)
+    return { ok: false, error: "Membership not found." };
+
+  if (m.stripeSubscriptionId && stripeEnabled()) {
+    try {
+      await stripe!.subscriptions.cancel(m.stripeSubscriptionId);
+    } catch {
+      // Already cancelled or not found in Stripe — fall through to local update.
+    }
+  }
+
+  await prisma.membership.update({
+    where: { id: m.id },
+    data: { status: "CANCELLED", autoRenew: false },
+  });
+
+  revalidatePath("/memberships");
+  revalidatePath("/schedule");
+  return { ok: true };
+}
