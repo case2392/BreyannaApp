@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { stripeEnabled } from "@/lib/stripe";
+import { stripeEnabled, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe";
 import { emailConfigured, smsConfigured } from "@/lib/messaging";
 
 // Public health/status check — reports which integrations are configured.
@@ -10,7 +10,9 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   return NextResponse.json({
     payments: stripeEnabled(),
+    paymentsWebhook: Boolean(STRIPE_WEBHOOK_SECRET),
     email: emailConfigured(),
     sms: smsConfigured(),
   });
 }
+
