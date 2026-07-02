@@ -31,6 +31,23 @@ export async function POST(request: Request) {
       // New purchase (one-time pack/drop-in, or first subscription payment).
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // Sponsor a Sister donation — record it, don't grant a membership.
+        if (session.metadata?.kind === "donation") {
+          await prisma.donation.upsert({
+            where: { stripeRef: session.id },
+            create: {
+              stripeRef: session.id,
+              name: session.customer_details?.name ?? null,
+              email: session.customer_details?.email ?? null,
+              amountCents: session.amount_total ?? 0,
+              recurring: session.mode === "subscription",
+            },
+            update: {},
+          });
+          break;
+        }
+
         const userId = session.metadata?.userId;
         const planId = session.metadata?.planId;
         if (userId && planId) {
@@ -47,10 +64,27 @@ export async function POST(request: Request) {
         break;
       }
 
-      // Recurring renewal — extend the membership another period.
+      // Recurring renewal — extend the membership (or record a recurring donation).
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
-        if (invoice.billing_reason === "subscription_cycle" && invoice.subscription) {
+        if (invoice.billing_reason !== "subscription_cycle") break;
+
+        // Recurring "Sponsor a Sister" donation renewal.
+        if ((invoice as any).subscription_details?.metadata?.kind === "donation") {
+          await prisma.donation.upsert({
+            where: { stripeRef: invoice.id },
+            create: {
+              stripeRef: invoice.id,
+              email: invoice.customer_email ?? null,
+              amountCents: invoice.amount_paid ?? 0,
+              recurring: true,
+            },
+            update: {},
+          });
+          break;
+        }
+
+        if (invoice.subscription) {
           const subId =
             typeof invoice.subscription === "string"
               ? invoice.subscription

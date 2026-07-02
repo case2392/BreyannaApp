@@ -355,6 +355,24 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* Sponsor a Sister */}
+      <section className="bg-sage-100 py-20">
+        <div className="mx-auto max-w-4xl px-4 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-700">
+            Sponsor a Sister
+          </p>
+          <h2 className="mt-3 text-4xl font-semibold">Give the gift of Dwell</h2>
+          <p className="mx-auto mt-4 max-w-xl text-ink-600">
+            Help sponsor a membership for a woman who couldn&apos;t otherwise be
+            here. Give any amount, once or monthly — cost should never keep a
+            sister from worship, movement, and community.
+          </p>
+          <Link href="/sponsor" className="btn-primary mt-7 px-6 py-3">
+            Sponsor a sister
+          </Link>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer id="visit" className="scroll-mt-20 border-t border-ink-200 bg-white">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-3">

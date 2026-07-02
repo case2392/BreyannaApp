@@ -221,6 +221,21 @@ model MessageLog {
   @@index([createdAt])
 }
 
+// A "Sponsor a Sister" donation (funds sponsored memberships for women in
+// need). One-time or recurring monthly.
+model Donation {
+  id          String   @id @default(cuid())
+  name        String?
+  email       String?
+  amountCents Int
+  recurring   Boolean  @default(false)
+  // Stripe checkout session id (one-time / first charge) or invoice id (renewal)
+  stripeRef   String?  @unique
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // A one-time password-reset link. The emailed link carries the raw token; we
 // store only its hash. Expires after a short window.
 model PasswordResetToken {
