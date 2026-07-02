@@ -3,7 +3,11 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { shortDate, dayLabel, timeLabel, money } from "@/lib/format";
 import { MemberNotes } from "@/components/admin/MemberNotes";
-import { GrantMembership, DeleteMemberButton } from "@/components/admin/MemberTools";
+import {
+  GrantMembership,
+  DeleteMemberButton,
+  RemoveMembershipButton,
+} from "@/components/admin/MemberTools";
 
 export const dynamic = "force-dynamic";
 
@@ -97,21 +101,42 @@ export default async function MemberDetailPage({
               </div>
             )}
             {member.memberships.map((m) => {
+              const comp = m.source === "COMP" || m.source === "GIFT";
               const expired = m.expiresAt < now;
               const label =
                 m.status === "ACTIVE" && expired ? "EXPIRED" : m.status;
+              const validity =
+                m.plan.kind === "UNLIMITED"
+                  ? comp
+                    ? "Unlimited · never expires"
+                    : `Unlimited · ${m.autoRenew ? "renews" : "expires"} ${shortDate(m.expiresAt)}`
+                  : `${m.creditsRemaining} credits left · no expiry`;
+              const cost = comp
+                ? m.source === "GIFT"
+                  ? "Gift"
+                  : "Complimentary"
+                : `paid ${money(m.pricePaidCents)}`;
               return (
                 <div key={m.id} className="card p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2">
                     <div className="font-medium">{m.plan.name}</div>
-                    <span className={`badge ${statusColor[label]}`}>{label}</span>
+                    <div className="flex items-center gap-2">
+                      {comp && (
+                        <span className="badge bg-brand-50 text-brand-700">
+                          {m.source === "GIFT" ? "Gift" : "Comp"}
+                        </span>
+                      )}
+                      <span className={`badge ${statusColor[label]}`}>{label}</span>
+                    </div>
                   </div>
                   <div className="mt-1 text-xs text-ink-500">
-                    {m.plan.kind === "UNLIMITED"
-                      ? `Unlimited · ${m.autoRenew ? "renews" : "expires"} ${shortDate(m.expiresAt)}`
-                      : `${m.creditsRemaining} credits left · no expiry`}{" "}
-                    · paid {money(m.pricePaidCents)}
+                    {validity} · {cost}
                   </div>
+                  {m.status === "ACTIVE" && (
+                    <div className="mt-2 flex justify-end">
+                      <RemoveMembershipButton membershipId={m.id} />
+                    </div>
+                  )}
                 </div>
               );
             })}

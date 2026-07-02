@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
+import { stripe, stripeEnabled } from "@/lib/stripe";
 
 async function requireStaff() {
   const user = await getCurrentUser();
@@ -363,13 +364,40 @@ export async function createMember(_prev: unknown, formData: FormData) {
   return { ok: true };
 }
 
-// Give a member a membership manually (a comp, or to migrate an existing payer).
-export async function grantMembershipToMember(userId: string, planId: string) {
+// Give a member a membership manually. Comps & gifts never expire until
+// removed here; use "GIFT" for a sponsored (Sponsor a Sister) membership.
+export async function grantMembershipToMember(
+  userId: string,
+  planId: string,
+  source: "COMP" | "GIFT" = "COMP"
+) {
   await requireStaff();
   const plan = await prisma.membershipPlan.findUnique({ where: { id: planId } });
   if (!plan) return { ok: false, error: "Plan not found." };
-  await grantMembership(userId, plan, { pricePaidCents: 0 });
+  await grantMembership(userId, plan, { pricePaidCents: 0, source });
   revalidatePath(`/admin/members/${userId}`);
+  return { ok: true };
+}
+
+// Remove a single membership from a member (staff). Also cancels a linked
+// Stripe subscription if there is one.
+export async function removeMembership(membershipId: string) {
+  await requireStaff();
+  const m = await prisma.membership.findUnique({ where: { id: membershipId } });
+  if (!m) return { ok: false, error: "Membership not found." };
+
+  if (m.stripeSubscriptionId && stripeEnabled()) {
+    try {
+      await stripe!.subscriptions.cancel(m.stripeSubscriptionId);
+    } catch {
+      // already gone / not found — continue
+    }
+  }
+  await prisma.membership.update({
+    where: { id: m.id },
+    data: { status: "CANCELLED", autoRenew: false },
+  });
+  revalidatePath(`/admin/members/${m.userId}`);
   return { ok: true };
 }
 

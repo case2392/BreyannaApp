@@ -7,8 +7,15 @@ import type { MembershipPlan } from "@prisma/client";
 export async function grantMembership(
   userId: string,
   plan: MembershipPlan,
-  opts: { stripeSubscriptionId?: string; pricePaidCents?: number } = {}
+  opts: {
+    stripeSubscriptionId?: string;
+    pricePaidCents?: number;
+    source?: "PURCHASE" | "COMP" | "GIFT";
+    giftedByUserId?: string;
+  } = {}
 ) {
+  const source = opts.source ?? "PURCHASE";
+  const comp = source === "COMP" || source === "GIFT";
   const isSubscription = plan.kind === "UNLIMITED" && Boolean(opts.stripeSubscriptionId);
 
   // If this subscription already has a membership, extend it (renewal).
@@ -27,11 +34,12 @@ export async function grantMembership(
     }
   }
 
-  // Unlimited = a monthly period that renews. Packs & drop-ins are credits
-  // that never expire (we just track credits until they're used), so we set a
-  // far-future date to keep them permanently "active".
+  // Expiry rules:
+  //  - Comps & gifts never expire (managed manually by the studio).
+  //  - Paid packs/drop-ins never expire (credit-based).
+  //  - Only a paid Unlimited membership carries a monthly period.
   const expiresAt = new Date();
-  if (plan.kind === "UNLIMITED") {
+  if (!comp && plan.kind === "UNLIMITED") {
     expiresAt.setDate(expiresAt.getDate() + plan.durationDays);
   } else {
     expiresAt.setFullYear(expiresAt.getFullYear() + 50);
@@ -45,6 +53,8 @@ export async function grantMembership(
       creditsRemaining: plan.kind === "UNLIMITED" ? 0 : plan.credits,
       expiresAt,
       pricePaidCents: opts.pricePaidCents ?? plan.priceCents,
+      source,
+      giftedByUserId: opts.giftedByUserId ?? null,
       autoRenew: isSubscription,
       stripeSubscriptionId: opts.stripeSubscriptionId ?? null,
     },

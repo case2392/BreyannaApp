@@ -6,6 +6,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import {
   createMember,
   grantMembershipToMember,
+  removeMembership,
   deleteMember,
 } from "@/app/actions/admin";
 
@@ -110,6 +111,7 @@ export function GrantMembership({
   plans: PlanOpt[];
 }) {
   const [planId, setPlanId] = useState(plans[0]?.id ?? "");
+  const [source, setSource] = useState<"COMP" | "GIFT">("COMP");
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const router = useRouter();
@@ -118,9 +120,9 @@ export function GrantMembership({
     if (!planId) return;
     setMsg(null);
     start(async () => {
-      const res = await grantMembershipToMember(userId, planId);
+      const res = await grantMembershipToMember(userId, planId, source);
       if (res.ok) {
-        setMsg("Membership granted.");
+        setMsg("Membership granted — it won't expire until you remove it.");
         router.refresh();
       } else {
         setMsg(res.error ?? "Something went wrong.");
@@ -132,26 +134,63 @@ export function GrantMembership({
     return <p className="text-sm text-ink-500">Add a plan first to grant memberships.</p>;
 
   return (
-    <div className="flex flex-wrap items-end gap-2">
-      <div>
-        <label className="label">Grant a membership</label>
-        <select
-          value={planId}
-          onChange={(e) => setPlanId(e.target.value)}
-          className="input"
-        >
-          {plans.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
+    <div>
+      <div className="flex flex-wrap items-end gap-2">
+        <div>
+          <label className="label">Grant a membership</label>
+          <select
+            value={planId}
+            onChange={(e) => setPlanId(e.target.value)}
+            className="input"
+          >
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="label">Type</label>
+          <select
+            value={source}
+            onChange={(e) => setSource(e.target.value as "COMP" | "GIFT")}
+            className="input"
+          >
+            <option value="COMP">Complimentary</option>
+            <option value="GIFT">Gift (Sponsor a Sister)</option>
+          </select>
+        </div>
+        <button onClick={grant} disabled={pending} className="btn-primary text-sm">
+          {pending ? "Granting…" : "Grant"}
+        </button>
       </div>
-      <button onClick={grant} disabled={pending} className="btn-primary text-sm">
-        {pending ? "Granting…" : "Grant"}
-      </button>
-      {msg && <span className="text-xs text-ink-500">{msg}</span>}
+      {msg && <p className="mt-2 text-xs text-ink-500">{msg}</p>}
     </div>
+  );
+}
+
+export function RemoveMembershipButton({ membershipId }: { membershipId: string }) {
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  function remove() {
+    if (!confirm("Remove this membership? The member loses access to it.")) return;
+    start(async () => {
+      const res = await removeMembership(membershipId);
+      if (!res.ok) alert(res.error);
+      router.refresh();
+    });
+  }
+
+  return (
+    <button
+      onClick={remove}
+      disabled={pending}
+      className="text-xs font-medium text-ink-400 hover:text-red-600"
+    >
+      {pending ? "Removing…" : "Remove"}
+    </button>
   );
 }
 

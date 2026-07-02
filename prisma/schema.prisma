@@ -136,6 +136,11 @@ model Membership {
   startsAt        DateTime @default(now())
   expiresAt       DateTime
   pricePaidCents  Int      @default(0)
+  // "PURCHASE" | "COMP" | "GIFT". Comps & gifts never expire — the studio
+  // manages them manually (removes them when needed).
+  source          String   @default("PURCHASE")
+  // For gifted memberships (Sponsor a Sister): who gave it (a user id).
+  giftedByUserId  String?
   // Auto-renewing subscriptions (Stripe). One-time packs leave these null/false.
   autoRenew            Boolean @default(false)
   stripeSubscriptionId String? @unique

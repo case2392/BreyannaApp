@@ -96,20 +96,26 @@ export default async function MembershipsPage({
                     )}
                   </div>
                   <div className="text-right text-xs text-ink-500">
-                    {m.plan.kind === "UNLIMITED" ? (
-                      <>
-                        {m.autoRenew ? "Renews" : "Expires"}
-                        <br />
-                        {shortDate(m.expiresAt)}
-                      </>
-                    ) : (
-                      "Credits don't expire"
-                    )}
+                    {m.source === "GIFT"
+                      ? "Gifted 🤍"
+                      : m.source === "COMP"
+                      ? "Complimentary"
+                      : m.plan.kind === "UNLIMITED" ? (
+                        <>
+                          {m.autoRenew ? "Renews" : "Expires"}
+                          <br />
+                          {shortDate(m.expiresAt)}
+                        </>
+                      ) : (
+                        "Credits don't expire"
+                      )}
                   </div>
                 </div>
-                <div className="mt-3 flex justify-end border-t border-ink-100 pt-3">
-                  <CancelPlanButton membershipId={m.id} />
-                </div>
+                {m.source === "PURCHASE" && (
+                  <div className="mt-3 flex justify-end border-t border-ink-100 pt-3">
+                    <CancelPlanButton membershipId={m.id} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
