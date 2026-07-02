@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { seedDatabase } from "@/lib/seed-data";
+import { seedDatabase, cleanStudio } from "@/lib/seed-data";
 
-// One-time setup endpoint for the deployed site.
+// Setup endpoint for the deployed site. Protected by the SETUP_KEY env var.
 //
-// Visiting /api/setup?key=YOUR_SETUP_KEY loads the demo data so the live site
-// has classes, members and bookings to explore. It is protected by the
-// SETUP_KEY environment variable so strangers can't trigger it.
-//
-// By default it will NOT overwrite a database that already has data; pass
-// &force=1 to wipe and reseed.
+//   /api/setup?key=KEY               → load demo data (only if DB is empty)
+//   /api/setup?key=KEY&force=1       → wipe & reload demo data
+//   /api/setup?key=KEY&mode=clean    → prepare for real use: remove demo
+//                                      members/bookings/classes, keep the
+//                                      catalog (class types, plans, staff)
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +18,7 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const key = url.searchParams.get("key");
   const force = url.searchParams.get("force") === "1";
+  const mode = url.searchParams.get("mode");
 
   const expected = process.env.SETUP_KEY;
   if (!expected) {
@@ -35,13 +35,27 @@ export async function GET(request: Request) {
   }
 
   try {
+    // Clean-start: strip demo members/bookings/sessions, keep the catalog.
+    if (mode === "clean") {
+      const result = await cleanStudio(prisma);
+      return NextResponse.json({
+        ok: true,
+        mode: "clean",
+        message:
+          "Studio cleared for real use. Demo members, bookings and classes were removed; your class types, plans and staff were kept.",
+        signIn: result.ownerCreated
+          ? { email: result.ownerEmail, password: "password", note: "Change this password after signing in." }
+          : { email: result.ownerEmail, note: "Use your existing owner password." },
+      });
+    }
+
     const existing = await prisma.user.count();
     if (existing > 0 && !force) {
       return NextResponse.json({
         ok: true,
         alreadyInitialized: true,
         message:
-          "Database already has data. Add &force=1 to the URL to wipe and reload the demo data.",
+          "Database already has data. Add &force=1 to reload demo data, or &mode=clean to prepare for real use.",
       });
     }
 

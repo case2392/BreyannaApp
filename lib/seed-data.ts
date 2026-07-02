@@ -188,3 +188,34 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
 
   return { members: members.length, sessions: sessions.length, bookings: bookingRows.length };
 }
+
+// Prepare the studio for real use: remove all demo members, bookings,
+// memberships, sessions and campaigns, but KEEP the catalog (class types,
+// plans, instructors, rooms) and any staff/owner accounts. Ensures an owner
+// login exists so the studio can sign in.
+export async function cleanStudio(prisma: PrismaClient): Promise<{ ownerEmail: string; ownerCreated: boolean }> {
+  await prisma.booking.deleteMany();
+  await prisma.membership.deleteMany();
+  await prisma.messageLog.deleteMany();
+  await prisma.campaign.deleteMany();
+  await prisma.classSession.deleteMany();
+  // Remove member accounts only — leave OWNER/STAFF logins intact.
+  await prisma.user.deleteMany({ where: { role: "MEMBER" } });
+
+  await ensureAutomations();
+
+  // Guarantee at least one owner account exists to sign in with.
+  const owner = await prisma.user.findFirst({ where: { role: "OWNER" } });
+  if (owner) return { ownerEmail: owner.email, ownerCreated: false };
+
+  const created = await prisma.user.create({
+    data: {
+      email: "owner@demo.com",
+      passwordHash: hashPassword("password"),
+      firstName: "Dwell",
+      lastName: "Owner",
+      role: "OWNER",
+    },
+  });
+  return { ownerEmail: created.email, ownerCreated: true };
+}

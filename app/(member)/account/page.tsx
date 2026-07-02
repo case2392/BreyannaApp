@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { shortDate } from "@/lib/format";
+import { EditProfileForm, ChangePasswordForm } from "@/components/account/AccountForms";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,22 @@ export default async function AccountPage() {
             <dd className="font-medium capitalize">{user.role.toLowerCase()}</dd>
           </div>
         </dl>
+      </div>
+
+      <div className="mt-6 grid gap-6 md:grid-cols-2">
+        <div className="card p-6">
+          <h2 className="mb-4 font-semibold">Edit profile</h2>
+          <EditProfileForm
+            firstName={user.firstName}
+            lastName={user.lastName}
+            email={user.email}
+            phone={user.phone ?? ""}
+          />
+        </div>
+        <div className="card p-6">
+          <h2 className="mb-4 font-semibold">Change password</h2>
+          <ChangePasswordForm />
+        </div>
       </div>
     </div>
   );
