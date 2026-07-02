@@ -3,6 +3,7 @@ import {
   CreateClassTypeForm,
   CreateInstructorForm,
 } from "@/components/admin/CreateForms";
+import { ClassTypeRow } from "@/components/admin/ClassTypeRow";
 
 export const dynamic = "force-dynamic";
 
@@ -30,22 +31,20 @@ export default async function ClassesPage() {
           <h2 className="mb-3 font-semibold">Class types</h2>
           <div className="mb-4 space-y-2">
             {classTypes.map((c) => (
-              <div key={c.id} className="card flex items-center gap-3 p-4">
-                <span
-                  className="h-8 w-1.5 rounded-full"
-                  style={{ backgroundColor: c.color }}
-                />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{c.name}</div>
-                  <div className="text-xs text-ink-500">
-                    {c.duration} min · cap {c.capacity} · {c.creditCost} credit
-                    {c.creditCost === 1 ? "" : "s"}
-                  </div>
-                </div>
-                <div className="shrink-0 text-xs text-ink-400">
-                  {c._count.sessions} sessions
-                </div>
-              </div>
+              <ClassTypeRow
+                key={c.id}
+                ct={{
+                  id: c.id,
+                  name: c.name,
+                  description: c.description,
+                  duration: c.duration,
+                  capacity: c.capacity,
+                  creditCost: c.creditCost,
+                  color: c.color,
+                  active: c.active,
+                  sessions: c._count.sessions,
+                }}
+              />
             ))}
           </div>
           <CreateClassTypeForm />

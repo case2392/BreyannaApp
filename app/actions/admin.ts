@@ -178,6 +178,85 @@ export async function togglePlan(planId: string, active: boolean) {
   return { ok: true };
 }
 
+export async function updatePlan(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  const kind = String(formData.get("kind") || "PACK") as
+    | "UNLIMITED"
+    | "PACK"
+    | "DROP_IN";
+  const price = Number(formData.get("price")) || 0;
+  if (!id || !name) return { error: "Name is required." };
+
+  await prisma.membershipPlan.update({
+    where: { id },
+    data: {
+      name,
+      description: String(formData.get("description") || "").trim() || null,
+      kind,
+      credits: kind === "UNLIMITED" ? 0 : Number(formData.get("credits")) || 0,
+      priceCents: Math.round(price * 100),
+      durationDays: Number(formData.get("durationDays")) || 30,
+    },
+  });
+  revalidatePath("/admin/plans");
+  revalidatePath("/memberships");
+  return { ok: true };
+}
+
+export async function deletePlan(planId: string) {
+  await requireStaff();
+  const inUse = await prisma.membership.count({ where: { planId } });
+  if (inUse > 0)
+    return {
+      ok: false,
+      error: "Members have purchased this plan — hide it instead of deleting.",
+    };
+  await prisma.membershipPlan.delete({ where: { id: planId } });
+  revalidatePath("/admin/plans");
+  revalidatePath("/memberships");
+  return { ok: true };
+}
+
+export async function updateClassType(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  if (!id || !name) return { error: "Name is required." };
+
+  await prisma.classType.update({
+    where: { id },
+    data: {
+      name,
+      description: String(formData.get("description") || "").trim() || null,
+      duration: Number(formData.get("duration")) || 60,
+      capacity: Number(formData.get("capacity")) || 12,
+      creditCost: Number(formData.get("creditCost")) || 1,
+      color: String(formData.get("color") || "#6A7A5F"),
+      active: formData.get("active") === "on",
+    },
+  });
+  revalidatePath("/admin/classes");
+  revalidatePath("/schedule");
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function deleteClassType(classTypeId: string) {
+  await requireStaff();
+  const inUse = await prisma.classSession.count({ where: { classTypeId } });
+  if (inUse > 0)
+    return {
+      ok: false,
+      error: "This class has scheduled sessions — remove them first, or keep it.",
+    };
+  await prisma.classType.delete({ where: { id: classTypeId } });
+  revalidatePath("/admin/classes");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 // ---- Members ---------------------------------------------------------------
 
 export async function saveMemberNotes(userId: string, notes: string) {
