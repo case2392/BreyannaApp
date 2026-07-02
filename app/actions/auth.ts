@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
+import { randomBytes, createHash } from "crypto";
 import { prisma } from "@/lib/db";
 import {
   hashPassword,
@@ -9,6 +11,7 @@ import {
   clearSessionCookie,
 } from "@/lib/auth";
 import { fireAutomation } from "@/lib/automations";
+import { sendEmail } from "@/lib/messaging";
 
 export async function login(_prev: unknown, formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
@@ -62,4 +65,62 @@ export async function register(_prev: unknown, formData: FormData) {
 export async function logout() {
   clearSessionCookie();
   redirect("/login");
+}
+
+// ---- Password reset --------------------------------------------------------
+
+function resetLink(token: string): string {
+  const h = headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const origin = process.env.NEXT_PUBLIC_BASE_URL || `${proto}://${host}`;
+  return `${origin}/reset-password?token=${token}`;
+}
+
+export async function requestPasswordReset(_prev: unknown, formData: FormData) {
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  if (!email) return { error: "Please enter your email." };
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (user) {
+    const token = randomBytes(32).toString("hex");
+    const tokenHash = createHash("sha256").update(token).digest("hex");
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash, expiresAt },
+    });
+    await sendEmail(
+      email,
+      "Reset your Dwell Studio password",
+      `Hi ${user.firstName},\n\nReset your password using the link below (it expires in 1 hour):\n\n${resetLink(token)}\n\nIf you didn't request this, you can ignore this email.`
+    );
+  }
+
+  // Always return the same response so we never reveal whether an email exists.
+  return { ok: true };
+}
+
+export async function resetPassword(_prev: unknown, formData: FormData) {
+  const token = String(formData.get("token") || "");
+  const password = String(formData.get("password") || "");
+  if (password.length < 6)
+    return { error: "Password must be at least 6 characters." };
+
+  const tokenHash = createHash("sha256").update(token).digest("hex");
+  const rec = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+  if (!rec || rec.usedAt || rec.expiresAt < new Date()) {
+    return { error: "This reset link is invalid or has expired — please request a new one." };
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: rec.userId },
+      data: { passwordHash: hashPassword(password) },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: rec.id },
+      data: { usedAt: new Date() },
+    }),
+  ]);
+  return { ok: true };
 }

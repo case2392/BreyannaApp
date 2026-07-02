@@ -7,6 +7,7 @@ import {
   createMember,
   grantMembershipToMember,
   removeMembership,
+  resetMemberPassword,
   deleteMember,
 } from "@/app/actions/admin";
 
@@ -191,6 +192,44 @@ export function RemoveMembershipButton({ membershipId }: { membershipId: string 
     >
       {pending ? "Removing…" : "Remove"}
     </button>
+  );
+}
+
+export function ResetMemberPassword({ userId }: { userId: string }) {
+  const [value, setValue] = useState("");
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  function submit() {
+    setMsg(null);
+    start(async () => {
+      const res = await resetMemberPassword(userId, value);
+      if (res.ok) setMsg("Password set — share it with the member.");
+      else setMsg(res.error ?? "Something went wrong.");
+    });
+  }
+
+  return (
+    <div className="flex flex-wrap items-end gap-2">
+      <div>
+        <label className="label">Set a temporary password</label>
+        <input
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          className="input"
+          placeholder="e.g. dwell123"
+          minLength={6}
+        />
+      </div>
+      <button
+        onClick={submit}
+        disabled={pending || value.length < 6}
+        className="btn-secondary text-sm"
+      >
+        {pending ? "Saving…" : "Set password"}
+      </button>
+      {msg && <span className="text-xs text-ink-500">{msg}</span>}
+    </div>
   );
 }
 

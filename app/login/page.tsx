@@ -40,10 +40,6 @@ export default async function LoginPage() {
             </p>
             <LoginForm />
           </div>
-          <p className="mt-6 text-center text-xs text-ink-400">
-            Demo logins — Owner: <b>owner@demo.com</b> · Member:{" "}
-            <b>member@demo.com</b> · Password: <b>password</b>
-          </p>
         </div>
       </section>
     </main>

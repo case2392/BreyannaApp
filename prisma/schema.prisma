@@ -221,6 +221,19 @@ model MessageLog {
   @@index([createdAt])
 }
 
+// A one-time password-reset link. The emailed link carries the raw token; we
+// store only its hash. Expires after a short window.
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
 // An event-triggered automated message. One row per trigger key.
 // key: "welcome" | "booking_confirmation" | "waitlist_promotion" | "class_reminder"
 // channel: "EMAIL" | "SMS" | "BOTH"

@@ -7,6 +7,7 @@ import {
   GrantMembership,
   DeleteMemberButton,
   RemoveMembershipButton,
+  ResetMemberPassword,
 } from "@/components/admin/MemberTools";
 
 export const dynamic = "force-dynamic";
@@ -144,6 +145,11 @@ export default async function MemberDetailPage({
 
           <h2 className="mb-3 mt-6 font-semibold">Studio notes</h2>
           <MemberNotes userId={member.id} initial={member.notes ?? ""} />
+
+          <h2 className="mb-3 mt-6 font-semibold">Account</h2>
+          <div className="card p-4">
+            <ResetMemberPassword userId={member.id} />
+          </div>
         </div>
 
         <div>

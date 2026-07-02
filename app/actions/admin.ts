@@ -401,6 +401,21 @@ export async function removeMembership(membershipId: string) {
   return { ok: true };
 }
 
+// Staff-set a member's password (helps someone locked out before email reset
+// is enabled). The studio shares the new temporary password with the member.
+export async function resetMemberPassword(userId: string, newPassword: string) {
+  await requireStaff();
+  if (newPassword.length < 6)
+    return { ok: false, error: "Password must be at least 6 characters." };
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return { ok: false, error: "Member not found." };
+  await prisma.user.update({
+    where: { id: userId },
+    data: { passwordHash: hashPassword(newPassword) },
+  });
+  return { ok: true };
+}
+
 // Remove a member and all their bookings/memberships.
 export async function deleteMember(userId: string) {
   await requireStaff();

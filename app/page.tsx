@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel } from "@/lib/format";
 import { MarketingHeader } from "@/components/MarketingHeader";
-import { DwellSeal, Logo } from "@/components/Brand";
+import { Logo } from "@/components/Brand";
 import { BrandImage } from "@/components/BrandImage";
 
 export const dynamic = "force-dynamic";
@@ -75,11 +75,7 @@ export default async function LandingPage() {
         {/* Soft cream veil — lets the photo show through while keeping text readable. */}
         <div className="absolute inset-0 bg-gradient-to-b from-ink-50/45 via-ink-50/50 to-ink-50" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 py-20 text-center md:py-28">
-          <DwellSeal size={104} />
-          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.35em] text-brand-700 [text-shadow:0_1px_6px_rgba(244,241,236,0.9)]">
-            Lincoln, Nebraska
-          </p>
-          <h1 className="mt-4 max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_2px_10px_rgba(244,241,236,0.85)] sm:text-6xl">
+          <h1 className="max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_2px_10px_rgba(244,241,236,0.85)] sm:text-6xl">
             A Christ-centered movement studio for women
           </h1>
           <p className="mt-5 max-w-xl text-lg text-ink-700 [text-shadow:0_1px_6px_rgba(244,241,236,0.9)]">
