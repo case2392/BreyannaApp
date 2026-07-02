@@ -2,13 +2,16 @@ import { prisma } from "@/lib/db";
 import {
   CreateClassTypeForm,
   CreateInstructorForm,
+  CreateRoomForm,
 } from "@/components/admin/CreateForms";
 import { ClassTypeRow } from "@/components/admin/ClassTypeRow";
+import { InstructorRow } from "@/components/admin/InstructorRow";
+import { RoomRow } from "@/components/admin/RoomRow";
 
 export const dynamic = "force-dynamic";
 
 export default async function ClassesPage() {
-  const [classTypes, instructors] = await Promise.all([
+  const [classTypes, instructors, rooms] = await Promise.all([
     prisma.classType.findMany({
       orderBy: { name: "asc" },
       include: { _count: { select: { sessions: true } } },
@@ -17,13 +20,18 @@ export default async function ClassesPage() {
       orderBy: { name: "asc" },
       include: { _count: { select: { sessions: true } } },
     }),
+    prisma.room.findMany({
+      orderBy: { name: "asc" },
+      include: { _count: { select: { sessions: true } } },
+    }),
   ]);
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold">Classes &amp; instructors</h1>
+      <h1 className="mb-1 text-2xl font-bold">Classes, instructors &amp; rooms</h1>
       <p className="mb-6 text-sm text-ink-500">
-        Define the kinds of classes you offer and who teaches them.
+        Define the classes you offer, who teaches them, and where. Add, edit, or
+        remove any of them.
       </p>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -50,20 +58,42 @@ export default async function ClassesPage() {
           <CreateClassTypeForm />
         </div>
 
-        <div>
-          <h2 className="mb-3 font-semibold">Instructors</h2>
-          <div className="mb-4 space-y-2">
-            {instructors.map((i) => (
-              <div key={i.id} className="card p-4">
-                <div className="font-medium">{i.name}</div>
-                {i.bio && <div className="text-xs text-ink-500">{i.bio}</div>}
-                <div className="mt-1 text-xs text-ink-400">
-                  {i._count.sessions} sessions taught
-                </div>
-              </div>
-            ))}
+        <div className="space-y-8">
+          <div>
+            <h2 className="mb-3 font-semibold">Instructors</h2>
+            <div className="mb-4 space-y-2">
+              {instructors.map((i) => (
+                <InstructorRow
+                  key={i.id}
+                  instructor={{
+                    id: i.id,
+                    name: i.name,
+                    bio: i.bio,
+                    sessions: i._count.sessions,
+                  }}
+                />
+              ))}
+            </div>
+            <CreateInstructorForm />
           </div>
-          <CreateInstructorForm />
+
+          <div>
+            <h2 className="mb-3 font-semibold">Rooms</h2>
+            <div className="mb-4 space-y-2">
+              {rooms.map((r) => (
+                <RoomRow
+                  key={r.id}
+                  room={{
+                    id: r.id,
+                    name: r.name,
+                    capacity: r.capacity,
+                    sessions: r._count.sessions,
+                  }}
+                />
+              ))}
+            </div>
+            <CreateRoomForm />
+          </div>
         </div>
       </div>
     </div>

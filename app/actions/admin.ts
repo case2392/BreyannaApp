@@ -140,6 +140,71 @@ export async function createInstructor(_prev: unknown, formData: FormData) {
   return { ok: true };
 }
 
+export async function updateInstructor(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  if (!id || !name) return { error: "Name is required." };
+  await prisma.instructor.update({
+    where: { id },
+    data: { name, bio: String(formData.get("bio") || "").trim() || null },
+  });
+  revalidatePath("/admin/classes");
+  return { ok: true };
+}
+
+export async function deleteInstructor(instructorId: string) {
+  await requireStaff();
+  const inUse = await prisma.classSession.count({ where: { instructorId } });
+  if (inUse > 0)
+    return {
+      ok: false,
+      error: "This instructor has classes on the schedule — remove or reassign those first.",
+    };
+  await prisma.instructor.delete({ where: { id: instructorId } });
+  revalidatePath("/admin/classes");
+  return { ok: true };
+}
+
+// ---- Rooms -----------------------------------------------------------------
+
+export async function createRoom(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return { error: "Name is required." };
+  await prisma.room.create({
+    data: { name, capacity: Number(formData.get("capacity")) || 12 },
+  });
+  revalidatePath("/admin/classes");
+  return { ok: true };
+}
+
+export async function updateRoom(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  if (!id || !name) return { error: "Name is required." };
+  await prisma.room.update({
+    where: { id },
+    data: { name, capacity: Number(formData.get("capacity")) || 12 },
+  });
+  revalidatePath("/admin/classes");
+  return { ok: true };
+}
+
+export async function deleteRoom(roomId: string) {
+  await requireStaff();
+  const inUse = await prisma.classSession.count({ where: { roomId } });
+  if (inUse > 0)
+    return {
+      ok: false,
+      error: "This room has classes on the schedule — remove those first.",
+    };
+  await prisma.room.delete({ where: { id: roomId } });
+  revalidatePath("/admin/classes");
+  return { ok: true };
+}
+
 // ---- Plans -----------------------------------------------------------------
 
 export async function createPlan(_prev: unknown, formData: FormData) {

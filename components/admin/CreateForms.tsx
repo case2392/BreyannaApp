@@ -6,6 +6,7 @@ import {
   createClassType,
   createInstructor,
   createPlan,
+  createRoom,
 } from "@/app/actions/admin";
 
 function Submit({ label }: { label: string }) {
@@ -103,6 +104,38 @@ export function CreateInstructorForm() {
       </div>
       <div className="mt-4">
         <Submit label="Add instructor" />
+      </div>
+    </form>
+  );
+}
+
+export function CreateRoomForm() {
+  const ref = useRef<HTMLFormElement>(null);
+  const [state, action] = useFormState(
+    async (prev: unknown, fd: FormData) => {
+      const res = await createRoom(prev, fd);
+      if (res?.ok) ref.current?.reset();
+      return res;
+    },
+    {} as { error?: string; ok?: boolean }
+  );
+
+  return (
+    <form ref={ref} action={action} className="card p-5">
+      <h3 className="mb-4 font-semibold">New room</h3>
+      <Err msg={state?.error} />
+      <div className="grid grid-cols-3 gap-3">
+        <div className="col-span-2">
+          <label className="label">Room name</label>
+          <input name="name" className="input" placeholder="e.g. Cycle Room" required />
+        </div>
+        <div>
+          <label className="label">Capacity</label>
+          <input name="capacity" type="number" className="input" defaultValue={12} />
+        </div>
+      </div>
+      <div className="mt-4">
+        <Submit label="Add room" />
       </div>
     </form>
   );
