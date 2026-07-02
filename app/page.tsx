@@ -70,11 +70,11 @@ export default async function LandingPage() {
           src="/photos/hero.jpg"
           alt=""
           hideOnError
-          className="absolute inset-0 h-full w-full object-[center_72%]"
+          className="absolute inset-0 h-full w-full object-[center_60%]"
         />
         {/* Soft cream veil — lets the photo show through while keeping text readable. */}
         <div className="absolute inset-0 bg-gradient-to-b from-ink-50/45 via-ink-50/50 to-ink-50" />
-        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-16 pt-52 text-center md:pb-28 md:pt-72">
+        <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-16 pt-48 text-center md:pb-28 md:pt-64">
           <h1 className="max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_2px_10px_rgba(244,241,236,0.85)] sm:text-6xl">
             A Christ-centered movement studio for women
           </h1>
