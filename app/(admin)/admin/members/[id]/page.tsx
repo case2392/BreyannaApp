@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { shortDate, dayLabel, timeLabel, money } from "@/lib/format";
 import { MemberNotes } from "@/components/admin/MemberNotes";
+import { GrantMembership, DeleteMemberButton } from "@/components/admin/MemberTools";
 
 export const dynamic = "force-dynamic";
 
@@ -17,18 +18,25 @@ export default async function MemberDetailPage({
 }: {
   params: { id: string };
 }) {
-  const member = await prisma.user.findUnique({
-    where: { id: params.id },
-    include: {
-      memberships: { include: { plan: true }, orderBy: { createdAt: "desc" } },
-      bookings: {
-        where: { status: { not: "CANCELLED" } },
-        include: { session: { include: { classType: true } } },
-        orderBy: { session: { startsAt: "desc" } },
-        take: 10,
+  const [member, plans] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: params.id },
+      include: {
+        memberships: { include: { plan: true }, orderBy: { createdAt: "desc" } },
+        bookings: {
+          where: { status: { not: "CANCELLED" } },
+          include: { session: { include: { classType: true } } },
+          orderBy: { session: { startsAt: "desc" } },
+          take: 10,
+        },
       },
-    },
-  });
+    }),
+    prisma.membershipPlan.findMany({
+      where: { active: true },
+      orderBy: { priceCents: "asc" },
+      select: { id: true, name: true },
+    }),
+  ]);
 
   if (!member || member.role !== "MEMBER") notFound();
 
@@ -49,7 +57,7 @@ export default async function MemberDetailPage({
           {member.firstName[0]}
           {member.lastName[0]}
         </div>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">
             {member.firstName} {member.lastName}
           </h1>
@@ -58,6 +66,7 @@ export default async function MemberDetailPage({
             {member.phone ? ` · ${member.phone}` : ""}
           </div>
         </div>
+        <DeleteMemberButton userId={member.id} />
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -78,6 +87,9 @@ export default async function MemberDetailPage({
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div>
           <h2 className="mb-3 font-semibold">Memberships</h2>
+          <div className="card mb-3 p-4">
+            <GrantMembership userId={member.id} plans={plans} />
+          </div>
           <div className="space-y-2">
             {member.memberships.length === 0 && (
               <div className="card p-4 text-sm text-ink-500">

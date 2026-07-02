@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { shortDate } from "@/lib/format";
+import { AddMemberForm } from "@/components/admin/MemberTools";
 
 export const dynamic = "force-dynamic";
 
@@ -20,8 +21,16 @@ export default async function MembersPage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold">Members</h1>
-      <p className="mb-6 text-sm text-ink-500">{members.length} members</p>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold">Members</h1>
+          <p className="text-sm text-ink-500">{members.length} members</p>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <AddMemberForm />
+      </div>
 
       <div className="card overflow-x-auto">
         <table className="w-full min-w-[28rem] text-sm">

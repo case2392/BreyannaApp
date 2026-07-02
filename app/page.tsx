@@ -70,20 +70,19 @@ export default async function LandingPage() {
           src="/photos/hero.jpg"
           alt=""
           hideOnError
-          className="absolute inset-0 h-full w-full opacity-25"
+          className="absolute inset-0 h-full w-full"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-sage-100/80 via-ink-50/70 to-ink-50" />
-        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand-200 opacity-40 blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 h-80 w-80 rounded-full bg-clay-200 opacity-50 blur-3xl" />
+        {/* Soft cream veil — lets the photo show through while keeping text readable. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-ink-50/45 via-ink-50/50 to-ink-50" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 py-20 text-center md:py-28">
           <DwellSeal size={104} />
-          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.35em] text-brand-600">
+          <p className="mt-8 text-xs font-semibold uppercase tracking-[0.35em] text-brand-700 [text-shadow:0_1px_6px_rgba(244,241,236,0.9)]">
             Lincoln, Nebraska
           </p>
-          <h1 className="mt-4 max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 sm:text-6xl">
+          <h1 className="mt-4 max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_2px_10px_rgba(244,241,236,0.85)] sm:text-6xl">
             A Christ-centered movement studio for women
           </h1>
-          <p className="mt-5 max-w-xl text-lg text-ink-600">
+          <p className="mt-5 max-w-xl text-lg text-ink-700 [text-shadow:0_1px_6px_rgba(244,241,236,0.9)]">
             Honoring the body as God&apos;s dwelling place through cycle,
             movement, and dance.
           </p>

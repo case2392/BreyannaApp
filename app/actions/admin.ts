@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { getCurrentUser, isStaff } from "@/lib/auth";
+import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
+import { grantMembership } from "@/lib/membership";
 
 async function requireStaff() {
   const user = await getCurrentUser();
@@ -328,5 +329,63 @@ export async function saveMemberNotes(userId: string, notes: string) {
   await requireStaff();
   await prisma.user.update({ where: { id: userId }, data: { notes } });
   revalidatePath(`/admin/members/${userId}`);
+  return { ok: true };
+}
+
+// Manually add a member (e.g. to bring in someone who paid outside the app).
+export async function createMember(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const firstName = String(formData.get("firstName") || "").trim();
+  const lastName = String(formData.get("lastName") || "").trim();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const phone = String(formData.get("phone") || "").trim();
+  const password = String(formData.get("password") || "");
+
+  if (!firstName || !lastName || !email)
+    return { error: "First name, last name and email are required." };
+  if (password.length < 6)
+    return { error: "Temporary password must be at least 6 characters." };
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return { error: "A member with that email already exists." };
+
+  await prisma.user.create({
+    data: {
+      firstName,
+      lastName,
+      email,
+      phone: phone || null,
+      passwordHash: hashPassword(password),
+      role: "MEMBER",
+    },
+  });
+  revalidatePath("/admin/members");
+  return { ok: true };
+}
+
+// Give a member a membership manually (a comp, or to migrate an existing payer).
+export async function grantMembershipToMember(userId: string, planId: string) {
+  await requireStaff();
+  const plan = await prisma.membershipPlan.findUnique({ where: { id: planId } });
+  if (!plan) return { ok: false, error: "Plan not found." };
+  await grantMembership(userId, plan, { pricePaidCents: 0 });
+  revalidatePath(`/admin/members/${userId}`);
+  return { ok: true };
+}
+
+// Remove a member and all their bookings/memberships.
+export async function deleteMember(userId: string) {
+  await requireStaff();
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return { ok: false, error: "Member not found." };
+  if (user.role !== "MEMBER")
+    return { ok: false, error: "Only member accounts can be removed here." };
+
+  await prisma.$transaction([
+    prisma.booking.deleteMany({ where: { userId } }),
+    prisma.membership.deleteMany({ where: { userId } }),
+    prisma.user.delete({ where: { id: userId } }),
+  ]);
+  revalidatePath("/admin/members");
   return { ok: true };
 }
