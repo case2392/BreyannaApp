@@ -27,8 +27,15 @@ export async function grantMembership(
     }
   }
 
+  // Unlimited = a monthly period that renews. Packs & drop-ins are credits
+  // that never expire (we just track credits until they're used), so we set a
+  // far-future date to keep them permanently "active".
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + plan.durationDays);
+  if (plan.kind === "UNLIMITED") {
+    expiresAt.setDate(expiresAt.getDate() + plan.durationDays);
+  } else {
+    expiresAt.setFullYear(expiresAt.getFullYear() + 50);
+  }
 
   return prisma.membership.create({
     data: {
@@ -42,6 +49,12 @@ export async function grantMembership(
       stripeSubscriptionId: opts.stripeSubscriptionId ?? null,
     },
   });
+}
+
+// Does a membership kind expire? Only unlimited (monthly) does; packs/drop-ins
+// are credit-based and never expire.
+export function planExpires(kind: string): boolean {
+  return kind === "UNLIMITED";
 }
 
 // Belt-and-suspenders activation: when a member returns from Stripe checkout,

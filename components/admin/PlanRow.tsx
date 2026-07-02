@@ -35,6 +35,7 @@ function SaveBtn() {
 
 export function PlanRow({ plan }: { plan: Plan }) {
   const [editing, setEditing] = useState(false);
+  const [kind, setKind] = useState(plan.kind);
   const [pending, start] = useTransition();
   const router = useRouter();
   const [state, action] = useFormState(
@@ -45,6 +46,7 @@ export function PlanRow({ plan }: { plan: Plan }) {
     },
     {} as { error?: string; ok?: boolean }
   );
+  const unlimited = kind === "UNLIMITED";
 
   function toggleActive() {
     start(async () => {
@@ -80,8 +82,13 @@ export function PlanRow({ plan }: { plan: Plan }) {
           </div>
           <div>
             <label className="label">Type</label>
-            <select name="kind" defaultValue={plan.kind} className="input">
-              <option value="UNLIMITED">Unlimited</option>
+            <select
+              name="kind"
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+              className="input"
+            >
+              <option value="UNLIMITED">Unlimited (monthly)</option>
               <option value="PACK">Class pack</option>
               <option value="DROP_IN">Drop-in</option>
             </select>
@@ -90,15 +97,21 @@ export function PlanRow({ plan }: { plan: Plan }) {
             <label className="label">Price ($)</label>
             <input name="price" type="number" step="0.01" defaultValue={(plan.priceCents / 100).toFixed(2)} className="input" />
           </div>
-          <div>
-            <label className="label">Credits</label>
-            <input name="credits" type="number" defaultValue={plan.credits} className="input" />
-          </div>
-          <div>
-            <label className="label">Valid days</label>
-            <input name="durationDays" type="number" defaultValue={plan.durationDays} className="input" />
-          </div>
+          {unlimited ? (
+            <div className="sm:col-span-2">
+              <label className="label">Bills every (days)</label>
+              <input name="durationDays" type="number" defaultValue={plan.durationDays} className="input" />
+            </div>
+          ) : (
+            <div className="sm:col-span-2">
+              <label className="label">Credits</label>
+              <input name="credits" type="number" defaultValue={plan.credits} className="input" />
+            </div>
+          )}
         </div>
+        {!unlimited && (
+          <p className="mt-2 text-xs text-ink-400">Credits never expire.</p>
+        )}
         <div className="mt-3 flex gap-2">
           <SaveBtn />
           <button type="button" onClick={() => setEditing(false)} className="btn-ghost text-xs">
@@ -119,8 +132,8 @@ export function PlanRow({ plan }: { plan: Plan }) {
         <div className="text-xs text-ink-500">
           {money(plan.priceCents)} ·{" "}
           {plan.kind === "UNLIMITED"
-            ? `${plan.durationDays} days`
-            : `${plan.credits} credits · ${plan.durationDays} days`}
+            ? `renews every ${plan.durationDays} days`
+            : `${plan.credits} credits · never expires`}
           {plan.activeSales > 0 ? ` · ${plan.activeSales} active` : ""}
         </div>
       </div>

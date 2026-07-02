@@ -96,9 +96,15 @@ export default async function MembershipsPage({
                     )}
                   </div>
                   <div className="text-right text-xs text-ink-500">
-                    {m.autoRenew ? "Renews" : "Expires"}
-                    <br />
-                    {shortDate(m.expiresAt)}
+                    {m.plan.kind === "UNLIMITED" ? (
+                      <>
+                        {m.autoRenew ? "Renews" : "Expires"}
+                        <br />
+                        {shortDate(m.expiresAt)}
+                      </>
+                    ) : (
+                      "Credits don't expire"
+                    )}
                   </div>
                 </div>
                 <div className="mt-3 flex justify-end border-t border-ink-100 pt-3">
@@ -139,7 +145,7 @@ export default async function MembershipsPage({
                 <li>
                   {p.kind === "UNLIMITED"
                     ? "Auto-renews monthly · cancel anytime"
-                    : `Valid for ${p.durationDays} days`}
+                    : "Credits never expire"}
                 </li>
               </ul>
               <div className="mt-auto">

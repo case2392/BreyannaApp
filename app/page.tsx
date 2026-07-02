@@ -326,7 +326,7 @@ export default async function LandingPage() {
                     <li>
                       {p.kind === "UNLIMITED"
                         ? "Auto-renews monthly · cancel anytime"
-                        : `Valid for ${p.durationDays} days`}
+                        : "Credits never expire"}
                     </li>
                   </ul>
                   <Link href="/register" className="btn-primary mt-6">

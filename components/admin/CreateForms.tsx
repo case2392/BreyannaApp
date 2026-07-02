@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
   createClassType,
@@ -143,14 +143,19 @@ export function CreateRoomForm() {
 
 export function CreatePlanForm() {
   const ref = useRef<HTMLFormElement>(null);
+  const [kind, setKind] = useState("PACK");
   const [state, action] = useFormState(
     async (prev: unknown, fd: FormData) => {
       const res = await createPlan(prev, fd);
-      if (res?.ok) ref.current?.reset();
+      if (res?.ok) {
+        ref.current?.reset();
+        setKind("PACK");
+      }
       return res;
     },
     {} as { error?: string; ok?: boolean }
   );
+  const unlimited = kind === "UNLIMITED";
 
   return (
     <form ref={ref} action={action} className="card p-5">
@@ -168,9 +173,14 @@ export function CreatePlanForm() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Type</label>
-            <select name="kind" className="input">
+            <select
+              name="kind"
+              className="input"
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+            >
               <option value="PACK">Class pack</option>
-              <option value="UNLIMITED">Unlimited</option>
+              <option value="UNLIMITED">Unlimited (monthly)</option>
               <option value="DROP_IN">Drop-in</option>
             </select>
           </div>
@@ -178,15 +188,21 @@ export function CreatePlanForm() {
             <label className="label">Price ($)</label>
             <input name="price" type="number" step="0.01" className="input" defaultValue={0} />
           </div>
-          <div>
-            <label className="label">Credits</label>
-            <input name="credits" type="number" className="input" defaultValue={10} />
-          </div>
-          <div>
-            <label className="label">Valid days</label>
-            <input name="durationDays" type="number" className="input" defaultValue={30} />
-          </div>
+          {unlimited ? (
+            <div>
+              <label className="label">Bills every (days)</label>
+              <input name="durationDays" type="number" className="input" defaultValue={30} />
+            </div>
+          ) : (
+            <div>
+              <label className="label">Credits</label>
+              <input name="credits" type="number" className="input" defaultValue={10} />
+            </div>
+          )}
         </div>
+        {!unlimited && (
+          <p className="text-xs text-ink-400">Credits never expire — they count down as classes are booked.</p>
+        )}
       </div>
       <div className="mt-4">
         <Submit label="Add plan" />

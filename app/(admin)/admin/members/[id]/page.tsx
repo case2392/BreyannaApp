@@ -96,10 +96,9 @@ export default async function MemberDetailPage({
                   </div>
                   <div className="mt-1 text-xs text-ink-500">
                     {m.plan.kind === "UNLIMITED"
-                      ? "Unlimited"
-                      : `${m.creditsRemaining} credits left`}{" "}
-                    · expires {shortDate(m.expiresAt)} · paid{" "}
-                    {money(m.pricePaidCents)}
+                      ? `Unlimited · ${m.autoRenew ? "renews" : "expires"} ${shortDate(m.expiresAt)}`
+                      : `${m.creditsRemaining} credits left · no expiry`}{" "}
+                    · paid {money(m.pricePaidCents)}
                   </div>
                 </div>
               );
