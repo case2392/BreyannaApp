@@ -72,7 +72,7 @@ export async function startCheckout(planId: string) {
     ...(isSubscription
       ? { subscription_data: { metadata: { userId: user.id, planId: plan.id } } }
       : { payment_intent_data: { metadata: { userId: user.id, planId: plan.id } } }),
-    success_url: `${origin}/memberships?status=success`,
+    success_url: `${origin}/memberships?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/memberships?status=cancel`,
     allow_promotion_codes: true,
   });

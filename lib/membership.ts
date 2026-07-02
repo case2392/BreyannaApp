@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { stripe } from "./stripe";
 import type { MembershipPlan } from "@prisma/client";
 
 // Grant (or extend) a membership for a user. Shared by the instant-grant
@@ -41,4 +42,44 @@ export async function grantMembership(
       stripeSubscriptionId: opts.stripeSubscriptionId ?? null,
     },
   });
+}
+
+// Belt-and-suspenders activation: when a member returns from Stripe checkout,
+// verify the session directly with Stripe (using the same key that created it)
+// and grant the membership. This makes activation work even if the webhook
+// never fires (e.g. environment mismatch). Idempotent: subscriptions dedupe by
+// subscription id; one-time purchases only grant if none is already active.
+export async function finalizeCheckoutSession(
+  userId: string,
+  sessionId: string
+): Promise<boolean> {
+  if (!stripe) return false;
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const paid =
+      session.payment_status === "paid" || session.status === "complete";
+    if (!paid) return false;
+    if (session.metadata?.userId !== userId) return false;
+
+    const planId = session.metadata?.planId;
+    if (!planId) return false;
+    const plan = await prisma.membershipPlan.findUnique({ where: { id: planId } });
+    if (!plan) return false;
+
+    const subId =
+      typeof session.subscription === "string" ? session.subscription : null;
+    const pricePaidCents = session.amount_total ?? plan.priceCents;
+
+    if (subId) {
+      await grantMembership(userId, plan, { stripeSubscriptionId: subId, pricePaidCents });
+    } else {
+      const active = await prisma.membership.findFirst({
+        where: { userId, planId: plan.id, status: "ACTIVE", expiresAt: { gt: new Date() } },
+      });
+      if (!active) await grantMembership(userId, plan, { pricePaidCents });
+    }
+    return true;
+  } catch {
+    return false;
+  }
 }

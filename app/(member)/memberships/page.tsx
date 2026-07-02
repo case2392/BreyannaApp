@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { money, shortDate } from "@/lib/format";
 import { stripeEnabled } from "@/lib/stripe";
+import { finalizeCheckoutSession } from "@/lib/membership";
 import {
   BuyButton,
   ManageBillingButton,
@@ -19,11 +20,17 @@ const kindLabel: Record<string, string> = {
 export default async function MembershipsPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: { status?: string; session_id?: string };
 }) {
   const user = (await getCurrentUser())!;
   const now = new Date();
   const payments = stripeEnabled();
+
+  // If the member just returned from Stripe checkout, make sure their
+  // membership is activated (works even if the webhook didn't fire).
+  if (searchParams.session_id) {
+    await finalizeCheckoutSession(user.id, searchParams.session_id);
+  }
 
   const [mine, plans] = await Promise.all([
     prisma.membership.findMany({
