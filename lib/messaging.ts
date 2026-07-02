@@ -10,6 +10,8 @@ export type SendResult = {
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESEND_FROM = process.env.RESEND_FROM || "Dwell Studio <onboarding@resend.dev>";
+// Optional: where member replies should go (e.g. the studio's Gmail).
+const RESEND_REPLY_TO = process.env.RESEND_REPLY_TO;
 
 const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN;
@@ -42,6 +44,7 @@ export async function sendEmail(
         to: [to],
         subject,
         text,
+        ...(RESEND_REPLY_TO ? { reply_to: RESEND_REPLY_TO } : {}),
       }),
     });
     if (!res.ok) {
