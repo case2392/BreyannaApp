@@ -73,16 +73,18 @@ export default async function LandingPage() {
           className="absolute inset-0 h-full w-full object-[center_60%]"
         />
         {/* Soft cream veil — lets the photo show through while keeping text readable. */}
-        <div className="absolute inset-0 bg-gradient-to-b from-ink-50/45 via-ink-50/50 to-ink-50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink-50/40 via-ink-50/60 to-ink-50" />
+        {/* Extra glow concentrated behind the text block for legibility. */}
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-ink-50/70 via-ink-50/40 to-transparent" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-20 pt-28 text-center md:pb-28 md:pt-64">
-          <h1 className="max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_2px_10px_rgba(244,241,236,0.85)] sm:text-6xl">
+          <h1 className="max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_2px_16px_rgba(244,241,236,0.9)] sm:text-6xl">
             A Christ-centered movement studio for women
           </h1>
-          <p className="mt-5 max-w-xl text-lg text-ink-700 [text-shadow:0_1px_6px_rgba(244,241,236,0.9)]">
+          <p className="mt-5 max-w-xl text-lg font-medium text-ink-800 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_1px_10px_rgba(244,241,236,0.9)]">
             Honoring the body as God&apos;s dwelling place through cycle,
             movement, and dance.
           </p>
-          <p className="mt-4 font-serif text-lg italic text-brand-600">
+          <p className="mt-4 font-serif text-lg italic text-brand-700 [text-shadow:0_1px_8px_rgba(244,241,236,0.95)]">
             Feed your spirit. Find community. Flourish in freedom.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
