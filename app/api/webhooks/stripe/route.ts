@@ -55,9 +55,18 @@ export async function POST(request: Request) {
           if (plan) {
             const subId =
               typeof session.subscription === "string" ? session.subscription : undefined;
+            let periodEnd: Date | undefined;
+            if (subId) {
+              try {
+                const sub = await stripe.subscriptions.retrieve(subId);
+                if (sub.current_period_end)
+                  periodEnd = new Date(sub.current_period_end * 1000);
+              } catch {}
+            }
             await grantMembership(userId, plan, {
               stripeSubscriptionId: subId,
               pricePaidCents: session.amount_total ?? plan.priceCents,
+              periodEnd,
             });
           }
         }
@@ -94,10 +103,16 @@ export async function POST(request: Request) {
             include: { plan: true },
           });
           if (membership) {
-            const base =
-              membership.expiresAt > new Date() ? membership.expiresAt : new Date();
-            const expiresAt = new Date(base);
-            expiresAt.setDate(expiresAt.getDate() + membership.plan.durationDays);
+            // Follow Stripe's new period end (same calendar day next month).
+            let expiresAt = new Date();
+            try {
+              const sub = await stripe.subscriptions.retrieve(subId);
+              if (sub.current_period_end)
+                expiresAt = new Date(sub.current_period_end * 1000);
+              else expiresAt.setMonth(expiresAt.getMonth() + 1);
+            } catch {
+              expiresAt.setMonth(expiresAt.getMonth() + 1);
+            }
             await prisma.membership.update({
               where: { id: membership.id },
               data: { status: "ACTIVE", expiresAt, autoRenew: true },

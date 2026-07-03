@@ -97,21 +97,18 @@ export function PlanRow({ plan }: { plan: Plan }) {
             <label className="label">Price ($)</label>
             <input name="price" type="number" step="0.01" defaultValue={(plan.priceCents / 100).toFixed(2)} className="input" />
           </div>
-          {unlimited ? (
-            <div className="sm:col-span-2">
-              <label className="label">Bills every (days)</label>
-              <input name="durationDays" type="number" defaultValue={plan.durationDays} className="input" />
-            </div>
-          ) : (
+          {!unlimited && (
             <div className="sm:col-span-2">
               <label className="label">Credits</label>
               <input name="credits" type="number" defaultValue={plan.credits} className="input" />
             </div>
           )}
         </div>
-        {!unlimited && (
-          <p className="mt-2 text-xs text-ink-400">Credits never expire.</p>
-        )}
+        <p className="mt-2 text-xs text-ink-400">
+          {unlimited
+            ? "Renews automatically each month on the member's sign-up date."
+            : "Credits never expire."}
+        </p>
         <div className="mt-3 flex gap-2">
           <SaveBtn />
           <button type="button" onClick={() => setEditing(false)} className="btn-ghost text-xs">
@@ -132,7 +129,7 @@ export function PlanRow({ plan }: { plan: Plan }) {
         <div className="text-xs text-ink-500">
           {money(plan.priceCents)} ·{" "}
           {plan.kind === "UNLIMITED"
-            ? `renews every ${plan.durationDays} days`
+            ? "renews monthly"
             : `${plan.credits} credits · never expires`}
           {plan.activeSales > 0 ? ` · ${plan.activeSales} active` : ""}
         </div>

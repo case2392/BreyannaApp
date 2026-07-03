@@ -12,6 +12,9 @@ export async function grantMembership(
     pricePaidCents?: number;
     source?: "PURCHASE" | "COMP" | "GIFT";
     giftedByUserId?: string;
+    // Stripe subscription's next billing date — used as the access expiry so
+    // it renews on the same calendar day each month.
+    periodEnd?: Date;
   } = {}
 ) {
   const source = opts.source ?? "PURCHASE";
@@ -24,9 +27,14 @@ export async function grantMembership(
       where: { stripeSubscriptionId: opts.stripeSubscriptionId },
     });
     if (existing) {
-      const base = existing.expiresAt > new Date() ? existing.expiresAt : new Date();
-      const expiresAt = new Date(base);
-      expiresAt.setDate(expiresAt.getDate() + plan.durationDays);
+      let expiresAt: Date;
+      if (opts.periodEnd) {
+        expiresAt = opts.periodEnd;
+      } else {
+        const base = existing.expiresAt > new Date() ? existing.expiresAt : new Date();
+        expiresAt = new Date(base);
+        expiresAt.setMonth(expiresAt.getMonth() + 1);
+      }
       return prisma.membership.update({
         where: { id: existing.id },
         data: { status: "ACTIVE", expiresAt, autoRenew: true },
@@ -37,10 +45,11 @@ export async function grantMembership(
   // Expiry rules:
   //  - Comps & gifts never expire (managed manually by the studio).
   //  - Paid packs/drop-ins never expire (credit-based).
-  //  - Only a paid Unlimited membership carries a monthly period.
+  //  - Paid Unlimited follows Stripe's next billing date (same day each month).
   const expiresAt = new Date();
   if (!comp && plan.kind === "UNLIMITED") {
-    expiresAt.setDate(expiresAt.getDate() + plan.durationDays);
+    if (opts.periodEnd) expiresAt.setTime(opts.periodEnd.getTime());
+    else expiresAt.setMonth(expiresAt.getMonth() + 1);
   } else {
     expiresAt.setFullYear(expiresAt.getFullYear() + 50);
   }
@@ -94,7 +103,13 @@ export async function finalizeCheckoutSession(
     const pricePaidCents = session.amount_total ?? plan.priceCents;
 
     if (subId) {
-      await grantMembership(userId, plan, { stripeSubscriptionId: subId, pricePaidCents });
+      let periodEnd: Date | undefined;
+      try {
+        const sub = await stripe.subscriptions.retrieve(subId);
+        if (sub.current_period_end)
+          periodEnd = new Date(sub.current_period_end * 1000);
+      } catch {}
+      await grantMembership(userId, plan, { stripeSubscriptionId: subId, pricePaidCents, periodEnd });
     } else {
       const active = await prisma.membership.findFirst({
         where: { userId, planId: plan.id, status: "ACTIVE", expiresAt: { gt: new Date() } },

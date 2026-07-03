@@ -188,21 +188,18 @@ export function CreatePlanForm() {
             <label className="label">Price ($)</label>
             <input name="price" type="number" step="0.01" className="input" defaultValue={0} />
           </div>
-          {unlimited ? (
-            <div>
-              <label className="label">Bills every (days)</label>
-              <input name="durationDays" type="number" className="input" defaultValue={30} />
-            </div>
-          ) : (
+          {!unlimited && (
             <div>
               <label className="label">Credits</label>
               <input name="credits" type="number" className="input" defaultValue={10} />
             </div>
           )}
         </div>
-        {!unlimited && (
-          <p className="text-xs text-ink-400">Credits never expire — they count down as classes are booked.</p>
-        )}
+        <p className="text-xs text-ink-400">
+          {unlimited
+            ? "Renews automatically each month on the day the member signs up."
+            : "Credits never expire — they count down as classes are booked."}
+        </p>
       </div>
       <div className="mt-4">
         <Submit label="Add plan" />
