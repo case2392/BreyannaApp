@@ -298,14 +298,8 @@ export default async function LandingPage() {
           </div>
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {plans.map((p) => {
-              const featured = p.kind === "UNLIMITED";
               return (
-                <div key={p.id} className={`card flex flex-col p-6 ${featured ? "ring-2 ring-brand-400" : ""}`}>
-                  {featured && (
-                    <span className="badge mb-2 self-start bg-brand-500 text-white">
-                      Most popular
-                    </span>
-                  )}
+                <div key={p.id} className="card flex flex-col p-6">
                   <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
                     {kindLabel[p.kind]}
                   </span>
