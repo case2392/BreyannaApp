@@ -14,7 +14,7 @@ export default async function AdminSchedulePage() {
     prisma.instructor.findMany({ orderBy: { name: "asc" } }),
     prisma.room.findMany({ orderBy: { name: "asc" } }),
     prisma.classSession.findMany({
-      where: { startsAt: { gte: now } },
+      where: { startsAt: { gte: now }, cancelled: false },
       orderBy: { startsAt: "asc" },
       include: {
         classType: true,

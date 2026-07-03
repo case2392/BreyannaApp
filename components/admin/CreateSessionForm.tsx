@@ -55,16 +55,28 @@ export function CreateSessionForm({
             ))}
           </select>
         </div>
-        <div>
-          <label className="label">Room</label>
-          <select name="roomId" className="input">
-            <option value="">— none —</option>
-            {rooms.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Room</label>
+            <select name="roomId" className="input">
+              <option value="">— none —</option>
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Spaces</label>
+            <input
+              name="capacity"
+              type="number"
+              min={1}
+              className="input"
+              placeholder="Room size"
+            />
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>

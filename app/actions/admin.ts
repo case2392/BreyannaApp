@@ -39,13 +39,18 @@ export async function createSession(_prev: unknown, formData: FormData) {
     ? await prisma.room.findUnique({ where: { id: roomId } })
     : null;
 
+  // Use the spaces entered on the form; otherwise default to the room/class size.
+  const entered = Number(formData.get("capacity"));
+  const capacity =
+    entered && entered > 0 ? entered : room?.capacity ?? classType.capacity;
+
   await prisma.classSession.create({
     data: {
       classTypeId,
       instructorId,
       roomId: roomId || null,
       startsAt,
-      capacity: room?.capacity ?? classType.capacity,
+      capacity,
     },
   });
 
