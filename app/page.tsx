@@ -11,17 +11,17 @@ export const dynamic = "force-dynamic";
 const coreValues = [
   {
     title: "Feed Your Spirit",
-    body: "Worship-filled classes that nourish your soul as you move — praise, prayer, and presence with Jesus.",
+    body: "Intentional atmospheres that are designed to bring life to your spirit and challenge you to invite the Holy Spirit to lead you in everything that you do.",
     icon: "M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10Z",
   },
   {
     title: "Find Community",
-    body: "Real friendship and encouragement alongside women walking the same road of faith.",
+    body: "Connect with women who want to trade worldly practices for sacred rhythms and do life with women on fire for Christ.",
     icon: "M9 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 0c-3.3 0-6 2.2-6 5m12-5a3 3 0 1 0-2-5.2M21 13c0-2.8-2.7-5-6-5",
   },
   {
     title: "Flourish in Freedom",
-    body: "Trade comparison and striving for the wholeness and freedom Christ died to give you.",
+    body: "Be encouraged to throw off your old sinful nature, lies, thought patterns, and attitudes, and put on your new nature. One that honors and reflects Jesus.",
     icon: "M12 3v18M5 10l7-7 7 7",
   },
 ];
