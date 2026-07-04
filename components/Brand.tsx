@@ -20,7 +20,7 @@ export function DwellMark({ size = 40 }: { size?: number }) {
   );
 }
 
-// Mark + wordmark, used in headers.
+// Text wordmark used in the top-left of headers.
 export function Logo({
   href = "/",
   size = 38,
@@ -31,24 +31,13 @@ export function Logo({
   light?: boolean;
 }) {
   return (
-    <Link href={href} className="flex items-center gap-2.5">
-      <DwellMark size={size} />
-      <span className="leading-none">
-        <span
-          className={`block font-serif text-lg font-semibold tracking-wide ${
-            light ? "text-white" : "text-ink-900"
-          }`}
-        >
-          DWELL
-        </span>
-        <span
-          className={`block text-[10px] font-medium uppercase tracking-[0.3em] ${
-            light ? "text-white/70" : "text-ink-500"
-          }`}
-        >
-          Studio
-        </span>
-      </span>
+    <Link
+      href={href}
+      className={`font-serif text-2xl font-semibold tracking-tight ${
+        light ? "text-white" : "text-ink-900"
+      }`}
+    >
+      Dwell Studio
     </Link>
   );
 }
