@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
 import { stripe, stripeEnabled } from "@/lib/stripe";
+import { capacityLimited } from "@/lib/format";
 
 async function requireStaff() {
   const user = await getCurrentUser();
@@ -19,7 +20,7 @@ export async function createSession(_prev: unknown, formData: FormData) {
 
   const classTypeId = String(formData.get("classTypeId") || "");
   const instructorId = String(formData.get("instructorId") || "");
-  const roomId = String(formData.get("roomId") || "");
+  const roomName = String(formData.get("roomName") || "").trim();
   const date = String(formData.get("date") || "");
   const time = String(formData.get("time") || "");
 
@@ -35,20 +36,29 @@ export async function createSession(_prev: unknown, formData: FormData) {
   });
   if (!classType) return { error: "Class type not found." };
 
-  const room = roomId
-    ? await prisma.room.findUnique({ where: { id: roomId } })
-    : null;
+  // Resolve the chosen location to a room record (create it the first time).
+  let roomId: string | null = null;
+  if (roomName) {
+    const room =
+      (await prisma.room.findFirst({ where: { name: roomName } })) ??
+      (await prisma.room.create({ data: { name: roomName } }));
+    roomId = room.id;
+  }
 
-  // Use the spaces entered on the form; otherwise default to the room/class size.
+  // Capacity only matters for cycle classes (limited bikes). Other classes are
+  // effectively unlimited.
   const entered = Number(formData.get("capacity"));
-  const capacity =
-    entered && entered > 0 ? entered : room?.capacity ?? classType.capacity;
+  const capacity = capacityLimited(classType.name)
+    ? entered && entered > 0
+      ? entered
+      : classType.capacity
+    : 100000;
 
   await prisma.classSession.create({
     data: {
       classTypeId,
       instructorId,
-      roomId: roomId || null,
+      roomId,
       startsAt,
       capacity,
     },

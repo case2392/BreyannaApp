@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { createSession } from "@/app/actions/admin";
+import { capacityLimited } from "@/lib/format";
 
 type Opt = { id: string; name: string };
+
+const LOCATIONS = ["Studio", "Bottom Acre", "Deck/Backyard", "The Canvas", "The Ellery"];
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -17,14 +21,16 @@ function Submit() {
 export function CreateSessionForm({
   classTypes,
   instructors,
-  rooms,
 }: {
   classTypes: Opt[];
   instructors: Opt[];
-  rooms: Opt[];
 }) {
   const [state, action] = useFormState(createSession, {} as { error?: string; ok?: boolean });
+  const [classTypeId, setClassTypeId] = useState(classTypes[0]?.id ?? "");
   const today = new Date().toISOString().slice(0, 10);
+
+  const selected = classTypes.find((c) => c.id === classTypeId);
+  const showCapacity = selected ? capacityLimited(selected.name) : false;
 
   return (
     <form action={action} className="card p-5">
@@ -37,7 +43,13 @@ export function CreateSessionForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="label">Class</label>
-          <select name="classTypeId" className="input" required>
+          <select
+            name="classTypeId"
+            className="input"
+            value={classTypeId}
+            onChange={(e) => setClassTypeId(e.target.value)}
+            required
+          >
             {classTypes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -55,29 +67,29 @@ export function CreateSessionForm({
             ))}
           </select>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="label">Location</label>
+          <select name="roomName" className="input">
+            <option value="">— none —</option>
+            {LOCATIONS.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+        </div>
+        {showCapacity && (
           <div>
-            <label className="label">Room</label>
-            <select name="roomId" className="input">
-              <option value="">— none —</option>
-              {rooms.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="label">Spaces</label>
+            <label className="label">Capacity (bikes)</label>
             <input
               name="capacity"
               type="number"
               min={1}
               className="input"
-              placeholder="Room size"
+              placeholder="Number of spots"
             />
           </div>
-        </div>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="label">Date</label>

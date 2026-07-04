@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { dayLabel, timeLabel, groupBy } from "@/lib/format";
+import { dayLabel, timeLabel, groupBy, capacityLimited } from "@/lib/format";
 import { CreateSessionForm } from "@/components/admin/CreateSessionForm";
 import { CancelSessionButton } from "@/components/admin/SessionControls";
 
@@ -9,10 +9,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminSchedulePage() {
   const now = new Date();
 
-  const [classTypes, instructors, rooms, sessions] = await Promise.all([
+  const [classTypes, instructors, sessions] = await Promise.all([
     prisma.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.instructor.findMany({ orderBy: { name: "asc" } }),
-    prisma.room.findMany({ orderBy: { name: "asc" } }),
     prisma.classSession.findMany({
       where: { startsAt: { gte: now }, cancelled: false },
       orderBy: { startsAt: "asc" },
@@ -41,7 +40,6 @@ export default async function AdminSchedulePage() {
         <CreateSessionForm
           classTypes={classTypes}
           instructors={instructors}
-          rooms={rooms}
         />
       </div>
 
@@ -84,7 +82,9 @@ export default async function AdminSchedulePage() {
                     </div>
                     <div className="text-right text-sm">
                       <div className="font-semibold">
-                        {confirmed}/{s.capacity}
+                        {capacityLimited(s.classType.name)
+                          ? `${confirmed}/${s.capacity}`
+                          : `${confirmed} booked`}
                       </div>
                       {waitlisted > 0 && (
                         <div className="text-xs text-amber-600">

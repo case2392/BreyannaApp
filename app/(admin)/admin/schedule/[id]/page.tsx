@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { dayLabel, timeLabel } from "@/lib/format";
+import { dayLabel, timeLabel, capacityLimited } from "@/lib/format";
 import { AttendanceControls } from "@/components/admin/SessionControls";
 
 export const dynamic = "force-dynamic";
@@ -48,7 +48,11 @@ export default async function RosterPage({
       <div className="card p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-semibold">
-            Roster ({confirmed.length}/{session.capacity})
+            Roster (
+            {capacityLimited(session.classType.name)
+              ? `${confirmed.length}/${session.capacity}`
+              : `${confirmed.length} booked`}
+            )
           </h2>
         </div>
         {confirmed.length === 0 ? (

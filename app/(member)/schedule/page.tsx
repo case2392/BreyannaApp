@@ -10,6 +10,7 @@ import {
   weekdayShort,
   sameDay,
   shortDate,
+  capacityLimited,
 } from "@/lib/format";
 import { BookButton } from "@/components/BookButton";
 
@@ -48,9 +49,9 @@ function ClassCard({
   now: Date;
   compact?: boolean;
 }) {
+  // Capacity/sold-out only applies to cycle classes; members never see counts.
   const confirmed = s.bookings.filter((b) => b.status !== "WAITLISTED").length;
-  const spotsLeft = Math.max(0, s.capacity - confirmed);
-  const isFull = spotsLeft === 0;
+  const isFull = capacityLimited(s.classType.name) && confirmed >= s.capacity;
   const mine = s.bookings.find((b) => b.userId === userId);
   const started = s.startsAt < now;
   const myStatus =
@@ -91,8 +92,8 @@ function ClassCard({
             : myStatus === "WAITLISTED"
             ? "Waitlisted"
             : isFull
-            ? "Full"
-            : `${spotsLeft} left`}
+            ? "Sold out"
+            : ""}
         </span>
         <BookButton
           sessionId={s.id}

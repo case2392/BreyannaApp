@@ -1,4 +1,5 @@
 import { prisma } from "./db";
+import { capacityLimited } from "./format";
 import type { Membership, MembershipPlan } from "@prisma/client";
 
 type MembershipWithPlan = Membership & { plan: MembershipPlan };
@@ -68,8 +69,11 @@ export async function bookClass(
     };
   }
 
-  const taken = await countBooked(sessionId);
-  const isFull = taken >= session.capacity;
+  // Capacity/waitlist only applies to cycle classes (limited bikes); other
+  // classes are effectively unlimited and always confirm.
+  const limited = capacityLimited(session.classType.name);
+  const taken = limited ? await countBooked(sessionId) : 0;
+  const isFull = limited && taken >= session.capacity;
   const status = isFull ? "WAITLISTED" : "BOOKED";
 
   // Only charge a credit for a confirmed spot (not while waitlisted).

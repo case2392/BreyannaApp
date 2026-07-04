@@ -1,5 +1,11 @@
 // Small formatting helpers shared across the app.
 
+// Capacity limits (and "Sold out") only apply to cycle classes — limited bikes.
+// Everything else is effectively unlimited.
+export function capacityLimited(className: string): boolean {
+  return /cycle/i.test(className);
+}
+
 export function money(cents: number): string {
   return (cents / 100).toLocaleString("en-US", {
     style: "currency",
