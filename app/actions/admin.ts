@@ -242,6 +242,7 @@ export async function createPlan(_prev: unknown, formData: FormData) {
       credits: kind === "UNLIMITED" ? 0 : Number(formData.get("credits")) || 0,
       priceCents: Math.round(price * 100),
       durationDays: Number(formData.get("durationDays")) || 30,
+      restrictedClass: String(formData.get("restrictedClass") || "").trim() || null,
     },
   });
   revalidatePath("/admin/plans");
@@ -280,6 +281,7 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
       credits: kind === "UNLIMITED" ? 0 : Number(formData.get("credits")) || 0,
       priceCents: Math.round(price * 100),
       durationDays: Number(formData.get("durationDays")) || 30,
+      restrictedClass: String(formData.get("restrictedClass") || "").trim() || null,
     },
   });
   revalidatePath("/admin/plans");

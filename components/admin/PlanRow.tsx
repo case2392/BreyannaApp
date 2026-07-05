@@ -22,6 +22,7 @@ type Plan = {
   durationDays: number;
   active: boolean;
   activeSales: number;
+  restrictedClass: string | null;
 };
 
 function SaveBtn() {
@@ -109,6 +110,15 @@ export function PlanRow({ plan }: { plan: Plan }) {
             ? "Renews automatically each month on the member's sign-up date."
             : "Credits never expire."}
         </p>
+        <div className="mt-3">
+          <label className="label">Only for classes containing (optional)</label>
+          <input
+            name="restrictedClass"
+            defaultValue={plan.restrictedClass ?? ""}
+            className="input"
+            placeholder="e.g. Mommy — blank for all classes"
+          />
+        </div>
         <div className="mt-3 flex gap-2">
           <SaveBtn />
           <button type="button" onClick={() => setEditing(false)} className="btn-ghost text-xs">
@@ -131,6 +141,7 @@ export function PlanRow({ plan }: { plan: Plan }) {
           {plan.kind === "UNLIMITED"
             ? "renews monthly"
             : `${plan.credits} credits · never expires`}
+          {plan.restrictedClass ? ` · ${plan.restrictedClass} classes only` : ""}
           {plan.activeSales > 0 ? ` · ${plan.activeSales} active` : ""}
         </div>
       </div>

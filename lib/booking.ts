@@ -17,9 +17,22 @@ async function countBooked(sessionId: string): Promise<number> {
 
 // Find the member's usable membership for a given credit cost.
 // Prefers UNLIMITED, then the pack expiring soonest with enough credits.
+// A membership covers a class if its plan isn't restricted, or the class name
+// contains the plan's restriction keyword (e.g. a Mommy & Me membership only
+// covers classes with "Mommy" in the name).
+export function planCoversClass(
+  plan: { restrictedClass: string | null },
+  className: string
+): boolean {
+  const r = plan.restrictedClass?.trim();
+  if (!r) return true;
+  return className.toLowerCase().includes(r.toLowerCase());
+}
+
 async function findUsableMembership(
   userId: string,
-  creditCost: number
+  creditCost: number,
+  className: string
 ): Promise<MembershipWithPlan | null> {
   const now = new Date();
   const memberships = await prisma.membership.findMany({
@@ -28,11 +41,13 @@ async function findUsableMembership(
     orderBy: { expiresAt: "asc" },
   });
 
-  const unlimited = memberships.find((m) => m.plan.kind === "UNLIMITED");
+  const usable = memberships.filter((m) => planCoversClass(m.plan, className));
+
+  const unlimited = usable.find((m) => m.plan.kind === "UNLIMITED");
   if (unlimited) return unlimited;
 
   return (
-    memberships.find(
+    usable.find(
       (m) => m.plan.kind !== "UNLIMITED" && m.creditsRemaining >= creditCost
     ) ?? null
   );
@@ -61,11 +76,23 @@ export async function bookClass(
   }
 
   const creditCost = session.classType.creditCost;
-  const membership = await findUsableMembership(userId, creditCost);
+  const membership = await findUsableMembership(
+    userId,
+    creditCost,
+    session.classType.name
+  );
   if (!membership) {
+    // If they have an active membership that just doesn't cover this class
+    // style, give a clearer message than "you need a membership".
+    const activeCount = await prisma.membership.count({
+      where: { userId, status: "ACTIVE", expiresAt: { gt: new Date() } },
+    });
     return {
       ok: false,
-      error: "You need an active membership or class pack to book.",
+      error:
+        activeCount > 0
+          ? "Your membership doesn't cover this class — buy a single class or class pack to book it."
+          : "You need an active membership or class pack to book.",
     };
   }
 
@@ -169,8 +196,10 @@ export async function cancelBooking(
           orderBy: { expiresAt: "asc" },
         });
         const cost = next.session.classType.creditCost;
-        const unlimited = memberships.find((m) => m.plan.kind === "UNLIMITED");
-        const pack = memberships.find(
+        const className = next.session.classType.name;
+        const usable = memberships.filter((m) => planCoversClass(m.plan, className));
+        const unlimited = usable.find((m) => m.plan.kind === "UNLIMITED");
+        const pack = usable.find(
           (m) => m.plan.kind !== "UNLIMITED" && m.creditsRemaining >= cost
         );
         const chosen = unlimited ?? pack;

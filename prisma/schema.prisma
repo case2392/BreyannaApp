@@ -111,6 +111,9 @@ model MembershipPlan {
   kind        String
   // For PACK / DROP_IN: number of credits granted. Ignored for UNLIMITED.
   credits     Int      @default(0)
+  // If set, this plan only covers classes whose name contains this keyword
+  // (e.g. "Mommy" for a Mommy & Me membership). Blank = covers all classes.
+  restrictedClass String?
   // Price in cents
   priceCents  Int
   // How many days the membership stays valid after purchase

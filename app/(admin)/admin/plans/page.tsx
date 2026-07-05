@@ -42,6 +42,7 @@ export default async function PlansPage() {
                 durationDays: p.durationDays,
                 active: p.active,
                 activeSales: p._count.memberships,
+                restrictedClass: p.restrictedClass,
               }}
             />
           ))}

@@ -200,6 +200,14 @@ export function CreatePlanForm() {
             ? "Renews automatically each month on the day the member signs up."
             : "Credits never expire — they count down as classes are booked."}
         </p>
+        <div>
+          <label className="label">Only for classes containing (optional)</label>
+          <input name="restrictedClass" className="input" placeholder="e.g. Mommy" />
+          <p className="mt-1 text-xs text-ink-400">
+            Leave blank for all classes. Set (e.g. &quot;Mommy&quot;) to limit this
+            plan to matching class types only.
+          </p>
+        </div>
       </div>
       <div className="mt-4">
         <Submit label="Add plan" />

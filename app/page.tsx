@@ -321,9 +321,16 @@ export default async function LandingPage() {
                   <ul className="mt-4 space-y-1 text-sm text-ink-600">
                     <li>
                       {p.kind === "UNLIMITED"
-                        ? "Unlimited classes"
+                        ? p.restrictedClass
+                          ? `Unlimited ${p.restrictedClass} classes`
+                          : "Unlimited classes"
                         : `${p.credits} class credit${p.credits === 1 ? "" : "s"}`}
                     </li>
+                    {p.restrictedClass && (
+                      <li className="font-medium text-brand-700">
+                        For {p.restrictedClass} classes only
+                      </li>
+                    )}
                     <li>
                       {p.kind === "UNLIMITED"
                         ? "Auto-renews monthly · cancel anytime"
