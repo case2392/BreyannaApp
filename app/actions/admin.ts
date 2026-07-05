@@ -135,7 +135,8 @@ export async function createClassType(_prev: unknown, formData: FormData) {
       duration: Number(formData.get("duration")) || 60,
       capacity: Number(formData.get("capacity")) || 12,
       creditCost: Number(formData.get("creditCost")) || 1,
-      color: String(formData.get("color") || "#ec4899"),
+      free: formData.get("free") === "on",
+      color: String(formData.get("color") || "#6A7A5F"),
     },
   });
   revalidatePath("/admin/classes");
@@ -317,6 +318,7 @@ export async function updateClassType(_prev: unknown, formData: FormData) {
       duration: Number(formData.get("duration")) || 60,
       capacity: Number(formData.get("capacity")) || 12,
       creditCost: Number(formData.get("creditCost")) || 1,
+      free: formData.get("free") === "on",
       color: String(formData.get("color") || "#6A7A5F"),
       active: formData.get("active") === "on",
     },

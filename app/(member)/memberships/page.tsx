@@ -157,7 +157,7 @@ export default async function MembershipsPage({
                 )}
                 <li>
                   {p.kind === "UNLIMITED"
-                    ? "Auto-renews monthly · cancel anytime"
+                    ? "Auto-renews monthly"
                     : "Credits never expire"}
                 </li>
               </ul>

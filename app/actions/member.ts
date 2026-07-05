@@ -50,6 +50,20 @@ export async function unbook(bookingId: string) {
 
   const result = await cancelBooking(user.id, bookingId);
 
+  // Tell the studio about the cancellation.
+  if (result.ok && result.sessionId) {
+    const session = await prisma.classSession.findUnique({
+      where: { id: result.sessionId },
+      include: { classType: true },
+    });
+    if (session) {
+      await notifyStudio(
+        `Cancellation: ${session.classType.name}`,
+        `${user.firstName} ${user.lastName} cancelled ${session.classType.name} on ${dayLabel(session.startsAt)} at ${timeLabel(session.startsAt)}.`
+      );
+    }
+  }
+
   // Notify whoever was promoted off the waitlist into the freed spot.
   if (result.ok && result.promotedUserId && result.sessionId) {
     const [promoted, session] = await Promise.all([

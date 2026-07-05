@@ -72,6 +72,8 @@ model ClassType {
   capacity    Int     @default(12)
   // How many credits a member spends to book this class
   creditCost  Int     @default(1)
+  // Free community classes: anyone can book without a membership or credits.
+  free        Boolean @default(false)
   color       String  @default("#ec4899")
   active      Boolean @default(true)
 

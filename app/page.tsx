@@ -198,8 +198,9 @@ export default async function LandingPage() {
           </p>
           <h2 className="mt-3 text-4xl font-semibold">Our classes</h2>
           <p className="mx-auto mt-3 max-w-xl text-ink-600">
-            Cycle, strength, sculpt, dance, and more — every class set to
-            worship.
+            A variety of formats welcome to all experience levels, set to music
+            that honors God, and produces a pleasing aroma and offering of
+            worship to Him.
           </p>
         </div>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -333,7 +334,7 @@ export default async function LandingPage() {
                     )}
                     <li>
                       {p.kind === "UNLIMITED"
-                        ? "Auto-renews monthly · cancel anytime"
+                        ? "Auto-renews monthly"
                         : "Credits never expire"}
                     </li>
                   </ul>
@@ -352,7 +353,7 @@ export default async function LandingPage() {
         <div className="bg-sunset relative mx-auto max-w-6xl overflow-hidden rounded-3xl p-1.5">
           <div className="rounded-[1.35rem] bg-ink-900 px-8 py-14 text-center text-white">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-white/70">
-              Every Saturday · 8:15 AM
+              Every Saturday
             </p>
             <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
               Community Movement &amp; Bible Study

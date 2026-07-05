@@ -42,6 +42,7 @@ export default async function ClassesPage() {
                   duration: c.duration,
                   capacity: c.capacity,
                   creditCost: c.creditCost,
+                  free: c.free,
                   color: c.color,
                   active: c.active,
                   sessions: c._count.sessions,

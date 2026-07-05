@@ -12,6 +12,7 @@ type ClassType = {
   duration: number;
   capacity: number;
   creditCost: number;
+  free: boolean;
   color: string;
   active: boolean;
   sessions: number;
@@ -84,6 +85,12 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
             <input type="checkbox" name="active" defaultChecked={ct.active} />
             <span className="text-sm text-ink-700">Show on the public site &amp; booking</span>
           </label>
+          <label className="flex items-center gap-2 sm:col-span-2">
+            <input type="checkbox" name="free" defaultChecked={ct.free} />
+            <span className="text-sm text-ink-700">
+              Free class — anyone can book without a membership or credits
+            </span>
+          </label>
         </div>
         <div className="mt-3 flex gap-2">
           <SaveBtn />
@@ -101,11 +108,13 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{ct.name}</span>
+          {ct.free && <span className="badge bg-sage-200 text-sage-700">Free</span>}
           {!ct.active && <span className="badge bg-ink-100 text-ink-500">Hidden</span>}
         </div>
         <div className="text-xs text-ink-500">
-          {ct.duration} min · cap {ct.capacity} · {ct.creditCost} credit
-          {ct.creditCost === 1 ? "" : "s"} · {ct.sessions} sessions
+          {ct.duration} min ·{" "}
+          {ct.free ? "free to enter" : `${ct.creditCost} credit${ct.creditCost === 1 ? "" : "s"}`}{" "}
+          · {ct.sessions} sessions
         </div>
       </div>
       <button onClick={() => setEditing(true)} className="btn-ghost text-xs">Edit</button>

@@ -76,24 +76,30 @@ export async function bookClass(
   }
 
   const creditCost = session.classType.creditCost;
-  const membership = await findUsableMembership(
-    userId,
-    creditCost,
-    session.classType.name
-  );
-  if (!membership) {
-    // If they have an active membership that just doesn't cover this class
-    // style, give a clearer message than "you need a membership".
-    const activeCount = await prisma.membership.count({
-      where: { userId, status: "ACTIVE", expiresAt: { gt: new Date() } },
-    });
-    return {
-      ok: false,
-      error:
-        activeCount > 0
-          ? "Your membership doesn't cover this class — buy a single class or class pack to book it."
-          : "You need an active membership or class pack to book.",
-    };
+  const isFree = session.classType.free;
+
+  // Free community classes: no membership or credits required.
+  let membership: MembershipWithPlan | null = null;
+  if (!isFree) {
+    membership = await findUsableMembership(
+      userId,
+      creditCost,
+      session.classType.name
+    );
+    if (!membership) {
+      // If they have an active membership that just doesn't cover this class
+      // style, give a clearer message than "you need a membership".
+      const activeCount = await prisma.membership.count({
+        where: { userId, status: "ACTIVE", expiresAt: { gt: new Date() } },
+      });
+      return {
+        ok: false,
+        error:
+          activeCount > 0
+            ? "Your membership doesn't cover this class — buy a single class or class pack to book it."
+            : "You need an active membership or class pack to book.",
+      };
+    }
   }
 
   // Capacity/waitlist only applies to cycle classes (limited bikes); other
@@ -103,8 +109,13 @@ export async function bookClass(
   const isFull = limited && taken >= session.capacity;
   const status = isFull ? "WAITLISTED" : "BOOKED";
 
-  // Only charge a credit for a confirmed spot (not while waitlisted).
-  const chargeCredit = status === "BOOKED" && membership.plan.kind !== "UNLIMITED";
+  // Only charge a credit for a confirmed spot (not free, not unlimited, not waitlisted).
+  const chargeCredit =
+    !isFree &&
+    status === "BOOKED" &&
+    membership !== null &&
+    membership.plan.kind !== "UNLIMITED";
+  const membershipId = chargeCredit && membership ? membership.id : null;
 
   await prisma.$transaction(async (tx) => {
     if (existing) {
@@ -112,7 +123,7 @@ export async function bookClass(
         where: { id: existing.id },
         data: {
           status,
-          membershipId: chargeCredit ? membership.id : null,
+          membershipId,
           createdAt: new Date(),
         },
       });
@@ -122,13 +133,13 @@ export async function bookClass(
           userId,
           sessionId,
           status,
-          membershipId: chargeCredit ? membership.id : null,
+          membershipId,
         },
       });
     }
-    if (chargeCredit) {
+    if (membershipId) {
       await tx.membership.update({
-        where: { id: membership.id },
+        where: { id: membershipId },
         data: { creditsRemaining: { decrement: creditCost } },
       });
     }

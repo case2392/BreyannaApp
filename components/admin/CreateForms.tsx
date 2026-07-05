@@ -67,8 +67,14 @@ export function CreateClassTypeForm() {
         </div>
         <div>
           <label className="label">Color</label>
-          <input name="color" type="color" className="h-10 w-16 rounded border border-ink-200" defaultValue="#ec4899" />
+          <input name="color" type="color" className="h-10 w-16 rounded border border-ink-200" defaultValue="#6A7A5F" />
         </div>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="free" />
+          <span className="text-sm text-ink-700">
+            Free class — anyone can book without a membership or credits
+          </span>
+        </label>
       </div>
       <div className="mt-4">
         <Submit label="Add class type" />

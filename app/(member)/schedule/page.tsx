@@ -93,6 +93,8 @@ function ClassCard({
             ? "Waitlisted"
             : isFull
             ? "Sold out"
+            : s.classType.free
+            ? "Free"
             : ""}
         </span>
         <BookButton
