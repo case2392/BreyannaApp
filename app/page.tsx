@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
-import { money, dayLabel, timeLabel } from "@/lib/format";
+import { money, dayLabel, timeLabel, groupBy } from "@/lib/format";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { Logo } from "@/components/Brand";
 import { BrandImage } from "@/components/BrandImage";
@@ -47,17 +47,19 @@ export default async function LandingPage() {
   const authed = Boolean(user);
   const dashboardHref = user && isStaff(user.role) ? "/admin" : "/schedule";
   const now = new Date();
+  const weekEnd = new Date(now);
+  weekEnd.setDate(weekEnd.getDate() + 7);
 
   const [classTypes, plans, upcoming] = await Promise.all([
     prisma.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.membershipPlan.findMany({ where: { active: true }, orderBy: { priceCents: "asc" } }),
     prisma.classSession.findMany({
-      where: { cancelled: false, startsAt: { gt: now } },
+      where: { cancelled: false, startsAt: { gt: now, lt: weekEnd } },
       orderBy: { startsAt: "asc" },
-      take: 6,
       include: { classType: true, instructor: true },
     }),
   ]);
+  const upcomingByDay = groupBy(upcoming, (s) => s.startsAt.toDateString());
 
   return (
     <div className="bg-ink-50">
@@ -252,30 +254,38 @@ export default async function LandingPage() {
           </p>
         </div>
 
-        <div className="mx-auto mt-10 max-w-3xl divide-y divide-ink-100 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-soft">
-          {upcoming.length === 0 ? (
-            <p className="p-8 text-center text-ink-500">
-              New classes are being scheduled — check back soon!
-            </p>
-          ) : (
-            upcoming.map((s) => (
-              <div key={s.id} className="flex items-center gap-4 p-4">
-                <span className="h-12 w-1.5 rounded-full" style={{ backgroundColor: s.classType.color }} />
-                <div className="w-28 shrink-0">
-                  <div className="text-sm font-semibold">{dayLabel(s.startsAt)}</div>
-                  <div className="text-xs text-ink-500">{timeLabel(s.startsAt)}</div>
+        {upcoming.length === 0 ? (
+          <div className="mx-auto mt-10 max-w-3xl rounded-2xl border border-ink-200 bg-white p-8 text-center text-ink-500 shadow-soft">
+            New classes are being scheduled — check back soon!
+          </div>
+        ) : (
+          <div className="mx-auto mt-10 max-w-3xl space-y-6">
+            {[...upcomingByDay.entries()].map(([day, list]) => (
+              <div key={day}>
+                <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-ink-500">
+                  {dayLabel(new Date(day))}
+                </h3>
+                <div className="divide-y divide-ink-100 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-soft">
+                  {list.map((s) => (
+                    <div key={s.id} className="flex items-center gap-4 p-4">
+                      <span className="h-10 w-1.5 rounded-full" style={{ backgroundColor: s.classType.color }} />
+                      <div className="w-20 shrink-0 text-sm font-semibold">
+                        {timeLabel(s.startsAt)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">{s.classType.name}</div>
+                        <div className="truncate text-sm text-ink-500">{s.instructor.name}</div>
+                      </div>
+                      <Link href="/login" className="btn-secondary shrink-0 text-xs">
+                        Reserve
+                      </Link>
+                    </div>
+                  ))}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate font-medium">{s.classType.name}</div>
-                  <div className="truncate text-sm text-ink-500">{s.instructor.name}</div>
-                </div>
-                <Link href="/login" className="btn-secondary shrink-0 text-xs">
-                  Reserve
-                </Link>
               </div>
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
         <div className="mt-8 text-center">
           <Link href="/register" className="btn-primary px-6 py-3">
             Create an account to book
