@@ -1,5 +1,7 @@
 import { prisma } from "./db";
 import { stripe } from "./stripe";
+import { notifyStudio } from "./notify";
+import { money } from "./format";
 import type { MembershipPlan } from "@prisma/client";
 
 // Grant (or extend) a membership for a user. Shared by the instant-grant
@@ -54,20 +56,36 @@ export async function grantMembership(
     expiresAt.setFullYear(expiresAt.getFullYear() + 50);
   }
 
-  return prisma.membership.create({
+  const pricePaidCents = opts.pricePaidCents ?? plan.priceCents;
+  const membership = await prisma.membership.create({
     data: {
       userId,
       planId: plan.id,
       status: "ACTIVE",
       creditsRemaining: plan.kind === "UNLIMITED" ? 0 : plan.credits,
       expiresAt,
-      pricePaidCents: opts.pricePaidCents ?? plan.priceCents,
+      pricePaidCents,
       source,
       giftedByUserId: opts.giftedByUserId ?? null,
       autoRenew: isSubscription,
       stripeSubscriptionId: opts.stripeSubscriptionId ?? null,
     },
   });
+
+  // Notify the studio of a real (paid) purchase — once, on creation only.
+  if (source === "PURCHASE") {
+    const u = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true },
+    });
+    const name = u ? `${u.firstName} ${u.lastName}` : "A member";
+    await notifyStudio(
+      `New membership: ${plan.name}`,
+      `${name} just purchased "${plan.name}" for ${money(pricePaidCents)}.`
+    );
+  }
+
+  return membership;
 }
 
 // Does a membership kind expire? Only unlimited (monthly) does; packs/drop-ins

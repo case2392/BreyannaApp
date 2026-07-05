@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { bookClass, cancelBooking } from "@/lib/booking";
 import { fireAutomation } from "@/lib/automations";
+import { notifyStudio } from "@/lib/notify";
 import { dayLabel, timeLabel } from "@/lib/format";
 
 export async function book(sessionId: string) {
@@ -13,19 +14,28 @@ export async function book(sessionId: string) {
 
   const result = await bookClass(user.id, sessionId);
 
-  // Confirmation message for a secured spot (not while waitlisted).
-  if (result.ok && result.status === "BOOKED") {
+  if (result.ok) {
     const session = await prisma.classSession.findUnique({
       where: { id: sessionId },
       include: { classType: true, instructor: true },
     });
     if (session) {
-      await fireAutomation("booking_confirmation", user, {
-        className: session.classType.name,
-        date: dayLabel(session.startsAt),
-        time: timeLabel(session.startsAt),
-        instructor: session.instructor.name,
-      });
+      const when = `${dayLabel(session.startsAt)} at ${timeLabel(session.startsAt)}`;
+      // Member confirmation for a secured spot (not while waitlisted).
+      if (result.status === "BOOKED") {
+        await fireAutomation("booking_confirmation", user, {
+          className: session.classType.name,
+          date: dayLabel(session.startsAt),
+          time: timeLabel(session.startsAt),
+          instructor: session.instructor.name,
+        });
+      }
+      // Studio notification for the booking (or waitlist join).
+      const verb = result.status === "WAITLISTED" ? "joined the waitlist for" : "booked";
+      await notifyStudio(
+        `New booking: ${session.classType.name}`,
+        `${user.firstName} ${user.lastName} ${verb} ${session.classType.name} on ${when} with ${session.instructor.name}.`
+      );
     }
   }
 
