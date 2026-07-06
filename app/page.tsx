@@ -374,7 +374,7 @@ export default async function LandingPage() {
               Every Saturday
             </p>
             <h2 className="mt-3 text-3xl font-semibold text-white sm:text-4xl">
-              Community Movement &amp; Bible Study
+              Community Movement &amp; the Word
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-white/85">
               Bring a friend for outdoor movement and time in the Word. All are
