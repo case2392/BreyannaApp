@@ -24,6 +24,11 @@ export async function login(_prev: unknown, formData: FormData) {
     return { error: "Incorrect email or password." };
   }
 
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
   setSessionCookie(user.id);
   redirect(user.role === "MEMBER" ? "/schedule" : "/admin");
 }
@@ -53,6 +58,7 @@ export async function register(_prev: unknown, formData: FormData) {
       phone,
       passwordHash: hashPassword(password),
       role: "MEMBER",
+      lastLoginAt: new Date(),
     },
   });
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { shortDate, dayLabel, timeLabel, money } from "@/lib/format";
+import { shortDate, dayLabel, timeLabel, money, timeAgo } from "@/lib/format";
 import { MemberNotes } from "@/components/admin/MemberNotes";
 import {
   GrantMembership,
@@ -23,7 +23,7 @@ export default async function MemberDetailPage({
 }: {
   params: { id: string };
 }) {
-  const [member, plans] = await Promise.all([
+  const [member, plans, lastBooking] = await Promise.all([
     prisma.user.findUnique({
       where: { id: params.id },
       include: {
@@ -40,6 +40,12 @@ export default async function MemberDetailPage({
       where: { active: true },
       orderBy: { priceCents: "asc" },
       select: { id: true, name: true },
+    }),
+    // Most recent time this member booked a class (any status).
+    prisma.booking.findFirst({
+      where: { userId: params.id },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
     }),
   ]);
 
@@ -75,6 +81,22 @@ export default async function MemberDetailPage({
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="card p-4">
+          <div className="text-xs text-ink-500">Last sign-in</div>
+          <div className="text-lg font-semibold">{timeAgo(member.lastLoginAt)}</div>
+          <div className="text-xs text-ink-400">
+            {member.lastLoginAt ? shortDate(member.lastLoginAt) : "Hasn't signed in yet"}
+          </div>
+        </div>
+        <div className="card p-4">
+          <div className="text-xs text-ink-500">Last booked a class</div>
+          <div className="text-lg font-semibold">
+            {timeAgo(lastBooking?.createdAt)}
+          </div>
+          <div className="text-xs text-ink-400">
+            {lastBooking ? shortDate(lastBooking.createdAt) : "No bookings yet"}
+          </div>
+        </div>
         <div className="card p-4">
           <div className="text-xs text-ink-500">Member since</div>
           <div className="text-lg font-semibold">{shortDate(member.createdAt)}</div>

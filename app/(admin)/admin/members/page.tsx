@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { shortDate } from "@/lib/format";
+import { shortDate, timeAgo } from "@/lib/format";
 import { AddMemberForm } from "@/components/admin/MemberTools";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +38,7 @@ export default async function MembersPage() {
             <tr>
               <th className="px-4 py-3">Member</th>
               <th className="hidden px-4 py-3 sm:table-cell">Membership</th>
+              <th className="hidden px-4 py-3 lg:table-cell">Last seen</th>
               <th className="hidden px-4 py-3 md:table-cell">Joined</th>
               <th className="px-4 py-3 text-right">Bookings</th>
             </tr>
@@ -64,6 +65,9 @@ export default async function MembersPage() {
                     ) : (
                       <span className="badge bg-ink-100 text-ink-500">None</span>
                     )}
+                  </td>
+                  <td className="hidden px-4 py-3 text-ink-500 lg:table-cell">
+                    {timeAgo(m.lastLoginAt)}
                   </td>
                   <td className="hidden px-4 py-3 text-ink-500 md:table-cell">
                     {shortDate(m.createdAt)}

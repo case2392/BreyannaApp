@@ -30,6 +30,8 @@ model User {
   // Stripe customer id (created on first checkout)
   stripeCustomerId String? @unique
   createdAt    DateTime @default(now())
+  // Last time this member signed in (updated on every successful login).
+  lastLoginAt  DateTime?
 
   bookings    Booking[]
   memberships Membership[]
