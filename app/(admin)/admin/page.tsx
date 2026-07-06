@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { money, timeLabel, dayLabel } from "@/lib/format";
+import { money, timeLabel, dayLabel, capacityLimited } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +34,7 @@ export default async function AdminDashboard() {
     memberCount,
     activeMembers,
     bookingsToday,
+    todaySessions,
     upcoming,
     revenueAgg,
   ] = await Promise.all([
@@ -47,8 +48,29 @@ export default async function AdminDashboard() {
         session: { startsAt: { gte: startOfToday, lt: endOfToday } },
       },
     }),
+    // Every class scheduled today (including ones already started) with the
+    // full roster, so staff can see who's coming and take attendance.
     prisma.classSession.findMany({
-      where: { cancelled: false, startsAt: { gte: now } },
+      where: {
+        cancelled: false,
+        startsAt: { gte: startOfToday, lt: endOfToday },
+      },
+      orderBy: { startsAt: "asc" },
+      include: {
+        classType: true,
+        instructor: true,
+        room: true,
+        bookings: {
+          where: {
+            status: { in: ["BOOKED", "ATTENDED", "NO_SHOW", "WAITLISTED"] },
+          },
+          include: { user: { select: { firstName: true, lastName: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    }),
+    prisma.classSession.findMany({
+      where: { cancelled: false, startsAt: { gte: endOfToday } },
       orderBy: { startsAt: "asc" },
       take: 6,
       include: {
@@ -84,6 +106,89 @@ export default async function AdminDashboard() {
           value={money(revenue)}
           sub="From membership sales"
         />
+      </div>
+
+      {/* Today's classes + rosters */}
+      <div className="mt-8 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Today&apos;s classes</h2>
+        <Link href="/admin/schedule" className="text-sm font-medium text-brand-600">
+          Full schedule →
+        </Link>
+      </div>
+
+      <div className="mt-3 space-y-3">
+        {todaySessions.length === 0 && (
+          <div className="card p-6 text-center text-ink-500">
+            No classes scheduled for today.
+          </div>
+        )}
+        {todaySessions.map((s) => {
+          const confirmed = s.bookings.filter((b) => b.status !== "WAITLISTED");
+          const waitlist = s.bookings.filter((b) => b.status === "WAITLISTED");
+          const countLabel = capacityLimited(s.classType.name)
+            ? `${confirmed.length}/${s.capacity}`
+            : `${confirmed.length} booked`;
+          return (
+            <div key={s.id} className="card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-10 w-1.5 rounded-full"
+                    style={{ backgroundColor: s.classType.color }}
+                  />
+                  <div>
+                    <div className="font-semibold">{s.classType.name}</div>
+                    <div className="text-sm text-ink-500">
+                      {timeLabel(s.startsAt)} · {s.instructor.name}
+                      {s.room ? ` · ${s.room.name}` : ""}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold">{countLabel}</span>
+                  <Link
+                    href={`/admin/schedule/${s.id}`}
+                    className="btn-secondary text-xs"
+                  >
+                    Roster
+                  </Link>
+                </div>
+              </div>
+
+              <div className="mt-3 border-t border-ink-100 pt-3">
+                {confirmed.length === 0 ? (
+                  <p className="text-sm text-ink-400">No-one booked yet.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {confirmed.map((b) => (
+                      <span
+                        key={b.id}
+                        className="badge bg-brand-50 text-brand-700"
+                      >
+                        {b.user.firstName} {b.user.lastName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {waitlist.length > 0 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
+                      Waitlist
+                    </span>
+                    {waitlist.map((b) => (
+                      <span
+                        key={b.id}
+                        className="badge bg-amber-100 text-amber-700"
+                      >
+                        {b.user.firstName} {b.user.lastName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       <div className="mt-8 flex items-center justify-between">
