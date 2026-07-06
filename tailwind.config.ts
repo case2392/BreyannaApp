@@ -55,8 +55,10 @@ const config: Config = {
         },
       },
       fontFamily: {
+        // Default heading font = "The Seasons" stand-in (Playfair Display).
         serif: ["var(--font-serif)", "Georgia", "Cambria", "serif"],
-        elegant: ["var(--font-elegant)", "Georgia", "Cambria", "serif"],
+        // Brand display font = "Brown Sugar" stand-in (Fraunces) — logo + heroes.
+        brand: ["var(--font-brand)", "Georgia", "Cambria", "serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {

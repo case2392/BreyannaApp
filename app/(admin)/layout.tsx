@@ -42,7 +42,7 @@ export default async function AdminLayout({
         <div className="flex items-center gap-2.5 px-5 py-5">
           <DwellMark size={36} />
           <div>
-            <div className="font-serif text-base font-semibold leading-tight">DWELL</div>
+            <div className="font-brand text-base font-semibold leading-tight">DWELL</div>
             <div className="text-[10px] uppercase tracking-[0.25em] text-ink-500">Studio CRM</div>
           </div>
         </div>

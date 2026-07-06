@@ -79,14 +79,14 @@ export default async function LandingPage() {
         {/* Extra glow concentrated behind the text block for legibility. */}
         <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-ink-50/70 via-ink-50/40 to-transparent" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-20 pt-28 text-center md:pb-28 md:pt-64">
-          <h1 className="max-w-3xl font-serif text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_2px_16px_rgba(244,241,236,0.9)] sm:text-6xl">
+          <h1 className="max-w-3xl font-brand text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_2px_16px_rgba(244,241,236,0.9)] sm:text-6xl">
             A Christ-centered movement studio for women
           </h1>
           <p className="mt-5 max-w-xl text-lg font-medium text-ink-800 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_1px_10px_rgba(244,241,236,0.9)]">
             Honoring the body as God&apos;s dwelling place through cycle,
             movement, and dance.
           </p>
-          <p className="mt-4 font-elegant text-lg italic text-brand-700 [text-shadow:0_1px_8px_rgba(244,241,236,0.95)]">
+          <p className="mt-4 font-serif text-lg italic text-brand-700 [text-shadow:0_1px_8px_rgba(244,241,236,0.95)]">
             Feed your spirit. Find community. Flourish in freedom.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -131,7 +131,7 @@ export default async function LandingPage() {
           <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-3xl shadow-soft">
             <BrandImage src="/photos/about.jpg" alt="Women worshipping and moving together at Dwell Studio" className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-105" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/60 to-transparent p-6">
-              <p className="font-elegant text-xl italic text-white">
+              <p className="font-serif text-xl italic text-white">
                 &ldquo;Look at what the Lord has done.&rdquo;
               </p>
             </div>

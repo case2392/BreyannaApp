@@ -32,7 +32,7 @@ export default async function SponsorPage({
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-700">
               Sponsor a Sister
             </p>
-            <h1 className="mt-3 font-serif text-4xl font-semibold text-ink-900 sm:text-5xl">
+            <h1 className="mt-3 font-brand text-4xl font-semibold text-ink-900 sm:text-5xl">
               Give the gift of movement &amp; community
             </h1>
             <p className="mt-5 text-lg text-ink-600">

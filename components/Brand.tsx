@@ -10,7 +10,7 @@ export function DwellMark({ size = 40 }: { size?: number }) {
     >
       <span className="flex h-full w-full items-center justify-center rounded-full bg-ink-50">
         <span
-          className="font-serif font-semibold leading-none text-ink-900"
+          className="font-brand font-semibold leading-none text-ink-900"
           style={{ fontSize: size * 0.5 }}
         >
           D
@@ -33,7 +33,7 @@ export function Logo({
   return (
     <Link
       href={href}
-      className={`font-serif text-2xl font-semibold tracking-tight ${
+      className={`font-brand text-2xl font-semibold tracking-tight ${
         light ? "text-white" : "text-ink-900"
       }`}
     >
@@ -52,7 +52,7 @@ export function DwellSeal({ size = 132 }: { size?: number }) {
     >
       <span className="flex h-full w-full flex-col items-center justify-center rounded-full bg-ink-50">
         <span
-          className="font-serif font-semibold leading-none text-ink-900"
+          className="font-brand font-semibold leading-none text-ink-900"
           style={{ fontSize: size * 0.27 }}
         >
           DWELL

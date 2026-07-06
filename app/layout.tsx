@@ -2,22 +2,24 @@ import type { Metadata } from "next";
 import { Fraunces, Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 
-// Main display / heading font — closest free stand-in for Canva's "Brown Sugar":
-// a warm, characterful boutique serif.
-const serif = Fraunces({
+// Brand display font — closest free stand-in for Canva's "Brown Sugar":
+// a warm, characterful boutique serif. Reserved for the logo/wordmark and
+// the big hero headlines.
+const brand = Fraunces({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-serif",
+  variable: "--font-brand",
   display: "swap",
 });
 
-// Secondary "sub text" serif — closest free stand-in for Canva's "The Seasons":
-// a high-contrast, elegant editorial serif. Used for taglines/subheadings.
-const elegant = Playfair_Display({
+// Default heading serif — closest free stand-in for Canva's "The Seasons":
+// a high-contrast, elegant editorial serif. Used for all other headings,
+// sub-titles, and taglines.
+const serif = Playfair_Display({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   style: ["normal", "italic"],
-  variable: "--font-elegant",
+  variable: "--font-serif",
   display: "swap",
 });
 
@@ -48,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${serif.variable} ${elegant.variable} ${sans.variable}`}
+      className={`${brand.variable} ${serif.variable} ${sans.variable}`}
     >
       <body>{children}</body>
     </html>

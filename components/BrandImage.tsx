@@ -26,7 +26,7 @@ export function BrandImage({
         className={`${className} flex items-center justify-center bg-gradient-to-br from-brand-200 via-sage-200 to-clay-200`}
         aria-label={alt}
       >
-        <span className="font-serif text-2xl text-brand-700/70">Dwell</span>
+        <span className="font-brand text-2xl text-brand-700/70">Dwell</span>
       </div>
     );
   }

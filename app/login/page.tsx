@@ -14,7 +14,7 @@ export default async function LoginPage() {
         <div className="absolute inset-0 bg-ink-900/10" />
         <div className="relative flex flex-col items-center">
           <DwellSeal size={120} />
-          <h1 className="mt-6 font-serif text-3xl font-semibold text-white drop-shadow-sm sm:text-4xl">
+          <h1 className="mt-6 font-brand text-3xl font-semibold text-white drop-shadow-sm sm:text-4xl">
             A movement studio for women
           </h1>
           <p className="mt-3 max-w-sm text-white/90">
