@@ -4,6 +4,10 @@ import type { Membership, MembershipPlan } from "@prisma/client";
 
 type MembershipWithPlan = Membership & { plan: MembershipPlan };
 
+// Booking closes this long before a class starts, so the studio has time to
+// plan and set up. Members can't book (and don't see) classes inside this window.
+export const BOOKING_LEAD_MS = 2 * 60 * 60 * 1000; // 2 hours
+
 export type BookResult =
   | { ok: true; status: "BOOKED" | "WAITLISTED" }
   | { ok: false; error: string };
@@ -64,8 +68,11 @@ export async function bookClass(
   });
   if (!session) return { ok: false, error: "Class not found." };
   if (session.cancelled) return { ok: false, error: "This class was cancelled." };
-  if (session.startsAt < new Date())
-    return { ok: false, error: "This class has already started." };
+  if (session.startsAt.getTime() - Date.now() < BOOKING_LEAD_MS)
+    return {
+      ok: false,
+      error: "Booking has closed — classes lock 2 hours before they start.",
+    };
 
   // Already have a booking? (unique constraint also guards this)
   const existing = await prisma.booking.findUnique({

@@ -13,6 +13,7 @@ import {
   capacityLimited,
 } from "@/lib/format";
 import { BookButton } from "@/components/BookButton";
+import { BOOKING_LEAD_MS } from "@/lib/booking";
 
 export const dynamic = "force-dynamic";
 
@@ -20,10 +21,13 @@ const MAX_WEEKS_AHEAD = 8;
 
 type SessionWithDetails = Awaited<ReturnType<typeof loadSessions>>[number];
 
-// `to` is exclusive (sessions strictly before it).
+// `to` is exclusive (sessions strictly before it). Classes within the booking
+// lead window (2 hours before start) are hidden — they can no longer be booked.
 async function loadSessions(from: Date, to: Date) {
+  const cutoff = new Date(Date.now() + BOOKING_LEAD_MS);
+  const lower = from > cutoff ? from : cutoff;
   return prisma.classSession.findMany({
-    where: { cancelled: false, startsAt: { gte: from, lt: to } },
+    where: { cancelled: false, startsAt: { gte: lower, lt: to } },
     orderBy: { startsAt: "asc" },
     include: {
       classType: true,
