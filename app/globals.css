@@ -10,34 +10,57 @@
   }
   body {
     @apply overflow-x-hidden bg-ink-50 font-sans text-ink-900 antialiased;
+    /* Soft warm glow anchored at the top of the page gives the flat sand
+       background gentle depth without distracting from content. */
+    background-image:
+      radial-gradient(48rem 30rem at 50% -6rem, rgba(210, 187, 160, 0.22), transparent 60%),
+      radial-gradient(42rem 32rem at 100% 0, rgba(200, 209, 194, 0.16), transparent 55%);
+    background-repeat: no-repeat;
   }
   h1,
   h2,
   h3 {
     @apply font-serif;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
+    /* Even, pleasing line breaks in headings — a subtle mark of craft. */
+    text-wrap: balance;
+    font-feature-settings: "liga" 1, "calt" 1;
+  }
+  /* Branded text selection. */
+  ::selection {
+    background: rgba(106, 122, 95, 0.2);
+    color: #2d2d2d;
+  }
+  /* Consistent, accessible focus ring for keyboard users. */
+  :focus-visible {
+    outline: 2px solid #859673;
+    outline-offset: 2px;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 ease-out-soft active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100;
   }
   /* Primary = olive green, the studio's signature color. */
   .btn-primary {
-    @apply btn bg-brand-500 text-white hover:bg-brand-600;
+    @apply btn bg-brand-500 text-white shadow-btn hover:bg-brand-600 hover:shadow-lift;
   }
   .btn-brand {
-    @apply btn bg-clay-300 text-ink-900 hover:bg-clay-400;
+    @apply btn bg-clay-300 text-ink-900 shadow-btn hover:bg-clay-400 hover:shadow-lift;
   }
   .btn-secondary {
-    @apply btn border border-ink-200 bg-white text-ink-800 hover:bg-ink-100;
+    @apply btn border border-ink-200 bg-white text-ink-800 hover:border-ink-300 hover:bg-ink-100;
   }
   .btn-ghost {
     @apply btn text-ink-700 hover:bg-ink-100;
   }
   .card {
     @apply rounded-2xl border border-ink-200 bg-white shadow-soft;
+  }
+  /* Opt-in hover elevation for tappable / featured cards. */
+  .card-interactive {
+    @apply transition-all duration-300 ease-out-soft hover:-translate-y-1 hover:border-ink-300 hover:shadow-lift;
   }
   .input {
     @apply w-full rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100;

@@ -128,7 +128,7 @@ export default async function MembershipsPage({
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {plans.map((p) => (
-            <div key={p.id} className="card flex flex-col p-5">
+            <div key={p.id} className="card card-interactive flex flex-col p-5">
               <span className="badge mb-2 self-start bg-brand-50 text-brand-700">
                 {kindLabel[p.kind]}
               </span>

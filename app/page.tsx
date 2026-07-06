@@ -110,7 +110,7 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-6xl px-4 py-16">
         <div className="grid gap-6 md:grid-cols-3">
           {coreValues.map((p) => (
-            <div key={p.title} className="card p-7 text-center">
+            <div key={p.title} className="card card-interactive p-7 text-center">
               <span className="bg-sunset mx-auto flex h-14 w-14 items-center justify-center rounded-full">
                 <span className="flex h-full w-full items-center justify-center rounded-full bg-ink-50">
                   <svg className="h-6 w-6 text-ink-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
@@ -128,8 +128,8 @@ export default async function LandingPage() {
       {/* About */}
       <section id="about" className="scroll-mt-20 bg-white py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-2">
-          <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl shadow-soft">
-            <BrandImage src="/photos/about.jpg" alt="Women worshipping and moving together at Dwell Studio" className="h-full w-full" />
+          <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-3xl shadow-soft">
+            <BrandImage src="/photos/about.jpg" alt="Women worshipping and moving together at Dwell Studio" className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-105" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/60 to-transparent p-6">
               <p className="font-elegant text-xl italic text-white">
                 &ldquo;Look at what the Lord has done.&rdquo;
@@ -176,7 +176,7 @@ export default async function LandingPage() {
           </div>
           <ul className="mx-auto mt-8 max-w-2xl space-y-3">
             {reflections.map((q) => (
-              <li key={q} className="flex items-start gap-3 rounded-2xl bg-white/70 px-5 py-4 shadow-soft">
+              <li key={q} className="flex items-start gap-3 rounded-2xl bg-white/70 px-5 py-4 shadow-soft transition-colors hover:bg-white">
                 <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-500" />
                 <span className="text-ink-700">{q}</span>
               </li>
@@ -205,7 +205,7 @@ export default async function LandingPage() {
         </div>
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {classTypes.map((c) => (
-            <div key={c.id} className="card overflow-hidden">
+            <div key={c.id} className="card card-interactive overflow-hidden">
               <div className="h-2 w-full" style={{ backgroundColor: c.color }} />
               <div className="p-6">
                 <h3 className="text-xl font-semibold">{c.name}</h3>
@@ -234,8 +234,8 @@ export default async function LandingPage() {
               { src: "/photos/community.jpg", alt: "Dwell community" },
               { src: "/photos/movement.jpg", alt: "Movement and worship at Dwell" },
             ].map((img) => (
-              <div key={img.src} className="aspect-[4/5] overflow-hidden rounded-2xl shadow-soft">
-                <BrandImage src={img.src} alt={img.alt} className="h-full w-full" />
+              <div key={img.src} className="group aspect-[4/5] overflow-hidden rounded-2xl shadow-soft">
+                <BrandImage src={img.src} alt={img.alt} className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-105" />
               </div>
             ))}
           </div>
@@ -268,7 +268,7 @@ export default async function LandingPage() {
                 </h3>
                 <div className="divide-y divide-ink-100 overflow-hidden rounded-2xl border border-ink-200 bg-white shadow-soft">
                   {list.map((s) => (
-                    <div key={s.id} className="flex items-center gap-4 p-4">
+                    <div key={s.id} className="flex items-center gap-4 p-4 transition-colors hover:bg-ink-50/60">
                       <span className="h-10 w-1.5 rounded-full" style={{ backgroundColor: s.classType.color }} />
                       <div className="w-20 shrink-0 text-sm font-semibold">
                         {timeLabel(s.startsAt)}
@@ -310,7 +310,7 @@ export default async function LandingPage() {
           <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {plans.map((p) => {
               return (
-                <div key={p.id} className="card flex flex-col p-6">
+                <div key={p.id} className="card card-interactive flex flex-col p-6">
                   <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
                     {kindLabel[p.kind]}
                   </span>

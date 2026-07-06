@@ -60,7 +60,14 @@ const config: Config = {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
-        soft: "0 1px 2px rgba(45,45,45,0.04), 0 10px 30px -16px rgba(45,45,45,0.18)",
+        // Brand-tinted shadows (warm olive undertone) read softer and more
+        // premium than neutral gray.
+        soft: "0 1px 2px rgba(45,45,45,0.04), 0 8px 24px -14px rgba(58,67,51,0.18)",
+        lift: "0 2px 6px rgba(45,45,45,0.05), 0 22px 44px -20px rgba(58,67,51,0.30)",
+        btn: "0 1px 2px rgba(45,45,45,0.08), 0 6px 16px -8px rgba(73,85,63,0.35)",
+      },
+      transitionTimingFunction: {
+        "out-soft": "cubic-bezier(0.22, 1, 0.36, 1)",
       },
     },
   },
