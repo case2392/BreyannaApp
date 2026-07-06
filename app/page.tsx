@@ -86,7 +86,7 @@ export default async function LandingPage() {
             Honoring the body as God&apos;s dwelling place through cycle,
             movement, and dance.
           </p>
-          <p className="mt-4 font-serif text-lg italic text-brand-700 [text-shadow:0_1px_8px_rgba(244,241,236,0.95)]">
+          <p className="mt-4 font-elegant text-lg italic text-brand-700 [text-shadow:0_1px_8px_rgba(244,241,236,0.95)]">
             Feed your spirit. Find community. Flourish in freedom.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -131,7 +131,7 @@ export default async function LandingPage() {
           <div className="relative aspect-[4/5] w-full overflow-hidden rounded-3xl shadow-soft">
             <BrandImage src="/photos/about.jpg" alt="Women worshipping and moving together at Dwell Studio" className="h-full w-full" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/60 to-transparent p-6">
-              <p className="font-serif text-xl italic text-white">
+              <p className="font-elegant text-xl italic text-white">
                 &ldquo;Look at what the Lord has done.&rdquo;
               </p>
             </div>

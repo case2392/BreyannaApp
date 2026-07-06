@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Inter } from "next/font/google";
+import { Fraunces, Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 
-const serif = Cormorant_Garamond({
+// Main display / heading font — closest free stand-in for Canva's "Brown Sugar":
+// a warm, characterful boutique serif.
+const serif = Fraunces({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-serif",
+  display: "swap",
+});
+
+// Secondary "sub text" serif — closest free stand-in for Canva's "The Seasons":
+// a high-contrast, elegant editorial serif. Used for taglines/subheadings.
+const elegant = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-elegant",
   display: "swap",
 });
 
@@ -34,7 +46,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable}`}>
+    <html
+      lang="en"
+      className={`${serif.variable} ${elegant.variable} ${sans.variable}`}
+    >
       <body>{children}</body>
     </html>
   );

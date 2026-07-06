@@ -56,6 +56,7 @@ const config: Config = {
       },
       fontFamily: {
         serif: ["var(--font-serif)", "Georgia", "Cambria", "serif"],
+        elegant: ["var(--font-elegant)", "Georgia", "Cambria", "serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
