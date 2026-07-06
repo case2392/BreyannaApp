@@ -45,6 +45,7 @@ export default async function MembershipsPage({
   ]);
 
   const hasSubscription = mine.some((m) => m.autoRenew);
+  const activePlanIds = new Set(mine.map((m) => m.plan.id));
 
   return (
     <div>
@@ -155,7 +156,16 @@ export default async function MembershipsPage({
                 </li>
               </ul>
               <div className="mt-auto">
-                <BuyButton planId={p.id} />
+                {activePlanIds.has(p.id) ? (
+                  <button
+                    disabled
+                    className="w-full cursor-not-allowed rounded-full bg-ink-100 px-4 py-2 text-sm font-semibold text-ink-500"
+                  >
+                    ✓ Active member
+                  </button>
+                ) : (
+                  <BuyButton planId={p.id} />
+                )}
               </div>
             </div>
           ))}

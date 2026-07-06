@@ -22,7 +22,19 @@ async function ensureCustomer(user: {
   lastName: string;
   stripeCustomerId: string | null;
 }): Promise<string> {
-  if (user.stripeCustomerId) return user.stripeCustomerId;
+  // A saved customer id is only valid in the Stripe mode it was created in.
+  // After switching test → live keys, an old test customer id won't resolve,
+  // so verify it still exists and fall through to create a fresh one if not.
+  if (user.stripeCustomerId) {
+    try {
+      const existing = await stripe!.customers.retrieve(user.stripeCustomerId);
+      if (!("deleted" in existing) || !existing.deleted) {
+        return user.stripeCustomerId;
+      }
+    } catch {
+      // Not found in the current mode — create a new customer below.
+    }
+  }
   const customer = await stripe!.customers.create({
     email: user.email,
     name: `${user.firstName} ${user.lastName}`,
