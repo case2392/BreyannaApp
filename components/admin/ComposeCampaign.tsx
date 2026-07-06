@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { sendCampaign } from "@/app/actions/messaging";
 
-type Audience = { key: string; label: string; count: number };
+type Audience = { key: string; label: string; group: string; count: number };
 type Member = {
   id: string;
   firstName: string;
@@ -25,33 +25,61 @@ function SendButton({ channel }: { channel: string }) {
 export function ComposeCampaign({
   audiences,
   members,
+  audienceMembers,
   emailReady,
   smsReady,
 }: {
   audiences: Audience[];
   members: Member[];
+  audienceMembers: Record<string, string[]>;
   emailReady: boolean;
   smsReady: boolean;
 }) {
   const [channel, setChannel] = useState<"EMAIL" | "SMS">("EMAIL");
-  const [audience, setAudience] = useState(audiences[0]?.key ?? "all");
+  const [audience, setAudience] = useState("all");
   const [body, setBody] = useState("");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(
+    () => new Set(audienceMembers["all"] ?? [])
+  );
   const [state, action] = useFormState(sendCampaign, {} as any);
 
   const isCustom = audience === "custom";
   const providerReady = channel === "EMAIL" ? emailReady : smsReady;
 
-  const filtered = useMemo(() => {
+  // Group the dropdown options by their section.
+  const grouped = useMemo(() => {
+    const map = new Map<string, Audience[]>();
+    for (const a of audiences) {
+      if (!map.has(a.group)) map.set(a.group, []);
+      map.get(a.group)!.push(a);
+    }
+    return [...map.entries()];
+  }, [audiences]);
+
+  // The pool of members this audience can include (custom = everyone).
+  const pool = useMemo(() => {
+    if (isCustom) return members;
+    const allowed = new Set(audienceMembers[audience] ?? []);
+    return members.filter((m) => allowed.has(m.id));
+  }, [isCustom, members, audienceMembers, audience]);
+
+  const shown = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m) =>
+    if (!q) return pool;
+    return pool.filter((m) =>
       `${m.firstName} ${m.lastName} ${m.email} ${m.phone ?? ""}`
         .toLowerCase()
         .includes(q)
     );
-  }, [members, search]);
+  }, [pool, search]);
+
+  function pickAudience(key: string) {
+    setAudience(key);
+    setSearch("");
+    // Pre-select everyone in the chosen segment (custom starts empty).
+    setSelected(key === "custom" ? new Set() : new Set(audienceMembers[key] ?? []));
+  }
 
   function toggle(id: string) {
     setSelected((prev) => {
@@ -61,20 +89,17 @@ export function ComposeCampaign({
     });
   }
 
-  // How many people this send will actually reach on the chosen channel.
-  const reachableCount = isCustom
-    ? members.filter(
-        (m) =>
-          selected.has(m.id) && (channel === "EMAIL" ? Boolean(m.email) : Boolean(m.phone))
-      ).length
-    : audiences.find((a) => a.key === audience)?.count ?? 0;
+  const reachableCount = members.filter(
+    (m) =>
+      selected.has(m.id) &&
+      (channel === "EMAIL" ? Boolean(m.email) : Boolean(m.phone))
+  ).length;
 
   return (
     <form action={action} className="card p-5">
       <input type="hidden" name="channel" value={channel} />
-      {isCustom && (
-        <input type="hidden" name="memberIds" value={[...selected].join(",")} />
-      )}
+      <input type="hidden" name="audience" value={audience} />
+      <input type="hidden" name="memberIds" value={[...selected].join(",")} />
 
       {/* Channel toggle */}
       <div className="mb-4 inline-flex rounded-xl border border-ink-200 bg-ink-50 p-1">
@@ -117,115 +142,107 @@ export function ComposeCampaign({
         <div>
           <label className="label">Send to</label>
           <select
-            name="audience"
             className="input"
             value={audience}
-            onChange={(e) => setAudience(e.target.value)}
+            onChange={(e) => pickAudience(e.target.value)}
           >
             <option value="custom">Choose specific people…</option>
-            {audiences.map((a) => (
-              <option key={a.key} value={a.key}>
-                {a.label} ({a.count})
-              </option>
+            {grouped.map(([group, items]) => (
+              <optgroup key={group} label={group}>
+                {items.map((a) => (
+                  <option key={a.key} value={a.key}>
+                    {a.label} ({a.count})
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
-          {!isCustom && (
-            <p className="mt-1 text-xs text-ink-500">
-              This will reach{" "}
-              <b>
-                {reachableCount} member{reachableCount === 1 ? "" : "s"}
-              </b>{" "}
-              with {channel === "EMAIL" ? "an email address" : "a phone number"}.
-            </p>
-          )}
         </div>
 
-        {/* Hand-picked people */}
-        {isCustom && (
-          <div>
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <input
-                type="text"
-                className="input"
-                placeholder="Search members by name, email, or phone…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            <div className="mb-2 flex items-center justify-between text-xs">
-              <span className="text-ink-500">
-                <b className="text-ink-800">{selected.size}</b> selected ·{" "}
-                {reachableCount} reachable by{" "}
-                {channel === "EMAIL" ? "email" : "text"}
-              </span>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  className="font-medium text-brand-600 hover:underline"
-                  onClick={() =>
-                    setSelected((prev) => {
-                      const next = new Set(prev);
-                      filtered.forEach((m) => next.add(m.id));
-                      return next;
-                    })
-                  }
-                >
-                  Select all shown
-                </button>
-                <button
-                  type="button"
-                  className="font-medium text-ink-500 hover:underline"
-                  onClick={() => setSelected(new Set())}
-                >
-                  Clear
-                </button>
-              </div>
-            </div>
-            <div className="max-h-64 divide-y divide-ink-100 overflow-y-auto rounded-xl border border-ink-200">
-              {filtered.length === 0 ? (
-                <p className="p-4 text-center text-sm text-ink-400">
-                  No members match &ldquo;{search}&rdquo;.
-                </p>
-              ) : (
-                filtered.map((m) => {
-                  const missing =
-                    channel === "EMAIL" ? !m.email : !m.phone;
-                  return (
-                    <label
-                      key={m.id}
-                      className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-ink-50"
-                    >
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4"
-                        checked={selected.has(m.id)}
-                        onChange={() => toggle(m.id)}
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">
-                          {m.firstName} {m.lastName}
-                        </span>
-                        <span className="block truncate text-xs text-ink-500">
-                          {channel === "EMAIL"
-                            ? m.email || "— no email —"
-                            : m.phone || "— no phone —"}
-                        </span>
-                      </span>
-                      {missing && (
-                        <span className="badge bg-amber-100 text-amber-700">
-                          no {channel === "EMAIL" ? "email" : "phone"}
-                        </span>
-                      )}
-                    </label>
-                  );
-                })
-              )}
-            </div>
-            <p className="mt-1 text-xs text-ink-400">
-              One message, delivered individually to each person you pick.
-            </p>
+        {/* Editable recipient list — pre-filled from the segment, uncheck anyone. */}
+        <div>
+          <div className="mb-2 flex items-center gap-2">
+            <input
+              type="text"
+              className="input"
+              placeholder="Search this list by name, email, or phone…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
-        )}
+          <div className="mb-2 flex items-center justify-between text-xs">
+            <span className="text-ink-500">
+              <b className="text-ink-800">{selected.size}</b> selected ·{" "}
+              {reachableCount} reachable by {channel === "EMAIL" ? "email" : "text"}
+            </span>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                className="font-medium text-brand-600 hover:underline"
+                onClick={() =>
+                  setSelected((prev) => {
+                    const next = new Set(prev);
+                    shown.forEach((m) => next.add(m.id));
+                    return next;
+                  })
+                }
+              >
+                Select all shown
+              </button>
+              <button
+                type="button"
+                className="font-medium text-ink-500 hover:underline"
+                onClick={() => setSelected(new Set())}
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+          <div className="max-h-72 divide-y divide-ink-100 overflow-y-auto rounded-xl border border-ink-200">
+            {shown.length === 0 ? (
+              <p className="p-4 text-center text-sm text-ink-400">
+                {pool.length === 0
+                  ? "No members in this group."
+                  : `No members match “${search}”.`}
+              </p>
+            ) : (
+              shown.map((m) => {
+                const missing = channel === "EMAIL" ? !m.email : !m.phone;
+                return (
+                  <label
+                    key={m.id}
+                    className="flex cursor-pointer items-center gap-3 px-3 py-2 hover:bg-ink-50"
+                  >
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={selected.has(m.id)}
+                      onChange={() => toggle(m.id)}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        {m.firstName} {m.lastName}
+                      </span>
+                      <span className="block truncate text-xs text-ink-500">
+                        {channel === "EMAIL"
+                          ? m.email || "— no email —"
+                          : m.phone || "— no phone —"}
+                      </span>
+                    </span>
+                    {missing && (
+                      <span className="badge bg-amber-100 text-amber-700">
+                        no {channel === "EMAIL" ? "email" : "phone"}
+                      </span>
+                    )}
+                  </label>
+                );
+              })
+            )}
+          </div>
+          <p className="mt-1 text-xs text-ink-400">
+            One message, delivered privately to each person still checked.
+          </p>
+        </div>
 
         {channel === "EMAIL" && (
           <div>
@@ -242,9 +259,7 @@ export function ComposeCampaign({
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder={
-              channel === "EMAIL"
-                ? "Write your email…"
-                : "Write your text message…"
+              channel === "EMAIL" ? "Write your email…" : "Write your text message…"
             }
           />
           {channel === "SMS" && (

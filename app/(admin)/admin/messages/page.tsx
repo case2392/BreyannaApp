@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { AUDIENCES, audienceCounts, audienceLabel } from "@/lib/audiences";
+import { AUDIENCES, audienceMemberIds, audienceLabel } from "@/lib/audiences";
 import { emailConfigured, smsConfigured } from "@/lib/messaging";
 import { shortDate, timeLabel } from "@/lib/format";
 import { ComposeCampaign } from "@/components/admin/ComposeCampaign";
@@ -9,8 +9,8 @@ import { BoltIcon } from "@/components/Icons";
 export const dynamic = "force-dynamic";
 
 export default async function MessagesPage() {
-  const [counts, campaigns, members] = await Promise.all([
-    audienceCounts(),
+  const [audienceMembers, campaigns, members] = await Promise.all([
+    audienceMemberIds(),
     prisma.campaign.findMany({ orderBy: { createdAt: "desc" }, take: 25 }),
     prisma.user.findMany({
       where: { role: "MEMBER" },
@@ -28,7 +28,8 @@ export default async function MessagesPage() {
   const audiences = AUDIENCES.map((a) => ({
     key: a.key,
     label: a.label,
-    count: counts[a.key] ?? 0,
+    group: a.group,
+    count: (audienceMembers[a.key] ?? []).length,
   }));
 
   return (
@@ -52,6 +53,7 @@ export default async function MessagesPage() {
           <ComposeCampaign
             audiences={audiences}
             members={members}
+            audienceMembers={audienceMembers}
             emailReady={emailConfigured()}
             smsReady={smsConfigured()}
           />

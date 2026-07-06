@@ -38,20 +38,28 @@ export async function sendCampaign(_prev: unknown, formData: FormData) {
   if (channel === "EMAIL" && !subject)
     return { error: "Please add a subject line for emails." };
 
+  // The composer always submits the exact checked recipient ids (a segment can
+  // be picked, then individuals unchecked). Fall back to resolving the segment
+  // server-side only if no explicit list was sent.
+  const ids = String(formData.get("memberIds") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   let recipients;
-  if (audience === "custom") {
-    const ids = String(formData.get("memberIds") || "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (ids.length === 0)
-      return { error: "Please select at least one person to message." };
-    recipients = await prisma.user.findMany({
+  if (ids.length > 0) {
+    const found = await prisma.user.findMany({
       where: { id: { in: ids }, role: "MEMBER" },
     });
+    // Preserve the submitted order.
+    const pos = new Map(ids.map((id, i) => [id, i]));
+    recipients = found.sort((a, b) => (pos.get(a.id) ?? 0) - (pos.get(b.id) ?? 0));
   } else {
     recipients = await resolveAudience(audience);
   }
+
+  if (recipients.length === 0)
+    return { error: "Please choose at least one person to message." };
 
   const reachable = recipients.filter((r) =>
     channel === "EMAIL" ? Boolean(r.email) : Boolean(r.phone)
