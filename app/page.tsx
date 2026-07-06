@@ -242,7 +242,7 @@ export default async function LandingPage() {
             <p className="eyebrow">
               Our community
             </p>
-            <h2 className="mt-3 text-4xl font-semibold">Stronger together</h2>
+            <h2 className="mt-3 text-4xl font-semibold">Better together</h2>
             <span className="rule mt-5" />
             <p className="mx-auto mt-5 max-w-2xl text-ink-600">
               Set apart for believers to come together to offer their bodies to
