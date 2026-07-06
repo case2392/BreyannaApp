@@ -23,12 +23,17 @@ export async function book(sessionId: string) {
       const when = `${dayLabel(session.startsAt)} at ${timeLabel(session.startsAt)}`;
       // Member confirmation for a secured spot (not while waitlisted).
       if (result.status === "BOOKED") {
-        await fireAutomation("booking_confirmation", user, {
-          className: session.classType.name,
-          date: dayLabel(session.startsAt),
-          time: timeLabel(session.startsAt),
-          instructor: session.instructor.name,
-        });
+        await fireAutomation(
+          "booking_confirmation",
+          user,
+          {
+            className: session.classType.name,
+            date: dayLabel(session.startsAt),
+            time: timeLabel(session.startsAt),
+            instructor: session.instructor.name,
+          },
+          { classTypeId: session.classType.id }
+        );
       }
       // Studio notification for the booking (or waitlist join).
       const verb = result.status === "WAITLISTED" ? "joined the waitlist for" : "booked";
@@ -74,11 +79,16 @@ export async function unbook(bookingId: string) {
       }),
     ]);
     if (promoted && session) {
-      await fireAutomation("waitlist_promotion", promoted, {
-        className: session.classType.name,
-        date: dayLabel(session.startsAt),
-        time: timeLabel(session.startsAt),
-      });
+      await fireAutomation(
+        "waitlist_promotion",
+        promoted,
+        {
+          className: session.classType.name,
+          date: dayLabel(session.startsAt),
+          time: timeLabel(session.startsAt),
+        },
+        { classTypeId: session.classType.id }
+      );
     }
   }
 

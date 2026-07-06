@@ -47,11 +47,16 @@ export async function GET(request: Request) {
 
   let processed = 0;
   for (const b of bookings) {
-    await fireAutomation("class_reminder", b.user, {
-      className: b.session.classType.name,
-      date: dayLabel(b.session.startsAt),
-      time: timeLabel(b.session.startsAt),
-    });
+    await fireAutomation(
+      "class_reminder",
+      b.user,
+      {
+        className: b.session.classType.name,
+        date: dayLabel(b.session.startsAt),
+        time: timeLabel(b.session.startsAt),
+      },
+      { classTypeId: b.session.classTypeId }
+    );
     processed++;
   }
 

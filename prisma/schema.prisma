@@ -77,7 +77,8 @@ model ClassType {
   color       String  @default("#ec4899")
   active      Boolean @default(true)
 
-  sessions ClassSession[]
+  sessions    ClassSession[]
+  automations Automation[]
 }
 
 // A concrete scheduled class on the calendar
@@ -258,10 +259,21 @@ model PasswordResetToken {
 // key: "welcome" | "booking_confirmation" | "waitlist_promotion" | "class_reminder"
 // channel: "EMAIL" | "SMS" | "BOTH"
 model Automation {
-  key       String   @id
-  channel   String   @default("EMAIL")
-  enabled   Boolean  @default(false)
-  subject   String?
-  template  String
-  updatedAt DateTime @updatedAt
+  key         String     @id
+  // The event that fires this automation: welcome | booking_confirmation |
+  // waitlist_promotion | class_reminder. Built-in defaults use their trigger
+  // as the key; custom ones get a generated key.
+  trigger     String     @default("")
+  // Optional friendly label shown in the CRM.
+  name        String     @default("")
+  // If set, this automation only fires for that class type. Null = all classes.
+  classTypeId String?
+  classType   ClassType? @relation(fields: [classTypeId], references: [id], onDelete: Cascade)
+  channel     String     @default("EMAIL")
+  enabled     Boolean    @default(false)
+  subject     String?
+  template    String
+  updatedAt   DateTime   @updatedAt
+
+  @@index([trigger])
 }

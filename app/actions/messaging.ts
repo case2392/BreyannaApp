@@ -5,7 +5,13 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { resolveAudience } from "@/lib/audiences";
 import { sendEmail, sendSms } from "@/lib/messaging";
-import { AUTOMATIONS, ensureAutomations } from "@/lib/automations";
+import {
+  AUTOMATIONS,
+  TRIGGER_KEYS,
+  ensureAutomations,
+  automationDef,
+} from "@/lib/automations";
+import { randomUUID } from "crypto";
 
 async function requireStaff() {
   const user = await getCurrentUser();
@@ -105,13 +111,15 @@ export async function sendCampaign(_prev: unknown, formData: FormData) {
   };
 }
 
+// Update an existing automation (built-in default or a custom one), keyed by
+// its unique `key`.
 export async function saveAutomation(_prev: unknown, formData: FormData) {
   await requireStaff();
   await ensureAutomations();
 
   const key = String(formData.get("key") || "");
-  if (!AUTOMATIONS.some((a) => a.key === key))
-    return { error: "Unknown automation." };
+  const existing = await prisma.automation.findUnique({ where: { key } });
+  if (!existing) return { error: "That automation no longer exists." };
 
   const enabled = formData.get("enabled") === "on";
   const channel = String(formData.get("channel") || "EMAIL") as
@@ -128,6 +136,74 @@ export async function saveAutomation(_prev: unknown, formData: FormData) {
     data: { enabled, channel, subject: subject || null, template },
   });
 
+  revalidatePath("/admin/automations");
+  return { ok: true };
+}
+
+// Create a new automation for a trigger, optionally scoped to one class type.
+export async function createAutomation(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  await ensureAutomations();
+
+  const trigger = String(formData.get("trigger") || "");
+  const def = automationDef(trigger);
+  if (!def) return { error: "Please choose a valid trigger." };
+
+  const classTypeIdRaw = String(formData.get("classTypeId") || "").trim();
+  const classTypeId = classTypeIdRaw || null;
+
+  if (classTypeId && !def.supportsClassType) {
+    return { error: "This automation can't be limited to a class type." };
+  }
+  if (classTypeId) {
+    const ct = await prisma.classType.findUnique({ where: { id: classTypeId } });
+    if (!ct) return { error: "That class type no longer exists." };
+    // Only one custom automation per (trigger, class type) to keep it simple.
+    const dupe = await prisma.automation.findFirst({
+      where: { trigger, classTypeId },
+    });
+    if (dupe) {
+      return {
+        error: "There's already a version of this automation for that class.",
+      };
+    }
+  }
+
+  const channel = String(formData.get("channel") || "EMAIL") as
+    | "EMAIL"
+    | "SMS"
+    | "BOTH";
+  const name = String(formData.get("name") || "").trim();
+  const subject = String(formData.get("subject") || "").trim();
+  const template = String(formData.get("template") || "").trim();
+
+  if (!template) return { error: "The message template can't be empty." };
+
+  await prisma.automation.create({
+    data: {
+      key: randomUUID(),
+      trigger,
+      name,
+      classTypeId,
+      channel,
+      enabled: true,
+      subject: subject || null,
+      template,
+    },
+  });
+
+  revalidatePath("/admin/automations");
+  return { ok: true };
+}
+
+// Delete a custom automation. Built-in defaults (keyed by their trigger) can't
+// be deleted — turn them off instead.
+export async function deleteAutomation(key: string) {
+  await requireStaff();
+  if (TRIGGER_KEYS.includes(key)) {
+    return { error: "You can turn the default off, but it can't be deleted." };
+  }
+  await prisma.automation.deleteMany({ where: { key } });
   revalidatePath("/admin/automations");
   return { ok: true };
 }

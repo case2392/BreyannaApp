@@ -1,18 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
-import { saveAutomation } from "@/app/actions/messaging";
+import { saveAutomation, deleteAutomation } from "@/app/actions/messaging";
 
 type Props = {
   apiKey: string;
-  label: string;
-  description: string;
+  scopeLabel: string;
   vars: string[];
   enabled: boolean;
   channel: string;
   subject: string;
   template: string;
+  canDelete: boolean;
 };
 
 function SaveButton() {
@@ -27,16 +28,23 @@ function SaveButton() {
 export function AutomationCard(p: Props) {
   const [enabled, setEnabled] = useState(p.enabled);
   const [state, action] = useFormState(saveAutomation, {} as any);
+  const [isDeleting, startDelete] = useTransition();
+  const router = useRouter();
+
+  function onDelete() {
+    if (!confirm("Delete this automation? This can't be undone.")) return;
+    startDelete(async () => {
+      await deleteAutomation(p.apiKey);
+      router.refresh();
+    });
+  }
 
   return (
     <form action={action} className="card p-5">
       <input type="hidden" name="key" value={p.apiKey} />
 
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="font-semibold">{p.label}</h3>
-          <p className="text-sm text-ink-500">{p.description}</p>
-        </div>
+        <span className="badge bg-brand-50 text-brand-700">{p.scopeLabel}</span>
         {/* Toggle */}
         <label className="relative inline-flex shrink-0 cursor-pointer items-center">
           <input
@@ -82,6 +90,16 @@ export function AutomationCard(p: Props) {
 
       <div className="mt-4 flex items-center gap-3">
         <SaveButton />
+        {p.canDelete && (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={isDeleting}
+            className="btn-ghost text-xs text-red-600 hover:bg-red-50"
+          >
+            {isDeleting ? "Deleting…" : "Delete"}
+          </button>
+        )}
         {state?.error && <span className="text-xs text-red-600">{state.error}</span>}
         {state?.ok && <span className="text-xs text-green-600">Saved ✓</span>}
       </div>
