@@ -279,3 +279,17 @@ model Automation {
 
   @@index([trigger])
 }
+
+// Studio events — craft nights, workshops, markets, etc. Built from scratch
+// with their own name, details, location, price, and date.
+model Event {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  location    String?
+  // Ticket price in cents (0 = free).
+  priceCents  Int       @default(0)
+  startsAt    DateTime?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+}

@@ -451,3 +451,71 @@ export async function deleteMember(userId: string) {
   revalidatePath("/admin/members");
   return { ok: true };
 }
+
+// ---- Events (craft nights, workshops, markets, etc.) --------------------
+
+// Build a Date from separate date + optional time inputs. Returns null when no
+// date was provided.
+function parseEventStart(date: string, time: string): Date | null {
+  if (!date) return null;
+  const d = new Date(`${date}T${time || "00:00"}`);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+export async function createEvent(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const name = String(formData.get("name") || "").trim();
+  if (!name) return { error: "Event name is required." };
+
+  const price = Number(formData.get("price")) || 0;
+  const startsAt = parseEventStart(
+    String(formData.get("date") || ""),
+    String(formData.get("time") || "")
+  );
+
+  await prisma.event.create({
+    data: {
+      name,
+      description: String(formData.get("description") || "").trim() || null,
+      location: String(formData.get("location") || "").trim() || null,
+      priceCents: Math.round(price * 100),
+      startsAt,
+    },
+  });
+  revalidatePath("/admin/events");
+  return { ok: true };
+}
+
+export async function updateEvent(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const id = String(formData.get("id") || "");
+  const name = String(formData.get("name") || "").trim();
+  if (!id || !name) return { error: "Event name is required." };
+
+  const price = Number(formData.get("price")) || 0;
+  const startsAt = parseEventStart(
+    String(formData.get("date") || ""),
+    String(formData.get("time") || "")
+  );
+
+  await prisma.event.update({
+    where: { id },
+    data: {
+      name,
+      description: String(formData.get("description") || "").trim() || null,
+      location: String(formData.get("location") || "").trim() || null,
+      priceCents: Math.round(price * 100),
+      startsAt,
+      active: formData.get("active") === "on",
+    },
+  });
+  revalidatePath("/admin/events");
+  return { ok: true };
+}
+
+export async function deleteEvent(eventId: string) {
+  await requireStaff();
+  await prisma.event.delete({ where: { id: eventId } });
+  revalidatePath("/admin/events");
+  return { ok: true };
+}
