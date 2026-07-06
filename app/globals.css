@@ -81,7 +81,57 @@
   }
 }
 
+@layer components {
+  /* Editorial eyebrow: a small tracked label that introduces a section. */
+  .eyebrow {
+    @apply text-xs font-semibold uppercase text-brand-600;
+    letter-spacing: 0.3em;
+  }
+  /* Delicate centered rule — like a divider in a printed program. */
+  .rule {
+    @apply mx-auto block h-px w-14;
+    background: linear-gradient(90deg, transparent, #d2bba0, transparent);
+  }
+  /* Nav link with an underline that draws in on hover. */
+  .nav-link {
+    @apply relative transition-colors;
+  }
+  .nav-link::after {
+    content: "";
+    @apply absolute -bottom-1 left-0 right-0 h-px origin-left bg-current opacity-70;
+    transform: scaleX(0);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .nav-link:hover::after {
+    transform: scaleX(1);
+  }
+}
+
 @layer utilities {
+  /* Calm, orchestrated page-load reveal. Gated behind a motion-safe query so
+     it simply never applies for readers who prefer reduced motion — they see
+     content at its natural resting state. */
+  @media (prefers-reduced-motion: no-preference) {
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    .animate-rise {
+      animation: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+  }
+
+  /* Soft, blurred brand-toned shape for organic ambient depth. */
+  .ambient {
+    @apply pointer-events-none absolute z-0 rounded-full opacity-60 blur-3xl;
+  }
+
   /* The Dwell brand ring — earthy olive → sage → clay. */
   .bg-sunset {
     background: conic-gradient(

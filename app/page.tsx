@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel, groupBy } from "@/lib/format";
 import { MarketingHeader } from "@/components/MarketingHeader";
-import { Logo } from "@/components/Brand";
+import { Logo, DwellSeal } from "@/components/Brand";
 import { BrandImage } from "@/components/BrandImage";
 
 export const dynamic = "force-dynamic";
@@ -79,17 +79,27 @@ export default async function LandingPage() {
         {/* Extra glow concentrated behind the text block for legibility. */}
         <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-ink-50/70 via-ink-50/40 to-transparent" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-20 pt-28 text-center md:pb-28 md:pt-64">
-          <h1 className="max-w-3xl font-brand text-4xl font-semibold leading-tight text-ink-900 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_2px_16px_rgba(244,241,236,0.9)] sm:text-6xl">
+          <span className="animate-rise mb-6 block h-10 w-px bg-gradient-to-b from-transparent to-clay-400" />
+          <h1 className="animate-rise max-w-3xl font-brand text-4xl font-semibold leading-[1.08] text-ink-900 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_2px_16px_rgba(244,241,236,0.9)] sm:text-6xl">
             A Christ-centered movement studio for women
           </h1>
-          <p className="mt-5 max-w-xl text-lg font-medium text-ink-800 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_1px_10px_rgba(244,241,236,0.9)]">
+          <p
+            className="animate-rise mt-6 max-w-xl text-lg font-medium text-ink-800 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_1px_10px_rgba(244,241,236,0.9)]"
+            style={{ animationDelay: "0.1s" }}
+          >
             Honoring the body as God&apos;s dwelling place through cycle,
             movement, and dance.
           </p>
-          <p className="mt-4 font-serif text-lg italic text-brand-700 [text-shadow:0_1px_8px_rgba(244,241,236,0.95)]">
+          <p
+            className="animate-rise mt-4 font-serif text-xl italic text-brand-700 [text-shadow:0_1px_8px_rgba(244,241,236,0.95)]"
+            style={{ animationDelay: "0.2s" }}
+          >
             Feed your spirit. Find community. Flourish in freedom.
           </p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          <div
+            className="animate-rise mt-9 flex flex-col gap-3 sm:flex-row"
+            style={{ animationDelay: "0.32s" }}
+          >
             <Link href="/register" className="btn-primary px-6 py-3 text-base">
               Book your first class
             </Link>
@@ -97,9 +107,12 @@ export default async function LandingPage() {
               View memberships
             </a>
           </div>
-          <p className="mt-4 text-sm text-ink-500">
+          <p
+            className="animate-rise mt-5 text-sm text-ink-500"
+            style={{ animationDelay: "0.42s" }}
+          >
             Already a member?{" "}
-            <Link href="/login" className="font-semibold text-brand-600">
+            <Link href="/login" className="font-semibold text-brand-600 hover:text-brand-700">
               Sign in
             </Link>
           </p>
@@ -128,7 +141,7 @@ export default async function LandingPage() {
       {/* About */}
       <section id="about" className="scroll-mt-20 bg-white py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 md:grid-cols-2">
-          <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-3xl shadow-soft">
+          <div className="group relative aspect-[4/5] w-full overflow-hidden rounded-3xl shadow-soft ring-1 ring-ink-900/5">
             <BrandImage src="/photos/about.jpg" alt="Women worshipping and moving together at Dwell Studio" className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-105" />
             <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink-900/60 to-transparent p-6">
               <p className="font-serif text-xl italic text-white">
@@ -137,7 +150,7 @@ export default async function LandingPage() {
             </div>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+            <p className="eyebrow">
               Our heart
             </p>
             <h2 className="mt-3 text-4xl font-semibold">Set apart for believers</h2>
@@ -165,11 +178,13 @@ export default async function LandingPage() {
       </section>
 
       {/* Is this for me? */}
-      <section className="bg-sage-100 py-20">
-        <div className="mx-auto max-w-3xl px-4">
+      <section className="relative overflow-hidden bg-sage-100 py-20">
+        <span className="ambient bg-sunset -right-28 -top-10 h-72 w-72 opacity-25" />
+        <div className="relative z-10 mx-auto max-w-3xl px-4">
           <div className="text-center">
             <h2 className="text-4xl font-semibold">How do I know this is for me?</h2>
-            <p className="mt-3 text-ink-600">
+            <span className="rule mt-5" />
+            <p className="mt-5 text-ink-600">
               If your answer is yes to any of these, you&apos;re in the right
               place.
             </p>
@@ -193,11 +208,12 @@ export default async function LandingPage() {
       {/* Classes */}
       <section id="classes" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+          <p className="eyebrow">
             Move with us
           </p>
           <h2 className="mt-3 text-4xl font-semibold">Our classes</h2>
-          <p className="mx-auto mt-3 max-w-xl text-ink-600">
+          <span className="rule mt-5" />
+          <p className="mx-auto mt-5 max-w-xl text-ink-600">
             A variety of formats welcome to all experience levels, set to music
             that honors God, and produces a pleasing aroma and offering of
             worship to Him.
@@ -223,10 +239,11 @@ export default async function LandingPage() {
       <section className="bg-white py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-10 text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+            <p className="eyebrow">
               Our community
             </p>
             <h2 className="mt-3 text-4xl font-semibold">Stronger together</h2>
+            <span className="rule mt-5" />
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {[
@@ -234,7 +251,7 @@ export default async function LandingPage() {
               { src: "/photos/community.jpg", alt: "Dwell community" },
               { src: "/photos/movement.jpg", alt: "Movement and worship at Dwell" },
             ].map((img) => (
-              <div key={img.src} className="group aspect-[4/5] overflow-hidden rounded-2xl shadow-soft">
+              <div key={img.src} className="group aspect-[4/5] overflow-hidden rounded-2xl shadow-soft ring-1 ring-ink-900/5">
                 <BrandImage src={img.src} alt={img.alt} className="h-full w-full transition-transform duration-700 ease-out group-hover:scale-105" />
               </div>
             ))}
@@ -245,11 +262,12 @@ export default async function LandingPage() {
       {/* Schedule preview */}
       <section id="schedule" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
         <div className="text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+          <p className="eyebrow">
             This week
           </p>
           <h2 className="mt-3 text-4xl font-semibold">Upcoming classes</h2>
-          <p className="mx-auto mt-3 max-w-xl text-ink-600">
+          <span className="rule mt-5" />
+          <p className="mx-auto mt-5 max-w-xl text-ink-600">
             Reserve your spot in seconds. New here? Create a free account to
             book your first class.
           </p>
@@ -298,11 +316,12 @@ export default async function LandingPage() {
       <section id="membership" className="scroll-mt-20 bg-white py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
+            <p className="eyebrow">
               Join the community
             </p>
             <h2 className="mt-3 text-4xl font-semibold">Memberships &amp; passes</h2>
-            <p className="mx-auto mt-3 max-w-xl text-ink-600">
+            <span className="rule mt-5" />
+            <p className="mx-auto mt-5 max-w-xl text-ink-600">
               Whether you&apos;re here every day or dropping in, there&apos;s an
               option for you.
             </p>
@@ -363,13 +382,16 @@ export default async function LandingPage() {
       </section>
 
       {/* Sponsor a Sister */}
-      <section className="bg-sage-100 py-20">
-        <div className="mx-auto max-w-4xl px-4 text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-brand-700">
+      <section className="relative overflow-hidden bg-sage-100 py-20">
+        <span className="ambient bg-sunset -left-24 top-6 h-72 w-72 opacity-30" />
+        <span className="ambient bg-sunset -right-24 bottom-0 h-64 w-64 opacity-25" />
+        <div className="relative z-10 mx-auto max-w-4xl px-4 text-center">
+          <p className="eyebrow text-brand-700">
             Sponsor a Sister
           </p>
           <h2 className="mt-3 text-4xl font-semibold">Give the gift of Dwell</h2>
-          <p className="mx-auto mt-4 max-w-xl text-ink-600">
+          <span className="rule mt-5" />
+          <p className="mx-auto mt-5 max-w-xl text-ink-600">
             Help sponsor a membership for a woman who couldn&apos;t otherwise be
             here. Give any amount, once or monthly — cost should never keep a
             sister from worship, movement, and community.
@@ -381,11 +403,17 @@ export default async function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer id="visit" className="scroll-mt-20 border-t border-ink-200 bg-white">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 md:grid-cols-3">
+      <footer
+        id="visit"
+        className="scroll-mt-20 border-t border-ink-200 bg-gradient-to-b from-ink-50 to-ink-100"
+      >
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-3">
           <div>
-            <Logo />
-            <p className="mt-4 max-w-xs text-sm text-ink-600">
+            <DwellSeal size={64} />
+            <div className="mt-4">
+              <Logo />
+            </div>
+            <p className="mt-4 max-w-xs text-sm leading-relaxed text-ink-600">
               A Christ-centered movement studio for women. Feed your spirit.
               Find community. Flourish in freedom.
             </p>
