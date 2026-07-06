@@ -70,9 +70,11 @@ export default async function AdminDashboard() {
       },
     }),
     prisma.classSession.findMany({
-      where: { cancelled: false, startsAt: { gte: endOfToday } },
+      // From now onward — today's classes stay here until their start time
+      // passes, then future days.
+      where: { cancelled: false, startsAt: { gte: now } },
       orderBy: { startsAt: "asc" },
-      take: 6,
+      take: 8,
       include: {
         classType: true,
         instructor: true,
