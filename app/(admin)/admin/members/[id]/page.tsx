@@ -155,6 +155,11 @@ export default async function MemberDetailPage({
                   <div className="mt-1 text-xs text-ink-500">
                     {validity} · {cost}
                   </div>
+                  {m.status === "ACTIVE" && m.autoRenew && !expired && (
+                    <div className="mt-2 inline-flex items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-xs font-medium text-brand-700">
+                      🔄 Renews {shortDate(m.expiresAt)}
+                    </div>
+                  )}
                   {m.status === "ACTIVE" && (
                     <div className="mt-2 flex justify-end">
                       <RemoveMembershipButton membershipId={m.id} />

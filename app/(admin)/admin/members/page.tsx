@@ -46,6 +46,7 @@ export default async function MembersPage() {
           <tbody className="divide-y divide-ink-100">
             {members.map((m) => {
               const active = m.memberships[0];
+              const renewing = m.memberships.find((mm) => mm.autoRenew);
               return (
                 <tr key={m.id} className="hover:bg-ink-50">
                   <td className="px-4 py-3">
@@ -64,6 +65,11 @@ export default async function MembersPage() {
                       </span>
                     ) : (
                       <span className="badge bg-ink-100 text-ink-500">None</span>
+                    )}
+                    {renewing && (
+                      <div className="mt-1 text-[11px] text-ink-400">
+                        Renews {shortDate(renewing.expiresAt)}
+                      </div>
                     )}
                   </td>
                   <td className="hidden px-4 py-3 text-ink-500 lg:table-cell">
