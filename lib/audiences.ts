@@ -9,7 +9,8 @@ export const AUDIENCES = [
   { key: "lapsed", label: "Lapsed (no active membership)", group: "Quick segments" },
   { key: "upcoming", label: "Has an upcoming booking", group: "Quick segments" },
 
-  { key: "dropins", label: "Drop In's", group: "By membership" },
+  { key: "dropins_unused", label: "Drop In's - Unused", group: "By membership" },
+  { key: "dropins_used", label: "Drop In's - Used", group: "By membership" },
   { key: "mommy_members", label: "Mommy & Me members", group: "By membership" },
   { key: "dwell_together_active", label: "Active Dwell Together passes", group: "By membership" },
   { key: "dwell_together_used", label: "Used Dwell Together Pass Holders", group: "By membership" },
@@ -45,7 +46,6 @@ const RX = {
 export async function audienceMemberIds(): Promise<Record<string, string[]>> {
   const now = new Date();
   const day = 24 * 60 * 60 * 1000;
-  const cutoff30 = new Date(now.getTime() - 30 * day);
 
   const [members, memberships, pastBookings, upcomingRows] = await Promise.all([
     prisma.user.findMany({
@@ -79,7 +79,9 @@ export async function audienceMemberIds(): Promise<Record<string, string[]>> {
   const collective = new Set<string>();
   const dtActive = new Set<string>();
   const dtUsed = new Set<string>();
-  const recentDropIn = new Set<string>();
+  const boughtDropIn = new Set<string>();
+  const dropInUnused = new Set<string>();
+  const hasUnusedCredits = new Set<string>();
 
   for (const m of memberships) {
     if (!memberSet.has(m.userId)) continue;
@@ -101,9 +103,15 @@ export async function audienceMemberIds(): Promise<Record<string, string[]>> {
     }
     // A Dwell Together pass with all credits used up (regardless of active).
     if (RX.together.test(name) && m.creditsRemaining <= 0) dtUsed.add(m.userId);
-    // A single-class / drop-in purchase in the last 30 days.
-    if (m.plan.kind === "DROP_IN" && m.createdAt >= cutoff30)
-      recentDropIn.add(m.userId);
+
+    // Drop-in purchases (single class / mommy & me drop-in), by usage.
+    if (m.plan.kind === "DROP_IN") boughtDropIn.add(m.userId);
+    // Any currently-usable credit balance (packs & drop-ins; unlimited plans
+    // ignore credits so they never count here).
+    if (activeNow && m.creditsRemaining > 0) {
+      hasUnusedCredits.add(m.userId);
+      if (m.plan.kind === "DROP_IN") dropInUnused.add(m.userId);
+    }
   }
 
   // Most recent past class per member (their "last attended").
@@ -136,7 +144,13 @@ export async function audienceMemberIds(): Promise<Record<string, string[]>> {
     active: order((id) => anyActive.has(id)),
     lapsed: order((id) => !anyActive.has(id)),
     upcoming: order((id) => upcoming.has(id)),
-    dropins: order((id) => recentDropIn.has(id) && !activeUnlimited.has(id)),
+    dropins_unused: order((id) => dropInUnused.has(id)),
+    dropins_used: order(
+      (id) =>
+        boughtDropIn.has(id) &&
+        !hasUnusedCredits.has(id) &&
+        !activeUnlimited.has(id)
+    ),
     mommy_members: order((id) => mommy.has(id)),
     dwell_together_active: order((id) => dtActive.has(id)),
     dwell_together_used: order(
