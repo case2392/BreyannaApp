@@ -7,6 +7,22 @@ import { grantMembership } from "@/lib/membership";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// The next billing date for a subscription (falls back to one month out).
+async function subscriptionPeriodEnd(subId: string): Promise<Date> {
+  const fallback = new Date();
+  fallback.setMonth(fallback.getMonth() + 1);
+  try {
+    const sub = await stripe!.subscriptions.retrieve(subId);
+    const end =
+      (sub as any).current_period_end ??
+      (sub as any).items?.data?.[0]?.current_period_end;
+    if (end) return new Date(end * 1000);
+  } catch {
+    /* fall through to +1 month */
+  }
+  return fallback;
+}
+
 export async function POST(request: Request) {
   if (!stripe || !STRIPE_WEBHOOK_SECRET) {
     // Payments not configured — nothing to do.
@@ -98,24 +114,68 @@ export async function POST(request: Request) {
             typeof invoice.subscription === "string"
               ? invoice.subscription
               : invoice.subscription.id;
-          const membership = await prisma.membership.findUnique({
+
+          // 1) Direct match: a membership already linked to this subscription.
+          let membership = await prisma.membership.findUnique({
             where: { stripeSubscriptionId: subId },
             include: { plan: true },
           });
-          if (membership) {
-            // Follow Stripe's new period end (same calendar day next month).
-            let expiresAt = new Date();
-            try {
-              const sub = await stripe.subscriptions.retrieve(subId);
-              if (sub.current_period_end)
-                expiresAt = new Date(sub.current_period_end * 1000);
-              else expiresAt.setMonth(expiresAt.getMonth() + 1);
-            } catch {
-              expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+          // 2) Adopt: no linked membership yet (e.g. the member subscribed in
+          // Stripe before the site went live). Find them by Stripe customer id
+          // or email, then link this subscription to their active membership so
+          // future renewals map directly.
+          if (!membership) {
+            const customerId =
+              typeof invoice.customer === "string"
+                ? invoice.customer
+                : invoice.customer?.id;
+            let user = customerId
+              ? await prisma.user.findFirst({
+                  where: { stripeCustomerId: customerId },
+                })
+              : null;
+            if (!user && invoice.customer_email) {
+              user = await prisma.user.findUnique({
+                where: { email: invoice.customer_email.toLowerCase() },
+              });
             }
+            if (user) {
+              const candidate = await prisma.membership.findFirst({
+                where: {
+                  userId: user.id,
+                  status: "ACTIVE",
+                  stripeSubscriptionId: null,
+                  plan: { kind: "UNLIMITED" },
+                },
+                include: { plan: true },
+                orderBy: { createdAt: "desc" },
+              });
+              if (candidate) {
+                await prisma.membership.update({
+                  where: { id: candidate.id },
+                  data: { stripeSubscriptionId: subId },
+                });
+                membership = candidate;
+              }
+              // Backfill the customer id so future events match directly.
+              if (customerId && !user.stripeCustomerId) {
+                await prisma.user.update({
+                  where: { id: user.id },
+                  data: { stripeCustomerId: customerId },
+                });
+              }
+            }
+          }
+
+          if (membership) {
             await prisma.membership.update({
               where: { id: membership.id },
-              data: { status: "ACTIVE", expiresAt, autoRenew: true },
+              data: {
+                status: "ACTIVE",
+                expiresAt: await subscriptionPeriodEnd(subId),
+                autoRenew: true,
+              },
             });
           }
         }
