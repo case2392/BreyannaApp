@@ -17,6 +17,7 @@ export const AUDIENCES = [
   { key: "pioneer", label: "Pioneer members", group: "By membership" },
   { key: "collective", label: "Dwell Collective members", group: "By membership" },
 
+  { key: "never_attended", label: "Never attended a class", group: "Inactive members" },
   { key: "no_class_14", label: "No class – 14 days", group: "Inactive members" },
   { key: "no_class_30", label: "No class – 30 days", group: "Inactive members" },
   { key: "no_class_90", label: "90 days no response", group: "Inactive members" },
@@ -144,6 +145,7 @@ export async function audienceMemberIds(): Promise<Record<string, string[]>> {
     founding: order((id) => founding.has(id)),
     pioneer: order((id) => pioneer.has(id)),
     collective: order((id) => collective.has(id)),
+    never_attended: order((id) => !lastAttended.has(id)),
     no_class_14: no14,
     no_class_30: no30,
     no_class_90: no90,
