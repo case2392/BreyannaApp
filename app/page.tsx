@@ -80,7 +80,7 @@ export default async function LandingPage() {
         <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-ink-50/70 via-ink-50/40 to-transparent" />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center px-4 pb-20 pt-28 text-center md:pb-28 md:pt-64">
           <span className="animate-rise mb-6 block h-10 w-px bg-gradient-to-b from-transparent to-clay-400" />
-          <h1 className="animate-rise max-w-3xl font-brand text-4xl font-semibold leading-[1.08] text-ink-900 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_2px_16px_rgba(244,241,236,0.9)] sm:text-6xl">
+          <h1 className="animate-rise max-w-3xl font-serif text-4xl font-semibold leading-[1.08] text-ink-900 [text-shadow:0_1px_1px_rgba(244,241,236,1),0_2px_16px_rgba(244,241,236,0.9)] sm:text-6xl">
             A Christ-centered movement studio for women
           </h1>
           <p
@@ -244,6 +244,12 @@ export default async function LandingPage() {
             </p>
             <h2 className="mt-3 text-4xl font-semibold">Stronger together</h2>
             <span className="rule mt-5" />
+            <p className="mx-auto mt-5 max-w-2xl text-ink-600">
+              Set apart for believers to come together to offer their bodies to
+              the Lord as a living sacrifice through consistent opportunities to
+              be strengthened and refined through movement.
+            </p>
+            <p className="eyebrow mt-4 text-brand-600">Acts 2:44&ndash;47</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {[

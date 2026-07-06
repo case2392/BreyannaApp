@@ -178,9 +178,9 @@ export function RegisterForm() {
       </div>
       <div>
         <label className="label" htmlFor="phone">
-          Phone (optional)
+          Phone
         </label>
-        <input id="phone" name="phone" type="tel" className="input" />
+        <input id="phone" name="phone" type="tel" className="input" required />
       </div>
       <div>
         <label className="label" htmlFor="password">

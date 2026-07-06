@@ -35,7 +35,7 @@ export async function register(_prev: unknown, formData: FormData) {
   const phone = String(formData.get("phone") || "").trim();
   const password = String(formData.get("password") || "");
 
-  if (!firstName || !lastName || !email || !password) {
+  if (!firstName || !lastName || !email || !phone || !password) {
     return { error: "Please fill in all required fields." };
   }
   if (password.length < 6) {
@@ -50,7 +50,7 @@ export async function register(_prev: unknown, formData: FormData) {
       firstName,
       lastName,
       email,
-      phone: phone || null,
+      phone,
       passwordHash: hashPassword(password),
       role: "MEMBER",
     },
