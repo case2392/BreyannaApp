@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Fraunces, Playfair_Display, Inter } from "next/font/google";
+import { Playfair_Display, Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-// Brand display font — closest free stand-in for Canva's "Brown Sugar":
-// a warm, characterful boutique serif. Reserved for the logo/wordmark and
-// the big hero headlines.
-const brand = Fraunces({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+// Brand display font — the real "Brown Sugar" (Muntab Art), a single-weight
+// display face. Reserved for the logo/wordmark and the big hero headlines.
+const brand = localFont({
+  src: "../public/fonts/brown-sugar.ttf",
+  weight: "400",
   variable: "--font-brand",
   display: "swap",
 });

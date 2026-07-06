@@ -26,6 +26,12 @@
     text-wrap: balance;
     font-feature-settings: "liga" 1, "calt" 1;
   }
+  /* Brown Sugar ships a single weight; suppress faux-bold synthesis so the
+     logo and hero render its true, undistorted display outlines even where
+     surrounding utilities request a heavier weight. */
+  .font-brand {
+    font-synthesis: none;
+  }
   /* Branded text selection. */
   ::selection {
     background: rgba(106, 122, 95, 0.2);
