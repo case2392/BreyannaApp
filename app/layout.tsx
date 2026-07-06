@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -12,12 +12,13 @@ const brand = localFont({
   display: "swap",
 });
 
-// Default heading serif — the real "The Seasons", a single-weight, elegant
-// high-contrast editorial serif. Used for all other headings, sub-titles,
-// and taglines.
-const serif = localFont({
-  src: "../public/fonts/the-seasons.otf",
-  weight: "400",
+// Default heading serif — Playfair Display, a fully-licensed, watermark-free
+// stand-in for "The Seasons": a high-contrast, elegant editorial serif. Used
+// for all other headings, sub-titles, and taglines.
+const serif = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  style: ["normal", "italic"],
   variable: "--font-serif",
   display: "swap",
 });
