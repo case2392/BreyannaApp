@@ -38,7 +38,21 @@ export async function sendCampaign(_prev: unknown, formData: FormData) {
   if (channel === "EMAIL" && !subject)
     return { error: "Please add a subject line for emails." };
 
-  const recipients = await resolveAudience(audience);
+  let recipients;
+  if (audience === "custom") {
+    const ids = String(formData.get("memberIds") || "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (ids.length === 0)
+      return { error: "Please select at least one person to message." };
+    recipients = await prisma.user.findMany({
+      where: { id: { in: ids }, role: "MEMBER" },
+    });
+  } else {
+    recipients = await resolveAudience(audience);
+  }
+
   const reachable = recipients.filter((r) =>
     channel === "EMAIL" ? Boolean(r.email) : Boolean(r.phone)
   );

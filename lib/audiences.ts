@@ -12,6 +12,7 @@ export const AUDIENCES = [
 export type AudienceKey = (typeof AUDIENCES)[number]["key"];
 
 export function audienceLabel(key: string): string {
+  if (key === "custom") return "Hand-picked people";
   return AUDIENCES.find((a) => a.key === key)?.label ?? key;
 }
 

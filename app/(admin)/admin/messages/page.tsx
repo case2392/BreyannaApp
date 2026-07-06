@@ -9,9 +9,20 @@ import { BoltIcon } from "@/components/Icons";
 export const dynamic = "force-dynamic";
 
 export default async function MessagesPage() {
-  const [counts, campaigns] = await Promise.all([
+  const [counts, campaigns, members] = await Promise.all([
     audienceCounts(),
     prisma.campaign.findMany({ orderBy: { createdAt: "desc" }, take: 25 }),
+    prisma.user.findMany({
+      where: { role: "MEMBER" },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+      },
+    }),
   ]);
 
   const audiences = AUDIENCES.map((a) => ({
@@ -40,6 +51,7 @@ export default async function MessagesPage() {
           <h2 className="mb-3 font-semibold">New campaign</h2>
           <ComposeCampaign
             audiences={audiences}
+            members={members}
             emailReady={emailConfigured()}
             smsReady={smsConfigured()}
           />
