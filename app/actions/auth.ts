@@ -30,6 +30,10 @@ export async function login(_prev: unknown, formData: FormData) {
   });
 
   setSessionCookie(user.id);
+  // Return to where they came from (e.g. an event page) when it's a safe
+  // in-app path; otherwise go to the default home for their role.
+  const next = String(formData.get("next") || "");
+  if (next.startsWith("/") && !next.startsWith("//")) redirect(next);
   redirect(user.role === "MEMBER" ? "/schedule" : "/admin");
 }
 

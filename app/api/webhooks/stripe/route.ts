@@ -64,6 +64,42 @@ export async function POST(request: Request) {
           break;
         }
 
+        // Event registration payment.
+        if (session.metadata?.kind === "event") {
+          const eventId = session.metadata?.eventId;
+          if (eventId) {
+            const existing = await prisma.eventRegistration.findUnique({
+              where: { stripeRef: session.id },
+            });
+            if (!existing) {
+              const evt = await prisma.event.findUnique({
+                where: { id: eventId },
+              });
+              const uId = session.metadata?.userId ?? null;
+              const u = uId
+                ? await prisma.user.findUnique({ where: { id: uId } })
+                : null;
+              if (evt) {
+                await prisma.eventRegistration.create({
+                  data: {
+                    eventId,
+                    userId: uId,
+                    name:
+                      session.customer_details?.name ??
+                      (u ? `${u.firstName} ${u.lastName}` : "Guest"),
+                    email:
+                      session.customer_details?.email ?? u?.email ?? "",
+                    status: "PAID",
+                    amountCents: session.amount_total ?? evt.priceCents,
+                    stripeRef: session.id,
+                  },
+                });
+              }
+            }
+          }
+          break;
+        }
+
         const userId = session.metadata?.userId;
         const planId = session.metadata?.planId;
         if (userId && planId) {

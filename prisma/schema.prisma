@@ -35,6 +35,7 @@ model User {
 
   bookings    Booking[]
   memberships Membership[]
+  eventRegistrations EventRegistration[]
   // Classes this user teaches (when they are an instructor)
   instructor  Instructor?
 }
@@ -290,6 +291,29 @@ model Event {
   // Ticket price in cents (0 = free).
   priceCents  Int       @default(0)
   startsAt    DateTime?
+  // Cover image URL (uploaded to blob storage or pasted).
+  imageUrl    String?
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())
+
+  registrations EventRegistration[]
+}
+
+// A member (or guest) signed up for an event. Paid events are confirmed via
+// Stripe; free events are confirmed immediately.
+model EventRegistration {
+  id          String   @id @default(cuid())
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  name        String
+  email       String
+  // "REGISTERED" (free/confirmed) | "PAID"
+  status      String   @default("REGISTERED")
+  amountCents Int      @default(0)
+  stripeRef   String?  @unique
+  createdAt   DateTime @default(now())
+
+  @@index([eventId])
 }

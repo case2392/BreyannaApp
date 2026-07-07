@@ -3,9 +3,17 @@ import { getCurrentUser } from "@/lib/auth";
 import { LoginForm } from "@/components/AuthForms";
 import { DwellSeal } from "@/components/Brand";
 
-export default async function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: { next?: string };
+}) {
   const user = await getCurrentUser();
   if (user) redirect(user.role === "MEMBER" ? "/schedule" : "/admin");
+  const next =
+    searchParams.next && searchParams.next.startsWith("/")
+      ? searchParams.next
+      : undefined;
 
   return (
     <main className="flex min-h-screen flex-col md:flex-row">
@@ -38,7 +46,7 @@ export default async function LoginPage() {
             <p className="mb-6 text-sm text-ink-500">
               Sign in to book classes and manage your membership.
             </p>
-            <LoginForm />
+            <LoginForm next={next} />
           </div>
         </div>
       </section>

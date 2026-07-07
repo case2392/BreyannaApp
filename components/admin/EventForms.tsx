@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
 import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
@@ -26,6 +27,7 @@ function Err({ msg }: { msg?: string }) {
 // Shared field layout for create + edit.
 function EventFields({
   defaults,
+  currentImage,
 }: {
   defaults?: {
     name?: string;
@@ -35,6 +37,7 @@ function EventFields({
     date?: string;
     time?: string;
   };
+  currentImage?: string | null;
 }) {
   return (
     <div className="space-y-3">
@@ -88,6 +91,37 @@ function EventFields({
           defaultValue={defaults?.description ?? ""}
         />
       </div>
+      <div>
+        <label className="label">Event image</label>
+        {currentImage && (
+          <div className="mb-2 flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={currentImage}
+              alt="Current event"
+              className="h-16 w-24 rounded-lg object-cover"
+            />
+            <label className="flex items-center gap-1.5 text-sm text-ink-600">
+              <input type="checkbox" name="removeImage" /> Remove
+            </label>
+          </div>
+        )}
+        <input
+          type="file"
+          name="image"
+          accept="image/*"
+          className="block w-full text-sm text-ink-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700"
+        />
+        <input
+          name="imageUrl"
+          className="input mt-2"
+          placeholder="…or paste an image URL"
+        />
+        <p className="mt-1 text-xs text-ink-400">
+          Upload a flyer or photo (JPG/PNG) — it&apos;s shown on the public
+          events page.
+        </p>
+      </div>
     </div>
   );
 }
@@ -95,16 +129,24 @@ function EventFields({
 export function CreateEventForm() {
   const ref = useRef<HTMLFormElement>(null);
   const [state, action] = useFormState(
-    async (prev: unknown, fd: FormData) => {
+    async (
+      prev: unknown,
+      fd: FormData
+    ): Promise<{ error?: string; ok?: boolean }> => {
       const res = await createEvent(prev, fd);
-      if (res?.ok) ref.current?.reset();
+      if ("ok" in res && res.ok) ref.current?.reset();
       return res;
     },
     {} as { error?: string; ok?: boolean }
   );
 
   return (
-    <form ref={ref} action={action} className="card p-5">
+    <form
+      ref={ref}
+      action={action}
+      encType="multipart/form-data"
+      className="card p-5"
+    >
       <h3 className="mb-4 font-semibold">New event</h3>
       <Err msg={state?.error} />
       <EventFields />
@@ -127,6 +169,8 @@ type EventRowData = {
   date: string;
   time: string;
   price: string;
+  imageUrl: string | null;
+  registrationCount: number;
 };
 
 export function EventRow({ event }: { event: EventRowData }) {
@@ -134,9 +178,12 @@ export function EventRow({ event }: { event: EventRowData }) {
   const [isDeleting, startDelete] = useTransition();
   const router = useRouter();
   const [state, action] = useFormState(
-    async (prev: unknown, fd: FormData) => {
+    async (
+      prev: unknown,
+      fd: FormData
+    ): Promise<{ error?: string; ok?: boolean }> => {
       const res = await updateEvent(prev, fd);
-      if (res?.ok) setEditing(false);
+      if ("ok" in res && res.ok) setEditing(false);
       return res;
     },
     {} as { error?: string; ok?: boolean }
@@ -152,10 +199,11 @@ export function EventRow({ event }: { event: EventRowData }) {
 
   if (editing) {
     return (
-      <form action={action} className="card p-5">
+      <form action={action} encType="multipart/form-data" className="card p-5">
         <input type="hidden" name="id" value={event.id} />
         <Err msg={state?.error} />
         <EventFields
+          currentImage={event.imageUrl}
           defaults={{
             name: event.name,
             description: event.description,
@@ -185,8 +233,16 @@ export function EventRow({ event }: { event: EventRowData }) {
 
   return (
     <div className="card p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+      <div className="flex items-start gap-3">
+        {event.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={event.imageUrl}
+            alt={event.name}
+            className="h-16 w-24 shrink-0 rounded-lg object-cover"
+          />
+        )}
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <span className="font-semibold">{event.name}</span>
             {!event.active && (
@@ -198,8 +254,18 @@ export function EventRow({ event }: { event: EventRowData }) {
             {event.location ? ` · ${event.location}` : ""} · {event.priceLabel}
           </div>
           {event.description && (
-            <p className="mt-2 text-sm text-ink-600">{event.description}</p>
+            <p className="mt-2 line-clamp-2 text-sm text-ink-600">
+              {event.description}
+            </p>
           )}
+          <div className="mt-2">
+            <Link
+              href={`/admin/events/${event.id}`}
+              className="text-xs font-medium text-brand-600 hover:underline"
+            >
+              {event.registrationCount} registered · View roster →
+            </Link>
+          </div>
         </div>
         <div className="flex shrink-0 gap-2">
           <button className="btn-ghost text-xs" onClick={() => setEditing(true)}>

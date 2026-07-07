@@ -6,6 +6,7 @@ import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import { capacityLimited } from "@/lib/format";
+import { uploadImage, blobConfigured } from "@/lib/upload";
 
 async function requireStaff() {
   const user = await getCurrentUser();
@@ -462,6 +463,35 @@ function parseEventStart(date: string, time: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+// Resolve an event image from an uploaded file or a pasted URL. Returns the
+// current value unchanged when neither is provided.
+async function resolveEventImage(
+  formData: FormData,
+  current: string | null
+): Promise<{ imageUrl: string | null } | { error: string }> {
+  let imageUrl = current;
+  if (formData.get("removeImage") === "on") imageUrl = null;
+
+  const file = formData.get("image");
+  const urlField = String(formData.get("imageUrl") || "").trim();
+
+  if (file instanceof File && file.size > 0) {
+    if (!blobConfigured())
+      return {
+        error:
+          "Image storage isn't set up yet — add a Blob store in Vercel, or paste an image URL instead.",
+      };
+    try {
+      imageUrl = await uploadImage(file);
+    } catch {
+      return { error: "Couldn't upload that image. Try again or paste a URL." };
+    }
+  } else if (urlField) {
+    imageUrl = urlField;
+  }
+  return { imageUrl };
+}
+
 export async function createEvent(_prev: unknown, formData: FormData) {
   await requireStaff();
   const name = String(formData.get("name") || "").trim();
@@ -473,6 +503,9 @@ export async function createEvent(_prev: unknown, formData: FormData) {
     String(formData.get("time") || "")
   );
 
+  const img = await resolveEventImage(formData, null);
+  if ("error" in img) return img;
+
   await prisma.event.create({
     data: {
       name,
@@ -480,9 +513,11 @@ export async function createEvent(_prev: unknown, formData: FormData) {
       location: String(formData.get("location") || "").trim() || null,
       priceCents: Math.round(price * 100),
       startsAt,
+      imageUrl: img.imageUrl,
     },
   });
   revalidatePath("/admin/events");
+  revalidatePath("/events");
   return { ok: true };
 }
 
@@ -492,11 +527,17 @@ export async function updateEvent(_prev: unknown, formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   if (!id || !name) return { error: "Event name is required." };
 
+  const existing = await prisma.event.findUnique({ where: { id } });
+  if (!existing) return { error: "That event no longer exists." };
+
   const price = Number(formData.get("price")) || 0;
   const startsAt = parseEventStart(
     String(formData.get("date") || ""),
     String(formData.get("time") || "")
   );
+
+  const img = await resolveEventImage(formData, existing.imageUrl);
+  if ("error" in img) return img;
 
   await prisma.event.update({
     where: { id },
@@ -506,10 +547,12 @@ export async function updateEvent(_prev: unknown, formData: FormData) {
       location: String(formData.get("location") || "").trim() || null,
       priceCents: Math.round(price * 100),
       startsAt,
+      imageUrl: img.imageUrl,
       active: formData.get("active") === "on",
     },
   });
   revalidatePath("/admin/events");
+  revalidatePath("/events");
   return { ok: true };
 }
 
@@ -517,5 +560,6 @@ export async function deleteEvent(eventId: string) {
   await requireStaff();
   await prisma.event.delete({ where: { id: eventId } });
   revalidatePath("/admin/events");
+  revalidatePath("/events");
   return { ok: true };
 }

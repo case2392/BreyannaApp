@@ -27,12 +27,13 @@ function ErrorBox({ message }: { message?: string }) {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string }) {
   const [state, action] = useFormState(login, { error: undefined } as {
     error?: string;
   });
   return (
     <form action={action} className="space-y-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <ErrorBox message={state?.error} />
       <div>
         <label className="label" htmlFor="email">
