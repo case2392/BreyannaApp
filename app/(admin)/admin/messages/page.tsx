@@ -4,6 +4,7 @@ import { AUDIENCES, audienceMemberIds, audienceLabel } from "@/lib/audiences";
 import { emailConfigured, smsConfigured } from "@/lib/messaging";
 import { shortDate, timeLabel } from "@/lib/format";
 import { ComposeCampaign } from "@/components/admin/ComposeCampaign";
+import { TestEmailButton } from "@/components/admin/TestEmailButton";
 import { BoltIcon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
@@ -41,9 +42,12 @@ export default async function MessagesPage() {
             Send email & text campaigns to your members.
           </p>
         </div>
-        <Link href="/admin/automations" className="btn-secondary text-sm">
-          <BoltIcon className="h-4 w-4" /> Automations
-        </Link>
+        <div className="flex items-start gap-2">
+          <TestEmailButton />
+          <Link href="/admin/automations" className="btn-secondary text-sm">
+            <BoltIcon className="h-4 w-4" /> Automations
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">

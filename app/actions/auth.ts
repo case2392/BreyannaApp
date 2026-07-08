@@ -99,11 +99,22 @@ export async function requestPasswordReset(_prev: unknown, formData: FormData) {
     await prisma.passwordResetToken.create({
       data: { userId: user.id, tokenHash, expiresAt },
     });
-    await sendEmail(
+    const r = await sendEmail(
       email,
       "Reset your Dwell Studio password",
       `Hi ${user.firstName},\n\nReset your password using the link below (it expires in 1 hour):\n\n${resetLink(token)}\n\nIf you didn't request this, you can ignore this email.`
     );
+    // Record the attempt so a failed/simulated reset email is visible later.
+    await prisma.messageLog.create({
+      data: {
+        userId: user.id,
+        channel: "EMAIL",
+        to: email,
+        kind: "password_reset",
+        status: r.simulated ? "SIMULATED" : r.ok ? "SENT" : "FAILED",
+        error: r.error,
+      },
+    });
   }
 
   // Always return the same response so we never reveal whether an email exists.

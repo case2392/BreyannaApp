@@ -133,6 +133,24 @@ export async function sendCampaign(_prev: unknown, formData: FormData) {
   };
 }
 
+// Send a test email to the signed-in staff member and report exactly what
+// happened, so email delivery can be diagnosed from inside the CRM.
+export async function sendTestEmail() {
+  const staff = await requireStaff();
+  const from = process.env.RESEND_FROM || "onboarding@resend.dev (Resend default)";
+  const result = await sendEmail(
+    staff.email,
+    "Dwell Studio — test email ✅",
+    "This is a test from your Dwell Studio CRM.\n\nIf you're reading this, email delivery is working. If you never receive it, the send failed — check the on-screen result in the CRM."
+  );
+  return {
+    to: staff.email,
+    from,
+    replyToConfigured: Boolean(process.env.RESEND_REPLY_TO),
+    ...result,
+  };
+}
+
 // Update an existing automation (built-in default or a custom one), keyed by
 // its unique `key`.
 export async function saveAutomation(_prev: unknown, formData: FormData) {
