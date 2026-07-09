@@ -4,7 +4,82 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
+import { upload } from "@vercel/blob/client";
 import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
+
+// Uploads an event image straight from the browser to Blob storage (no server
+// size limit), and carries the resulting URL in a hidden `imageUrl` field.
+function EventImageField({ currentImage }: { currentImage?: string | null }) {
+  const [imageUrl, setImageUrl] = useState(currentImage ?? "");
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const blob = await upload(file.name, file, {
+        access: "public",
+        handleUploadUrl: "/api/events/upload",
+      });
+      setImageUrl(blob.url);
+    } catch (err: any) {
+      setError(
+        err?.message ??
+          "Upload failed. Use a JPG or PNG under 20MB (iPhone HEIC photos aren't supported)."
+      );
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  return (
+    <div>
+      <label className="label">Event image</label>
+      <input type="hidden" name="imageUrl" value={imageUrl} />
+      {imageUrl && (
+        <div className="mb-2 flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl}
+            alt="Event"
+            className="h-16 w-24 rounded-lg object-cover"
+          />
+          <button
+            type="button"
+            className="text-xs font-medium text-red-600 hover:underline"
+            onClick={() => setImageUrl("")}
+          >
+            Remove
+          </button>
+        </div>
+      )}
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        onChange={onFile}
+        disabled={uploading}
+        className="block w-full text-sm text-ink-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700"
+      />
+      {uploading && (
+        <p className="mt-1 text-xs font-medium text-brand-600">Uploading…</p>
+      )}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      <input
+        type="text"
+        onChange={(e) => setImageUrl(e.target.value)}
+        placeholder="…or paste an image URL"
+        className="input mt-2"
+      />
+      <p className="mt-1 text-xs text-ink-400">
+        JPG, PNG, WEBP, or GIF (up to 20MB). Shown on the public events page.
+      </p>
+    </div>
+  );
+}
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -91,37 +166,7 @@ function EventFields({
           defaultValue={defaults?.description ?? ""}
         />
       </div>
-      <div>
-        <label className="label">Event image</label>
-        {currentImage && (
-          <div className="mb-2 flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={currentImage}
-              alt="Current event"
-              className="h-16 w-24 rounded-lg object-cover"
-            />
-            <label className="flex items-center gap-1.5 text-sm text-ink-600">
-              <input type="checkbox" name="removeImage" /> Remove
-            </label>
-          </div>
-        )}
-        <input
-          type="file"
-          name="image"
-          accept="image/*"
-          className="block w-full text-sm text-ink-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700"
-        />
-        <input
-          name="imageUrl"
-          className="input mt-2"
-          placeholder="…or paste an image URL"
-        />
-        <p className="mt-1 text-xs text-ink-400">
-          Upload a flyer or photo (JPG/PNG) — it&apos;s shown on the public
-          events page.
-        </p>
-      </div>
+      <EventImageField currentImage={currentImage} />
     </div>
   );
 }
