@@ -4,8 +4,48 @@ import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
-import { upload } from "@vercel/blob/client";
 import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
+
+// Downscale + re-encode an image in the browser to a small JPEG, so uploads are
+// fast and web-optimized regardless of the original photo's size.
+async function resizeToJpeg(file: File, maxDim = 1600, quality = 0.85): Promise<Blob> {
+  const dataUrl: string = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result as string);
+    r.onerror = () => rej(new Error("Couldn't read that file."));
+    r.readAsDataURL(file);
+  });
+  const img: HTMLImageElement = await new Promise((res, rej) => {
+    const i = new Image();
+    i.onload = () => res(i);
+    i.onerror = () =>
+      rej(
+        new Error(
+          "Couldn't read that image. Please use a JPG or PNG (iPhone HEIC photos aren't supported — take a screenshot instead)."
+        )
+      );
+    i.src = dataUrl;
+  });
+  let { width, height } = img;
+  if (width > maxDim || height > maxDim) {
+    const scale = Math.min(maxDim / width, maxDim / height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Image processing failed.");
+  ctx.drawImage(img, 0, 0, width, height);
+  return await new Promise((res, rej) =>
+    canvas.toBlob(
+      (b) => (b ? res(b) : rej(new Error("Image processing failed."))),
+      "image/jpeg",
+      quality
+    )
+  );
+}
 
 // Uploads an event image straight from the browser to Blob storage (no server
 // size limit), and carries the resulting URL in a hidden `imageUrl` field.
@@ -30,18 +70,28 @@ function EventImageField({
     if (!file) return;
     setError(null);
     setBusy(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
     try {
-      const blob = await upload(file.name, file, {
-        access: "public",
-        handleUploadUrl: "/api/events/upload",
+      const resized = await resizeToJpeg(file);
+      const form = new FormData();
+      form.append("file", new File([resized], "event.jpg", { type: "image/jpeg" }));
+      const res = await fetch("/api/events/upload", {
+        method: "POST",
+        body: form,
+        signal: controller.signal,
       });
-      setImageUrl(blob.url);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Upload failed.");
+      setImageUrl(data.url);
     } catch (err: any) {
       setError(
-        err?.message ??
-          "Upload failed. Use a JPG or PNG under 20MB (iPhone HEIC photos aren't supported)."
+        err?.name === "AbortError"
+          ? "Upload timed out. Check your connection and try again."
+          : err?.message ?? "Upload failed. Please try a JPG or PNG."
       );
     } finally {
+      clearTimeout(timeout);
       setBusy(false);
       e.target.value = "";
     }
