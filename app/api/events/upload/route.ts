@@ -6,7 +6,9 @@ import { getCurrentUser, isStaff } from "@/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Receives an already-resized (small) image from the CRM and stores it in Blob.
+// Receives an already-resized (small) JPEG from the CRM and stores it in the
+// (private) Blob store. Returns a link to our own public image proxy so the
+// picture can be shown to everyone without exposing the store.
 export async function POST(request: Request): Promise<NextResponse> {
   const user = await getCurrentUser();
   if (!user || !isStaff(user.role)) {
@@ -30,10 +32,12 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const blob = await put(`events/${randomUUID()}.jpg`, file, {
-      access: "public",
+      access: "private",
       contentType: "image/jpeg",
     });
-    return NextResponse.json({ url: blob.url });
+    return NextResponse.json({
+      url: `/api/events/image?p=${encodeURIComponent(blob.pathname)}`,
+    });
   } catch (e: any) {
     return NextResponse.json(
       { error: e?.message ?? "Upload failed." },
