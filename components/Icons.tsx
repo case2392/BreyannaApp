@@ -79,3 +79,10 @@ export const TagIcon = ({ className = base }: P) => (
     <circle cx="7.5" cy="7.5" r="1.5" />
   </svg>
 );
+
+export const SparklesIcon = ({ className = base }: P) => (
+  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path d="M12 3l1.7 4.3L18 9l-4.3 1.7L12 15l-1.7-4.3L6 9l4.3-1.7L12 3Z" strokeLinejoin="round" />
+    <path d="M18.5 13.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z" strokeLinejoin="round" />
+  </svg>
+);

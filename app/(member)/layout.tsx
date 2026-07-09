@@ -9,6 +9,7 @@ import {
   CardIcon,
   UserIcon,
   GridIcon,
+  SparklesIcon,
 } from "@/components/Icons";
 
 export default async function MemberLayout({
@@ -29,6 +30,7 @@ export default async function MemberLayout({
             <NavLink href="/schedule" label="Schedule" icon={<CalendarIcon className="h-4 w-4" />} />
             <NavLink href="/bookings" label="My Bookings" icon={<TicketIcon className="h-4 w-4" />} />
             <NavLink href="/memberships" label="Memberships" icon={<CardIcon className="h-4 w-4" />} />
+            <NavLink href="/events" label="Events" icon={<SparklesIcon className="h-4 w-4" />} />
             <NavLink href="/account" label="Account" icon={<UserIcon className="h-4 w-4" />} />
           </nav>
           <div className="flex items-center gap-2">
@@ -52,6 +54,7 @@ export default async function MemberLayout({
         <BottomNavLink href="/schedule" label="Schedule" icon={<CalendarIcon />} />
         <BottomNavLink href="/bookings" label="Bookings" icon={<TicketIcon />} />
         <BottomNavLink href="/memberships" label="Plans" icon={<CardIcon />} />
+        <BottomNavLink href="/events" label="Events" icon={<SparklesIcon />} />
         <BottomNavLink href="/account" label="Account" icon={<UserIcon />} />
       </nav>
     </div>
