@@ -9,16 +9,27 @@ import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
 
 // Uploads an event image straight from the browser to Blob storage (no server
 // size limit), and carries the resulting URL in a hidden `imageUrl` field.
-function EventImageField({ currentImage }: { currentImage?: string | null }) {
+function EventImageField({
+  currentImage,
+  onUploadingChange,
+}: {
+  currentImage?: string | null;
+  onUploadingChange?: (busy: boolean) => void;
+}) {
   const [imageUrl, setImageUrl] = useState(currentImage ?? "");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function setBusy(b: boolean) {
+    setUploading(b);
+    onUploadingChange?.(b);
+  }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setError(null);
-    setUploading(true);
+    setBusy(true);
     try {
       const blob = await upload(file.name, file, {
         access: "public",
@@ -31,7 +42,7 @@ function EventImageField({ currentImage }: { currentImage?: string | null }) {
           "Upload failed. Use a JPG or PNG under 20MB (iPhone HEIC photos aren't supported)."
       );
     } finally {
-      setUploading(false);
+      setBusy(false);
       e.target.value = "";
     }
   }
@@ -65,7 +76,14 @@ function EventImageField({ currentImage }: { currentImage?: string | null }) {
         className="block w-full text-sm text-ink-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-50 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-brand-700"
       />
       {uploading && (
-        <p className="mt-1 text-xs font-medium text-brand-600">Uploading…</p>
+        <p className="mt-1 text-xs font-medium text-brand-600">
+          Uploading… please wait before saving.
+        </p>
+      )}
+      {!uploading && imageUrl && (
+        <p className="mt-1 text-xs font-medium text-green-600">
+          ✓ Image ready — it&apos;ll save with the event.
+        </p>
       )}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       <input
@@ -81,10 +99,14 @@ function EventImageField({ currentImage }: { currentImage?: string | null }) {
   );
 }
 
-function Submit({ label }: { label: string }) {
+function Submit({ label, disabled }: { label: string; disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className="btn-primary" disabled={pending}>
+    <button
+      type="submit"
+      className="btn-primary"
+      disabled={pending || disabled}
+    >
       {pending ? "Saving…" : label}
     </button>
   );
@@ -103,6 +125,7 @@ function Err({ msg }: { msg?: string }) {
 function EventFields({
   defaults,
   currentImage,
+  onUploadingChange,
 }: {
   defaults?: {
     name?: string;
@@ -113,6 +136,7 @@ function EventFields({
     time?: string;
   };
   currentImage?: string | null;
+  onUploadingChange?: (busy: boolean) => void;
 }) {
   return (
     <div className="space-y-3">
@@ -166,13 +190,17 @@ function EventFields({
           defaultValue={defaults?.description ?? ""}
         />
       </div>
-      <EventImageField currentImage={currentImage} />
+      <EventImageField
+        currentImage={currentImage}
+        onUploadingChange={onUploadingChange}
+      />
     </div>
   );
 }
 
 export function CreateEventForm() {
   const ref = useRef<HTMLFormElement>(null);
+  const [uploading, setUploading] = useState(false);
   const [state, action] = useFormState(
     async (
       prev: unknown,
@@ -186,17 +214,12 @@ export function CreateEventForm() {
   );
 
   return (
-    <form
-      ref={ref}
-      action={action}
-      encType="multipart/form-data"
-      className="card p-5"
-    >
+    <form ref={ref} action={action} className="card p-5">
       <h3 className="mb-4 font-semibold">New event</h3>
       <Err msg={state?.error} />
-      <EventFields />
+      <EventFields onUploadingChange={setUploading} />
       <div className="mt-4">
-        <Submit label="Create event" />
+        <Submit label="Create event" disabled={uploading} />
       </div>
     </form>
   );
@@ -220,6 +243,7 @@ type EventRowData = {
 
 export function EventRow({ event }: { event: EventRowData }) {
   const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [isDeleting, startDelete] = useTransition();
   const router = useRouter();
   const [state, action] = useFormState(
@@ -244,11 +268,12 @@ export function EventRow({ event }: { event: EventRowData }) {
 
   if (editing) {
     return (
-      <form action={action} encType="multipart/form-data" className="card p-5">
+      <form action={action} className="card p-5">
         <input type="hidden" name="id" value={event.id} />
         <Err msg={state?.error} />
         <EventFields
           currentImage={event.imageUrl}
+          onUploadingChange={setUploading}
           defaults={{
             name: event.name,
             description: event.description,
@@ -263,7 +288,7 @@ export function EventRow({ event }: { event: EventRowData }) {
           <span className="text-sm text-ink-700">Active (visible on lists)</span>
         </label>
         <div className="mt-4 flex gap-2">
-          <Submit label="Save" />
+          <Submit label="Save" disabled={uploading} />
           <button
             type="button"
             className="btn-secondary"
