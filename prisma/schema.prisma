@@ -311,6 +311,9 @@ model EventRegistration {
   email       String
   // "REGISTERED" (free/confirmed) | "PAID"
   status      String   @default("REGISTERED")
+  // Where the registration came from: Paid online | Eventbrite | Complimentary
+  // | Partnership | Vendor | Membership | Other.
+  source      String?
   amountCents Int      @default(0)
   stripeRef   String?  @unique
   createdAt   DateTime @default(now())

@@ -7,6 +7,7 @@ import { getCurrentUser, isStaff } from "@/lib/auth";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import { notifyStudio } from "@/lib/notify";
 import { money } from "@/lib/format";
+import { EVENT_SOURCES } from "@/lib/eventSources";
 
 function siteOrigin(): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
@@ -23,6 +24,7 @@ async function confirmRegistration(opts: {
   email: string;
   status: "REGISTERED" | "PAID";
   amountCents: number;
+  source: string;
   stripeRef?: string;
   eventName: string;
 }) {
@@ -33,6 +35,7 @@ async function confirmRegistration(opts: {
       name: opts.name,
       email: opts.email,
       status: opts.status,
+      source: opts.source,
       amountCents: opts.amountCents,
       stripeRef: opts.stripeRef ?? null,
     },
@@ -69,6 +72,7 @@ export async function registerForEvent(eventId: string) {
       email: user.email,
       status: "REGISTERED",
       amountCents: event.priceCents === 0 ? 0 : event.priceCents,
+      source: "Website",
       eventName: event.name,
     });
     revalidatePath(`/events/${eventId}`);
@@ -140,6 +144,7 @@ export async function finalizeEventCheckout(sessionId: string): Promise<boolean>
       email: session.customer_details?.email ?? user?.email ?? "",
       status: "PAID",
       amountCents: session.amount_total ?? event.priceCents,
+      source: "Paid online",
       stripeRef: session.id,
       eventName: event.name,
     });
@@ -149,6 +154,56 @@ export async function finalizeEventCheckout(sessionId: string): Promise<boolean>
   } catch {
     return false;
   }
+}
+
+// CRM: manually register a member (pass a userId) or a guest (pass name/email)
+// for an event. No charge — for comps, cash, or walk-ins.
+export async function staffAddEventRegistration(
+  eventId: string,
+  userId: string | null,
+  guestName: string,
+  guestEmail: string,
+  source: string
+) {
+  const staff = await getCurrentUser();
+  if (!staff || !isStaff(staff.role))
+    return { ok: false, error: "Not authorized." };
+
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) return { ok: false, error: "Event not found." };
+
+  const tag = EVENT_SOURCES.includes(source as any) ? source : "Other";
+
+  let name = guestName.trim();
+  let email = guestEmail.trim();
+
+  if (userId) {
+    const member = await prisma.user.findUnique({ where: { id: userId } });
+    if (!member) return { ok: false, error: "Member not found." };
+    const existing = await prisma.eventRegistration.findFirst({
+      where: { eventId, userId },
+    });
+    if (existing) return { ok: false, error: "Already registered." };
+    name = `${member.firstName} ${member.lastName}`;
+    email = member.email;
+  } else if (!name) {
+    return { ok: false, error: "Enter a name for the guest." };
+  }
+
+  await prisma.eventRegistration.create({
+    data: {
+      eventId,
+      userId,
+      name,
+      email,
+      status: "REGISTERED",
+      source: tag,
+      amountCents: 0,
+    },
+  });
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath("/admin/events");
+  return { ok: true };
 }
 
 // CRM: remove a registration (staff only).

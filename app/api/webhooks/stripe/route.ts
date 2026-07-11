@@ -90,6 +90,7 @@ export async function POST(request: Request) {
                     email:
                       session.customer_details?.email ?? u?.email ?? "",
                     status: "PAID",
+                    source: "Paid online",
                     amountCents: session.amount_total ?? evt.priceCents,
                     stripeRef: session.id,
                   },
