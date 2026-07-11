@@ -5,7 +5,9 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
 import { stripe, stripeEnabled } from "@/lib/stripe";
-import { capacityLimited } from "@/lib/format";
+import { capacityLimited, dayLabel, timeLabel } from "@/lib/format";
+import { bookClass } from "@/lib/booking";
+import { fireAutomation } from "@/lib/automations";
 
 async function requireStaff() {
   const user = await getCurrentUser();
@@ -529,4 +531,48 @@ export async function deleteEvent(eventId: string) {
   revalidatePath("/admin/events");
   revalidatePath("/events");
   return { ok: true };
+}
+
+// ---- Staff: manually add a member to a class ----------------------------
+
+// Book a member into a class from the CRM. Uses their credits like a normal
+// booking (skips the 2-hour cutoff since staff are managing it). Pass comp=true
+// to add them without requiring or using credits.
+export async function staffAddToClass(
+  sessionId: string,
+  userId: string,
+  comp: boolean
+) {
+  await requireStaff();
+  const result = await bookClass(userId, sessionId, { staff: true, comp });
+
+  if (result.ok) {
+    const [user, session] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, firstName: true, email: true, phone: true },
+      }),
+      prisma.classSession.findUnique({
+        where: { id: sessionId },
+        include: { classType: true, instructor: true },
+      }),
+    ]);
+    // Let the member know (if the booking-confirmation automation is on).
+    if (user && session && result.status === "BOOKED") {
+      await fireAutomation(
+        "booking_confirmation",
+        user,
+        {
+          className: session.classType.name,
+          date: dayLabel(session.startsAt),
+          time: timeLabel(session.startsAt),
+          instructor: session.instructor.name,
+        },
+        { classTypeId: session.classTypeId }
+      );
+    }
+    revalidatePath(`/admin/schedule/${sessionId}`);
+    revalidatePath("/admin");
+  }
+  return result;
 }

@@ -58,9 +58,12 @@ async function findUsableMembership(
 }
 
 // Book a member into a class (or waitlist them if it is full).
+// Staff booking on a member's behalf can pass opts.staff to skip the 2-hour
+// booking cutoff, and opts.comp to add them without requiring/using credits.
 export async function bookClass(
   userId: string,
-  sessionId: string
+  sessionId: string,
+  opts?: { staff?: boolean; comp?: boolean }
 ): Promise<BookResult> {
   const session = await prisma.classSession.findUnique({
     where: { id: sessionId },
@@ -68,7 +71,7 @@ export async function bookClass(
   });
   if (!session) return { ok: false, error: "Class not found." };
   if (session.cancelled) return { ok: false, error: "This class was cancelled." };
-  if (session.startsAt.getTime() - Date.now() < BOOKING_LEAD_MS)
+  if (!opts?.staff && session.startsAt.getTime() - Date.now() < BOOKING_LEAD_MS)
     return {
       ok: false,
       error: "Booking has closed — classes lock 2 hours before they start.",
@@ -79,15 +82,15 @@ export async function bookClass(
     where: { userId_sessionId: { userId, sessionId } },
   });
   if (existing && existing.status !== "CANCELLED") {
-    return { ok: false, error: "You are already on the list for this class." };
+    return { ok: false, error: "Already on the list for this class." };
   }
 
   const creditCost = session.classType.creditCost;
   const isFree = session.classType.free;
 
-  // Free community classes: no membership or credits required.
+  // Free community classes (or a staff comp) need no membership or credits.
   let membership: MembershipWithPlan | null = null;
-  if (!isFree) {
+  if (!isFree && !opts?.comp) {
     membership = await findUsableMembership(
       userId,
       creditCost,

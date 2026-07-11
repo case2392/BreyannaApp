@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { dayLabel, timeLabel, capacityLimited } from "@/lib/format";
 import { AttendanceControls } from "@/components/admin/SessionControls";
+import { AddToClassForm } from "@/components/admin/AddToClassForm";
 
 export const dynamic = "force-dynamic";
 
@@ -11,21 +12,34 @@ export default async function RosterPage({
 }: {
   params: { id: string };
 }) {
-  const session = await prisma.classSession.findUnique({
-    where: { id: params.id },
-    include: {
-      classType: true,
-      instructor: true,
-      room: true,
-      bookings: {
-        where: { status: { not: "CANCELLED" } },
-        include: { user: true },
-        orderBy: { createdAt: "asc" },
+  const [session, members] = await Promise.all([
+    prisma.classSession.findUnique({
+      where: { id: params.id },
+      include: {
+        classType: true,
+        instructor: true,
+        room: true,
+        bookings: {
+          where: { status: { not: "CANCELLED" } },
+          include: { user: true },
+          orderBy: { createdAt: "asc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.user.findMany({
+      where: { role: "MEMBER" },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
+      select: { id: true, firstName: true, lastName: true },
+    }),
+  ]);
 
   if (!session) notFound();
+
+  // Members not already on this class's list.
+  const bookedIds = new Set(session.bookings.map((b) => b.userId));
+  const addable = members
+    .filter((m) => !bookedIds.has(m.id))
+    .map((m) => ({ id: m.id, name: `${m.firstName} ${m.lastName}` }));
 
   const confirmed = session.bookings.filter((b) => b.status !== "WAITLISTED");
   const waitlist = session.bookings.filter((b) => b.status === "WAITLISTED");
@@ -88,6 +102,12 @@ export default async function RosterPage({
               </li>
             ))}
           </ol>
+        </div>
+      )}
+
+      {!session.cancelled && (
+        <div className="mt-4">
+          <AddToClassForm sessionId={session.id} members={addable} />
         </div>
       )}
     </div>
