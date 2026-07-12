@@ -11,6 +11,7 @@ import {
   sameDay,
   shortDate,
   capacityLimited,
+  money,
 } from "@/lib/format";
 import { BookButton } from "@/components/BookButton";
 import { BOOKING_LEAD_MS } from "@/lib/booking";
@@ -20,6 +21,80 @@ export const dynamic = "force-dynamic";
 const MAX_WEEKS_AHEAD = 8;
 
 type SessionWithDetails = Awaited<ReturnType<typeof loadSessions>>[number];
+type EventLite = Awaited<ReturnType<typeof loadEvents>>[number];
+
+// Active, dated events in [from, to) that haven't started yet.
+async function loadEvents(from: Date, to: Date) {
+  const now = new Date();
+  const lower = from.getTime() > now.getTime() ? from : now;
+  return prisma.event.findMany({
+    where: { active: true, startsAt: { gte: lower, lt: to } },
+    orderBy: { startsAt: "asc" },
+    select: {
+      id: true,
+      name: true,
+      startsAt: true,
+      location: true,
+      priceCents: true,
+    },
+  });
+}
+
+// An event shown on the schedule, linking to its detail/registration page.
+function EventCard({ e }: { e: EventLite }) {
+  return (
+    <Link
+      href={`/events/${e.id}`}
+      className="block rounded-xl border border-clay-300 bg-clay-100/50 p-3 transition hover:border-clay-400"
+      style={{ borderLeftWidth: 4, borderLeftColor: "#D2BBA0" }}
+    >
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="text-sm font-bold">
+          {e.startsAt ? timeLabel(e.startsAt) : ""}
+        </span>
+        <span className="text-[10px] font-semibold uppercase tracking-wide text-clay-500">
+          Event
+        </span>
+      </div>
+      <div className="mt-0.5 truncate text-sm font-semibold leading-tight">
+        {e.name}
+      </div>
+      {e.location && (
+        <div className="truncate text-xs text-ink-500">{e.location}</div>
+      )}
+      <div className="mt-1 flex items-center justify-between">
+        <span className="text-[11px] text-ink-500">
+          {e.priceCents === 0 ? "Free" : money(e.priceCents)}
+        </span>
+        <span className="text-[11px] font-medium text-brand-600">View →</span>
+      </div>
+    </Link>
+  );
+}
+
+// Merge a day's classes and events into one time-sorted list of cards.
+function dayItems(
+  sessions: SessionWithDetails[],
+  events: EventLite[],
+  userId: string,
+  now: Date,
+  compact: boolean
+) {
+  const items: { key: string; at: number; node: JSX.Element }[] = [
+    ...sessions.map((s) => ({
+      key: `c${s.id}`,
+      at: s.startsAt.getTime(),
+      node: <ClassCard s={s} userId={userId} now={now} compact={compact} />,
+    })),
+    ...events.map((e) => ({
+      key: `e${e.id}`,
+      at: e.startsAt ? e.startsAt.getTime() : 0,
+      node: <EventCard e={e} />,
+    })),
+  ];
+  items.sort((a, b) => a.at - b.at);
+  return items;
+}
 
 // `to` is exclusive (sessions strictly before it). Classes within the booking
 // lead window (2 hours before start) are hidden — they can no longer be booked.
@@ -201,10 +276,14 @@ async function WeekView({
 }) {
   const weekStart = startOfWeek(now, weekOffset);
   const weekEnd = addDays(weekStart, 7); // exclusive: next Monday 00:00
-  const sessions = await loadSessions(weekStart, weekEnd);
+  const [sessions, events] = await Promise.all([
+    loadSessions(weekStart, weekEnd),
+    loadEvents(weekStart, weekEnd),
+  ]);
 
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const byDay = groupBy(sessions, (s) => s.startsAt.toDateString());
+  const eventsByDay = groupBy(events, (e) => e.startsAt!.toDateString());
 
   return (
     <div>
@@ -233,7 +312,14 @@ async function WeekView({
       {/* 7-day grid: stacks on mobile, 7 columns on desktop */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-7 sm:gap-2">
         {days.map((day) => {
-          const daySessions = byDay.get(day.toDateString()) ?? [];
+          const key = day.toDateString();
+          const items = dayItems(
+            byDay.get(key) ?? [],
+            eventsByDay.get(key) ?? [],
+            user.id,
+            now,
+            true
+          );
           const isToday = sameDay(day, now);
           return (
             <div key={day.toISOString()} className="min-w-0">
@@ -246,14 +332,12 @@ async function WeekView({
                 <div className="text-base">{day.getDate()}</div>
               </div>
               <div className="space-y-2">
-                {daySessions.length === 0 ? (
+                {items.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-ink-200 py-4 text-center text-xs text-ink-300">
                     —
                   </div>
                 ) : (
-                  daySessions.map((s) => (
-                    <ClassCard key={s.id} s={s} userId={user.id} now={now} compact />
-                  ))
+                  items.map((it) => <div key={it.key}>{it.node}</div>)
                 )}
               </div>
             </div>
@@ -272,27 +356,41 @@ async function ListView({
   now: Date;
 }) {
   const horizon = addDays(now, 14);
-  const sessions = await loadSessions(now, horizon);
+  const [sessions, events] = await Promise.all([
+    loadSessions(now, horizon),
+    loadEvents(now, horizon),
+  ]);
   const byDay = groupBy(sessions, (s) => s.startsAt.toDateString());
+  const eventsByDay = groupBy(events, (e) => e.startsAt!.toDateString());
 
-  if (sessions.length === 0) {
+  if (sessions.length === 0 && events.length === 0) {
     return (
       <div className="card p-8 text-center text-ink-500">
-        No classes are scheduled yet. Check back soon!
+        Nothing scheduled yet. Check back soon!
       </div>
     );
   }
 
+  const dayKeys = [
+    ...new Set([...byDay.keys(), ...eventsByDay.keys()]),
+  ].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
   return (
     <div className="space-y-8">
-      {[...byDay.entries()].map(([day, daySessions]) => (
+      {dayKeys.map((day) => (
         <section key={day}>
           <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
             {dayLabel(new Date(day))}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {daySessions.map((s) => (
-              <ClassCard key={s.id} s={s} userId={user.id} now={now} />
+            {dayItems(
+              byDay.get(day) ?? [],
+              eventsByDay.get(day) ?? [],
+              user.id,
+              now,
+              false
+            ).map((it) => (
+              <div key={it.key}>{it.node}</div>
             ))}
           </div>
         </section>
