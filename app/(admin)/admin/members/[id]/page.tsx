@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { shortDate, dayLabel, timeLabel, money, timeAgo } from "@/lib/format";
 import { MemberNotes } from "@/components/admin/MemberNotes";
 import { LinkSubscription } from "@/components/admin/LinkSubscription";
-import { stripeEnabled } from "@/lib/stripe";
+import { stripe, stripeEnabled } from "@/lib/stripe";
 import {
   GrantMembership,
   DeleteMemberButton,
@@ -54,10 +54,39 @@ export default async function MemberDetailPage({
   if (!member || member.role !== "MEMBER") notFound();
 
   const now = new Date();
-  const totalSpent = member.memberships.reduce(
+  // Lifetime spend: the real total from Stripe (initial + every renewal +
+  // events + donations by this customer). Falls back to what's stored locally
+  // if Stripe isn't available or they have no Stripe customer yet.
+  let totalSpent = member.memberships.reduce(
     (sum, m) => sum + m.pricePaidCents,
     0
   );
+  if (stripeEnabled() && stripe && member.stripeCustomerId) {
+    try {
+      let sum = 0;
+      const add = (list: any[]) => {
+        for (const c of list)
+          if (c.status === "succeeded") sum += c.amount - (c.amount_refunded ?? 0);
+      };
+      let res = await stripe.charges.list({
+        customer: member.stripeCustomerId,
+        limit: 100,
+      });
+      add(res.data);
+      let guard = 0;
+      while (res.has_more && guard++ < 20) {
+        res = await stripe.charges.list({
+          customer: member.stripeCustomerId,
+          limit: 100,
+          starting_after: res.data[res.data.length - 1].id,
+        });
+        add(res.data);
+      }
+      totalSpent = sum;
+    } catch {
+      /* keep the local fallback */
+    }
+  }
 
   return (
     <div>
@@ -149,6 +178,8 @@ export default async function MemberDetailPage({
                 ? m.source === "GIFT"
                   ? "Gift"
                   : "Complimentary"
+                : m.stripeSubscriptionId
+                ? `${money(m.plan.priceCents)}/mo`
                 : `paid ${money(m.pricePaidCents)}`;
               return (
                 <div key={m.id} className="card p-4">

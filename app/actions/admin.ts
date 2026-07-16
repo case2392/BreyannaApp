@@ -699,6 +699,7 @@ export async function linkStripeSubscription(
         autoRenew,
         expiresAt,
         source: "PURCHASE",
+        pricePaidCents: plan.priceCents,
       },
     });
   } else {
@@ -717,6 +718,7 @@ export async function linkStripeSubscription(
           expiresAt,
           status: "ACTIVE",
           source: "PURCHASE",
+          pricePaidCents: plan.priceCents,
         },
       });
     } else {
