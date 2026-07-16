@@ -576,3 +576,57 @@ export async function staffAddToClass(
   }
   return result;
 }
+
+// ---- Reconcile membership renewal dates with Stripe ---------------------
+
+// Pull each Stripe-linked membership's true next-billing date from Stripe and
+// overwrite the CRM, so renewal dates always match Stripe regardless of any
+// missed or out-of-order webhooks.
+export async function syncSubscriptionsFromStripe() {
+  await requireStaff();
+  if (!stripeEnabled() || !stripe)
+    return { ok: false as const, error: "Stripe isn't configured." };
+
+  const memberships = await prisma.membership.findMany({
+    where: { stripeSubscriptionId: { not: null } },
+  });
+
+  let checked = 0;
+  let updated = 0;
+  let errors = 0;
+
+  for (const m of memberships) {
+    checked++;
+    try {
+      const sub = await stripe.subscriptions.retrieve(m.stripeSubscriptionId!);
+      const active = sub.status === "active" || sub.status === "trialing";
+      if (active) {
+        const end =
+          (sub as any).current_period_end ??
+          (sub as any).items?.data?.[0]?.current_period_end;
+        await prisma.membership.update({
+          where: { id: m.id },
+          data: {
+            status: "ACTIVE",
+            autoRenew: !sub.cancel_at_period_end,
+            ...(end ? { expiresAt: new Date(end * 1000) } : {}),
+          },
+        });
+      } else {
+        // Canceled/unpaid in Stripe — stop auto-renew but keep their remaining
+        // access (don't move the date backward).
+        await prisma.membership.update({
+          where: { id: m.id },
+          data: { autoRenew: false },
+        });
+      }
+      updated++;
+    } catch {
+      errors++;
+    }
+  }
+
+  revalidatePath("/admin/members");
+  revalidatePath("/admin");
+  return { ok: true as const, checked, updated, errors };
+}
