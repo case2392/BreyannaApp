@@ -3,6 +3,8 @@ import type Stripe from "stripe";
 import { prisma } from "@/lib/db";
 import { stripe, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe";
 import { grantMembership } from "@/lib/membership";
+import { notifyStudio } from "@/lib/notify";
+import { money } from "@/lib/format";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -83,21 +85,28 @@ export async function POST(request: Request) {
                 ? await prisma.user.findUnique({ where: { id: uId } })
                 : null;
               if (evt) {
+                const name =
+                  session.customer_details?.name ??
+                  (u ? `${u.firstName} ${u.lastName}` : "Guest");
+                const email = session.customer_details?.email ?? u?.email ?? "";
+                const amountCents = session.amount_total ?? evt.priceCents;
                 await prisma.eventRegistration.create({
                   data: {
                     eventId,
                     userId: uId,
-                    name:
-                      session.customer_details?.name ??
-                      (u ? `${u.firstName} ${u.lastName}` : "Guest"),
-                    email:
-                      session.customer_details?.email ?? u?.email ?? "",
+                    name,
+                    email,
                     status: "PAID",
                     source: "Paid online",
-                    amountCents: session.amount_total ?? evt.priceCents,
+                    amountCents,
                     stripeRef: session.id,
                   },
                 });
+                // Let the studio know someone registered (paid).
+                await notifyStudio(
+                  `Event registration: ${evt.name}`,
+                  `${name} (${email}) registered for ${evt.name} — paid ${money(amountCents)}.`
+                );
               }
             }
           }
