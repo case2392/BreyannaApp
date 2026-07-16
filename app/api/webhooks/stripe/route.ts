@@ -232,7 +232,31 @@ export async function POST(request: Request) {
         break;
       }
 
-      // Subscription cancelled — stop auto-renew (membership runs out its term).
+      // Any subscription change — cancel-at-period-end, reactivation, plan
+      // change, etc. Keep the CRM's renew status and date in step with Stripe.
+      case "customer.subscription.updated": {
+        const sub = event.data.object as Stripe.Subscription;
+        const membership = await prisma.membership.findUnique({
+          where: { stripeSubscriptionId: sub.id },
+        });
+        if (membership) {
+          const active = sub.status === "active" || sub.status === "trialing";
+          const end =
+            (sub as any).current_period_end ??
+            (sub as any).items?.data?.[0]?.current_period_end;
+          await prisma.membership.update({
+            where: { id: membership.id },
+            data: {
+              autoRenew: active && !sub.cancel_at_period_end,
+              ...(active ? { status: "ACTIVE" } : {}),
+              ...(active && end ? { expiresAt: new Date(end * 1000) } : {}),
+            },
+          });
+        }
+        break;
+      }
+
+      // Subscription fully cancelled — stop auto-renew (membership runs out its term).
       case "customer.subscription.deleted": {
         const sub = event.data.object as Stripe.Subscription;
         await prisma.membership.updateMany({
