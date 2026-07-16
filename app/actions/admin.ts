@@ -690,10 +690,16 @@ export async function linkStripeSubscription(
     })();
 
   if (linked && linked.userId === userId) {
-    // Already this member's — just refresh the details.
+    // Already this member's — refresh the details (and make sure it reads as a
+    // real purchase, in case it was a converted comp).
     await prisma.membership.update({
       where: { id: linked.id },
-      data: { status: active ? "ACTIVE" : linked.status, autoRenew, expiresAt },
+      data: {
+        status: active ? "ACTIVE" : linked.status,
+        autoRenew,
+        expiresAt,
+        source: "PURCHASE",
+      },
     });
   } else {
     // Attach to an existing unlinked membership of this plan, or create one.
