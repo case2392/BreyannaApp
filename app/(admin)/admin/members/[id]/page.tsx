@@ -83,13 +83,18 @@ export default async function MemberDetailPage({
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <div className="card p-4">
-          <div className="text-xs text-ink-500">Last sign-in</div>
-          <div className="text-lg font-semibold">{timeAgo(member.lastLoginAt)}</div>
-          <div className="text-xs text-ink-400">
-            {member.lastLoginAt ? shortDate(member.lastLoginAt) : "Hasn't signed in yet"}
-          </div>
-        </div>
+        {(() => {
+          const seen = member.lastSeenAt ?? member.lastLoginAt;
+          return (
+            <div className="card p-4">
+              <div className="text-xs text-ink-500">Last seen</div>
+              <div className="text-lg font-semibold">{timeAgo(seen)}</div>
+              <div className="text-xs text-ink-400">
+                {seen ? shortDate(seen) : "Hasn't visited yet"}
+              </div>
+            </div>
+          );
+        })()}
         <div className="card p-4">
           <div className="text-xs text-ink-500">Last booked a class</div>
           <div className="text-lg font-semibold">
@@ -126,7 +131,11 @@ export default async function MemberDetailPage({
               </div>
             )}
             {member.memberships.map((m) => {
-              const comp = m.source === "COMP" || m.source === "GIFT";
+              // A Stripe-linked membership is a real paid subscription, even if
+              // it was first created as a temporary comp.
+              const comp =
+                (m.source === "COMP" || m.source === "GIFT") &&
+                !m.stripeSubscriptionId;
               const expired = m.expiresAt < now;
               const label =
                 m.status === "ACTIVE" && expired ? "EXPIRED" : m.status;

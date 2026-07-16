@@ -26,7 +26,7 @@ export async function login(_prev: unknown, formData: FormData) {
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: new Date() },
+    data: { lastLoginAt: new Date(), lastSeenAt: new Date() },
   });
 
   setSessionCookie(user.id);
@@ -63,6 +63,7 @@ export async function register(_prev: unknown, formData: FormData) {
       passwordHash: hashPassword(password),
       role: "MEMBER",
       lastLoginAt: new Date(),
+      lastSeenAt: new Date(),
     },
   });
 

@@ -97,9 +97,9 @@ export default async function MembershipsPage({
                     )}
                   </div>
                   <div className="text-right text-xs text-ink-500">
-                    {m.source === "GIFT"
+                    {m.source === "GIFT" && !m.stripeSubscriptionId
                       ? "Gifted 🤍"
-                      : m.source === "COMP"
+                      : m.source === "COMP" && !m.stripeSubscriptionId
                       ? "Complimentary"
                       : m.plan.kind === "UNLIMITED" ? (
                         <>

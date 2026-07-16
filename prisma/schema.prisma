@@ -32,6 +32,9 @@ model User {
   createdAt    DateTime @default(now())
   // Last time this member signed in (updated on every successful login).
   lastLoginAt  DateTime?
+  // Last time this member was active on the site (updated, throttled, whenever
+  // they load their account area) — a truer "last seen" than login alone.
+  lastSeenAt   DateTime?
 
   bookings    Booking[]
   memberships Membership[]

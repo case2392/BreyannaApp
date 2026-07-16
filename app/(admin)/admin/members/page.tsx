@@ -73,7 +73,7 @@ export default async function MembersPage() {
                     )}
                   </td>
                   <td className="hidden px-4 py-3 text-ink-500 lg:table-cell">
-                    {timeAgo(m.lastLoginAt)}
+                    {timeAgo(m.lastSeenAt ?? m.lastLoginAt)}
                   </td>
                   <td className="hidden px-4 py-3 text-ink-500 md:table-cell">
                     {shortDate(m.createdAt)}

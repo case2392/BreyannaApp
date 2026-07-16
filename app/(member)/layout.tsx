@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { logout } from "@/app/actions/auth";
 import { Logo } from "@/components/Brand";
@@ -19,6 +20,17 @@ export default async function MemberLayout({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+
+  // Record "last seen" whenever they open their account area — throttled to at
+  // most once every 10 minutes so it's a cheap, single conditional write.
+  const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+  await prisma.user.updateMany({
+    where: {
+      id: user.id,
+      OR: [{ lastSeenAt: null }, { lastSeenAt: { lt: tenMinAgo } }],
+    },
+    data: { lastSeenAt: new Date() },
+  });
 
   return (
     <div className="min-h-screen bg-ink-50">
