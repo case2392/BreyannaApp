@@ -71,6 +71,8 @@ export async function bookClass(
   });
   if (!session) return { ok: false, error: "Class not found." };
   if (session.cancelled) return { ok: false, error: "This class was cancelled." };
+  if (!opts?.staff && session.registrationClosed)
+    return { ok: false, error: "Registration for this class is closed." };
   if (!opts?.staff && session.startsAt.getTime() - Date.now() < BOOKING_LEAD_MS)
     return {
       ok: false,

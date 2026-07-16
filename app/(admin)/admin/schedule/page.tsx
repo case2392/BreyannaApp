@@ -2,7 +2,10 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { dayLabel, timeLabel, groupBy, capacityLimited } from "@/lib/format";
 import { CreateSessionForm } from "@/components/admin/CreateSessionForm";
-import { CancelSessionButton } from "@/components/admin/SessionControls";
+import {
+  CancelSessionButton,
+  RegistrationToggle,
+} from "@/components/admin/SessionControls";
 
 export const dynamic = "force-dynamic";
 
@@ -74,7 +77,14 @@ export default async function AdminSchedulePage() {
                       <div className="font-semibold">{timeLabel(s.startsAt)}</div>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold">{s.classType.name}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold">{s.classType.name}</span>
+                        {s.registrationClosed && (
+                          <span className="badge bg-red-100 text-red-700">
+                            Booking closed
+                          </span>
+                        )}
+                      </div>
                       <div className="text-sm text-ink-500">
                         {s.instructor.name}
                         {s.room ? ` · ${s.room.name}` : ""}
@@ -99,6 +109,10 @@ export default async function AdminSchedulePage() {
                       >
                         Roster
                       </Link>
+                      <RegistrationToggle
+                        sessionId={s.id}
+                        closed={s.registrationClosed}
+                      />
                       <CancelSessionButton sessionId={s.id} />
                     </div>
                   </div>

@@ -102,7 +102,7 @@ async function loadSessions(from: Date, to: Date) {
   const cutoff = new Date(Date.now() + BOOKING_LEAD_MS);
   const lower = from > cutoff ? from : cutoff;
   return prisma.classSession.findMany({
-    where: { cancelled: false, startsAt: { gte: lower, lt: to } },
+    where: { cancelled: false, registrationClosed: false, startsAt: { gte: lower, lt: to } },
     orderBy: { startsAt: "asc" },
     include: {
       classType: true,

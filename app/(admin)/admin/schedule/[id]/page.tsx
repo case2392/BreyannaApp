@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { dayLabel, timeLabel, capacityLimited } from "@/lib/format";
-import { AttendanceControls } from "@/components/admin/SessionControls";
+import {
+  AttendanceControls,
+  RegistrationToggle,
+} from "@/components/admin/SessionControls";
 import { AddToClassForm } from "@/components/admin/AddToClassForm";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +61,24 @@ export default async function RosterPage({
           <span className="badge ml-2 bg-red-100 text-red-700">Cancelled</span>
         )}
       </p>
+
+      {!session.cancelled && (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <RegistrationToggle
+            sessionId={session.id}
+            closed={session.registrationClosed}
+          />
+          {session.registrationClosed ? (
+            <span className="text-sm text-red-600">
+              Booking is closed — members can&apos;t sign up (you still can below).
+            </span>
+          ) : (
+            <span className="text-sm text-ink-500">
+              Booking is open.
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="card p-5">
         <div className="mb-4 flex items-center justify-between">

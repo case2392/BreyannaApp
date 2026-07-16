@@ -2,7 +2,42 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { cancelSession, markAttendance } from "@/app/actions/admin";
+import {
+  cancelSession,
+  markAttendance,
+  setRegistrationClosed,
+} from "@/app/actions/admin";
+
+// Toggle booking open/closed for a class.
+export function RegistrationToggle({
+  sessionId,
+  closed,
+}: {
+  sessionId: string;
+  closed: boolean;
+}) {
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  function toggle() {
+    start(async () => {
+      await setRegistrationClosed(sessionId, !closed);
+      router.refresh();
+    });
+  }
+
+  return (
+    <button
+      onClick={toggle}
+      disabled={pending}
+      className={`btn-secondary text-xs ${
+        closed ? "text-green-700" : "text-red-600"
+      }`}
+    >
+      {pending ? "…" : closed ? "Reopen booking" : "Close booking"}
+    </button>
+  );
+}
 
 export function CancelSessionButton({ sessionId }: { sessionId: string }) {
   const [pending, start] = useTransition();

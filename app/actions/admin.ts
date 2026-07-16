@@ -123,6 +123,20 @@ export async function markAttendance(
   return { ok: true };
 }
 
+// Manually open/close booking for a single class (independent of the automatic
+// 2-hour cutoff). Staff can still add members even when it's closed.
+export async function setRegistrationClosed(sessionId: string, closed: boolean) {
+  await requireStaff();
+  await prisma.classSession.update({
+    where: { id: sessionId },
+    data: { registrationClosed: closed },
+  });
+  revalidatePath("/admin/schedule");
+  revalidatePath(`/admin/schedule/${sessionId}`);
+  revalidatePath("/schedule");
+  return { ok: true };
+}
+
 // ---- Class types & instructors --------------------------------------------
 
 export async function createClassType(_prev: unknown, formData: FormData) {

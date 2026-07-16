@@ -100,6 +100,8 @@ model ClassSession {
   // Capacity for this specific session (defaults from class type at creation)
   capacity     Int
   cancelled    Boolean  @default(false)
+  // Staff can close booking early (independent of the automatic 2-hour cutoff).
+  registrationClosed Boolean @default(false)
   createdAt    DateTime @default(now())
 
   bookings Booking[]
