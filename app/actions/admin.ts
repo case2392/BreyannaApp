@@ -702,9 +702,16 @@ export async function linkStripeSubscription(
       orderBy: { createdAt: "desc" },
     });
     if (candidate) {
+      // Convert the temporary/comp membership into the real Stripe-linked one.
       await prisma.membership.update({
         where: { id: candidate.id },
-        data: { stripeSubscriptionId: subId, autoRenew, expiresAt, status: "ACTIVE" },
+        data: {
+          stripeSubscriptionId: subId,
+          autoRenew,
+          expiresAt,
+          status: "ACTIVE",
+          source: "PURCHASE",
+        },
       });
     } else {
       await prisma.membership.create({
