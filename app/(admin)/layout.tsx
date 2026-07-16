@@ -13,6 +13,7 @@ import {
   MegaphoneIcon,
   HeartIcon,
   TicketIcon,
+  ChartIcon,
 } from "@/components/Icons";
 
 export default async function AdminLayout({
@@ -29,6 +30,7 @@ export default async function AdminLayout({
       <NavLink href="/admin" label="Dashboard" icon={<GridIcon className="h-4 w-4" />} />
       <NavLink href="/admin/schedule" label="Schedule" icon={<CalendarIcon className="h-4 w-4" />} />
       <NavLink href="/admin/members" label="Members" icon={<UsersIcon className="h-4 w-4" />} />
+      <NavLink href="/admin/revenue" label="Revenue" icon={<ChartIcon className="h-4 w-4" />} />
       <NavLink href="/admin/classes" label="Classes" icon={<DumbbellIcon className="h-4 w-4" />} />
       <NavLink href="/admin/plans" label="Plans" icon={<TagIcon className="h-4 w-4" />} />
       <NavLink href="/admin/events" label="Events" icon={<TicketIcon className="h-4 w-4" />} />

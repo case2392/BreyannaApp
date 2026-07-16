@@ -8,18 +8,28 @@ function Stat({
   label,
   value,
   sub,
+  href,
 }: {
   label: string;
   value: string;
   sub?: string;
+  href?: string;
 }) {
-  return (
-    <div className="card p-5">
+  const inner = (
+    <>
       <div className="text-sm text-ink-500">{label}</div>
       <div className="mt-1 text-3xl font-bold">{value}</div>
       {sub && <div className="mt-1 text-xs text-ink-400">{sub}</div>}
-    </div>
+    </>
   );
+  if (href) {
+    return (
+      <Link href={href} className="card card-interactive block p-5">
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="card p-5">{inner}</div>;
 }
 
 export default async function AdminDashboard() {
@@ -106,7 +116,8 @@ export default async function AdminDashboard() {
         <Stat
           label="Revenue this month"
           value={money(revenue)}
-          sub="From membership sales"
+          sub="View all transactions →"
+          href="/admin/revenue"
         />
       </div>
 
