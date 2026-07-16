@@ -6,6 +6,9 @@ import { grantMembership } from "@/lib/membership";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Give the handler headroom so a cold start + DB never times out (which Stripe
+// reports as an "other" webhook error).
+export const maxDuration = 30;
 
 // The next billing date for a subscription (falls back to one month out).
 async function subscriptionPeriodEnd(subId: string): Promise<Date> {
@@ -146,12 +149,20 @@ export async function POST(request: Request) {
           break;
         }
 
-        if (invoice.subscription) {
-          const subId =
-            typeof invoice.subscription === "string"
-              ? invoice.subscription
-              : invoice.subscription.id;
+        // The subscription id lives in different places across Stripe API
+        // versions — check them all so renewals never silently skip.
+        const inv = invoice as any;
+        const subId: string | null =
+          (typeof invoice.subscription === "string"
+            ? invoice.subscription
+            : invoice.subscription?.id) ??
+          inv.parent?.subscription_details?.subscription ??
+          inv.subscription_details?.subscription ??
+          inv.lines?.data?.[0]?.subscription ??
+          inv.lines?.data?.[0]?.parent?.subscription_item_details?.subscription ??
+          null;
 
+        if (subId) {
           // 1) Direct match: a membership already linked to this subscription.
           let membership = await prisma.membership.findUnique({
             where: { stripeSubscriptionId: subId },
@@ -206,13 +217,15 @@ export async function POST(request: Request) {
           }
 
           if (membership) {
+            // The next billing date is on the invoice itself (the billed
+            // period's end) — no need for a slow extra API call.
+            const periodEnd = inv.lines?.data?.[0]?.period?.end;
+            const expiresAt = periodEnd
+              ? new Date(periodEnd * 1000)
+              : await subscriptionPeriodEnd(subId);
             await prisma.membership.update({
               where: { id: membership.id },
-              data: {
-                status: "ACTIVE",
-                expiresAt: await subscriptionPeriodEnd(subId),
-                autoRenew: true,
-              },
+              data: { status: "ACTIVE", expiresAt, autoRenew: true },
             });
           }
         }
