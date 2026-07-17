@@ -9,6 +9,7 @@ type Props = {
   myStatus?: "BOOKED" | "WAITLISTED" | null;
   isFull: boolean;
   started: boolean;
+  closed?: boolean;
 };
 
 export function BookButton({
@@ -17,6 +18,7 @@ export function BookButton({
   myStatus,
   isFull,
   started,
+  closed,
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,7 @@ export function BookButton({
 
   return (
     <div className="flex flex-col items-end gap-1">
+      {/* Booked/waitlisted members can still leave, even once booking closes. */}
       {myStatus === "BOOKED" && (
         <button onClick={doCancel} disabled={pending} className="btn-secondary text-xs">
           {pending ? "…" : "Cancel"}
@@ -54,12 +57,15 @@ export function BookButton({
           {pending ? "…" : "Leave waitlist"}
         </button>
       )}
-      {!myStatus && !isFull && (
+      {!myStatus && closed && (
+        <span className="text-xs text-ink-500">Registration closed</span>
+      )}
+      {!myStatus && !closed && !isFull && (
         <button onClick={doBook} disabled={pending} className="btn-primary text-xs">
           {pending ? "…" : "Book"}
         </button>
       )}
-      {!myStatus && isFull && (
+      {!myStatus && !closed && isFull && (
         <button onClick={doBook} disabled={pending} className="btn-secondary text-xs">
           {pending ? "…" : "Join waitlist"}
         </button>

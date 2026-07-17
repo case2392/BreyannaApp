@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { money, dayLabel, timeLabel, shortDate } from "@/lib/format";
 import { RemoveRegistrationButton } from "@/components/admin/RemoveRegistrationButton";
 import { AddEventRegistrationForm } from "@/components/admin/AddEventRegistrationForm";
+import { EventRegistrationToggle } from "@/components/admin/EventRegistrationToggle";
 import { sourceBadgeClass } from "@/lib/eventSources";
 
 export const dynamic = "force-dynamic";
@@ -70,10 +71,45 @@ export default async function EventRosterPage({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <EventRegistrationToggle
+          eventId={event.id}
+          closed={event.registrationClosed}
+        />
+        {event.registrationClosed ? (
+          <span className="text-sm text-red-600">
+            Registration is closed — members can&apos;t sign up (you still can
+            below).
+          </span>
+        ) : event.capacity != null &&
+          event.registrations.length >= event.capacity ? (
+          <span className="text-sm text-amber-700">
+            Sold out ({event.registrations.length}/{event.capacity}) — members
+            can&apos;t sign up.
+          </span>
+        ) : (
+          <span className="text-sm text-ink-500">
+            Registration is open
+            {event.capacity != null
+              ? ` · ${event.registrations.length}/${event.capacity} spots`
+              : ""}
+            .
+          </span>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div className="card p-4">
           <div className="text-xs text-ink-500">Registered</div>
-          <div className="text-2xl font-bold">{event.registrations.length}</div>
+          <div className="text-2xl font-bold">
+            {event.registrations.length}
+            {event.capacity != null && (
+              <span className="text-base font-normal text-ink-400">
+                {" "}
+                / {event.capacity}
+              </span>
+            )}
+          </div>
         </div>
         <div className="card p-4">
           <div className="text-xs text-ink-500">Paid</div>

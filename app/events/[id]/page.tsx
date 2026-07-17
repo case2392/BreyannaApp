@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel } from "@/lib/format";
 import { finalizeEventCheckout } from "@/app/actions/events";
+import { eventRegStatus } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { EventRegisterButton } from "@/components/EventRegisterButton";
 
@@ -25,7 +26,10 @@ export default async function EventDetailPage({
   const authed = Boolean(user);
   const dashboardHref = user && isStaff(user.role) ? "/admin" : "/schedule";
 
-  const event = await prisma.event.findUnique({ where: { id: params.id } });
+  const event = await prisma.event.findUnique({
+    where: { id: params.id },
+    include: { _count: { select: { registrations: true } } },
+  });
   if (!event || !event.active) notFound();
 
   const registered = user
@@ -36,7 +40,7 @@ export default async function EventDetailPage({
       )
     : false;
 
-  const past = event.startsAt ? event.startsAt.getTime() < Date.now() : false;
+  const status = eventRegStatus(event, event._count.registrations);
   const priceLabel = event.priceCents === 0 ? "Free" : money(event.priceCents);
 
   return (
@@ -99,13 +103,17 @@ export default async function EventDetailPage({
             <div className="card p-6 text-center">
               <div className="font-serif text-3xl font-semibold">{priceLabel}</div>
               <div className="mt-4">
-                {past ? (
-                  <div className="rounded-full bg-ink-100 px-4 py-2 text-sm font-medium text-ink-500">
-                    This event has passed
-                  </div>
-                ) : registered ? (
+                {registered ? (
                   <div className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
                     ✓ You&apos;re registered
+                  </div>
+                ) : status === "sold_out" ? (
+                  <div className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700">
+                    Sold out
+                  </div>
+                ) : status === "closed" ? (
+                  <div className="rounded-full bg-ink-100 px-4 py-2 text-sm font-medium text-ink-500">
+                    Registration closed
                   </div>
                 ) : (
                   <EventRegisterButton
@@ -115,7 +123,7 @@ export default async function EventDetailPage({
                   />
                 )}
               </div>
-              {!authed && !past && (
+              {!authed && status === "open" && !registered && (
                 <p className="mt-3 text-xs text-ink-500">
                   You&apos;ll sign in to complete your registration.
                 </p>

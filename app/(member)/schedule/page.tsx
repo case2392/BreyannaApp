@@ -96,13 +96,14 @@ function dayItems(
   return items;
 }
 
-// `to` is exclusive (sessions strictly before it). Classes within the booking
-// lead window (2 hours before start) are hidden — they can no longer be booked.
+// `to` is exclusive (sessions strictly before it). Classes stay visible until
+// they start; within the 2-hour lead window (or when staff closed them) they
+// show as "Registration closed" rather than disappearing.
 async function loadSessions(from: Date, to: Date) {
-  const cutoff = new Date(Date.now() + BOOKING_LEAD_MS);
-  const lower = from > cutoff ? from : cutoff;
+  const now = new Date();
+  const lower = from > now ? from : now;
   return prisma.classSession.findMany({
-    where: { cancelled: false, registrationClosed: false, startsAt: { gte: lower, lt: to } },
+    where: { cancelled: false, startsAt: { gte: lower, lt: to } },
     orderBy: { startsAt: "asc" },
     include: {
       classType: true,
@@ -133,6 +134,10 @@ function ClassCard({
   const isFull = capacityLimited(s.classType.name) && confirmed >= s.capacity;
   const mine = s.bookings.find((b) => b.userId === userId);
   const started = s.startsAt < now;
+  // Booking is closed when staff closed it, or within the 2-hour lead window.
+  const closed =
+    s.registrationClosed ||
+    s.startsAt.getTime() - now.getTime() < BOOKING_LEAD_MS;
   const myStatus =
     mine?.status === "BOOKED"
       ? "BOOKED"
@@ -170,6 +175,8 @@ function ClassCard({
             ? "✓ Booked"
             : myStatus === "WAITLISTED"
             ? "Waitlisted"
+            : closed
+            ? "Registration closed"
             : isFull
             ? "Sold out"
             : s.classType.free
@@ -182,6 +189,7 @@ function ClassCard({
           myStatus={myStatus}
           isFull={isFull}
           started={started}
+          closed={closed}
         />
       </div>
     </div>

@@ -296,6 +296,10 @@ model Event {
   // Ticket price in cents (0 = free).
   priceCents  Int       @default(0)
   startsAt    DateTime?
+  // Max registrations before it's "sold out". Null = unlimited.
+  capacity    Int?
+  // Staff can manually close registration at any time.
+  registrationClosed Boolean @default(false)
   // Cover image URL (uploaded to blob storage or pasted).
   imageUrl    String?
   active      Boolean   @default(true)

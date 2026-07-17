@@ -182,6 +182,7 @@ function EventFields({
     description?: string | null;
     location?: string | null;
     price?: string;
+    capacity?: string;
     date?: string;
     time?: string;
   };
@@ -230,6 +231,20 @@ function EventFields({
             defaultValue={defaults?.price ?? "0"}
           />
         </div>
+      </div>
+      <div>
+        <label className="label">Capacity</label>
+        <input
+          name="capacity"
+          type="number"
+          min="1"
+          className="input"
+          placeholder="Leave blank for unlimited"
+          defaultValue={defaults?.capacity ?? ""}
+        />
+        <p className="mt-1 text-xs text-ink-400">
+          Registration closes automatically when this many people have signed up.
+        </p>
       </div>
       <div>
         <label className="label">Description</label>
@@ -287,8 +302,11 @@ type EventRowData = {
   date: string;
   time: string;
   price: string;
+  capacity: string;
+  capacityNum: number | null;
   imageUrl: string | null;
   registrationCount: number;
+  registrationClosed: boolean;
 };
 
 export function EventRow({ event }: { event: EventRowData }) {
@@ -329,6 +347,7 @@ export function EventRow({ event }: { event: EventRowData }) {
             description: event.description,
             location: event.location,
             price: event.price,
+            capacity: event.capacity,
             date: event.date,
             time: event.time,
           }}
@@ -363,11 +382,19 @@ export function EventRow({ event }: { event: EventRowData }) {
           />
         )}
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold">{event.name}</span>
             {!event.active && (
               <span className="badge bg-ink-100 text-ink-500">Hidden</span>
             )}
+            {event.registrationClosed ? (
+              <span className="badge bg-red-100 text-red-700">
+                Registration closed
+              </span>
+            ) : event.capacityNum != null &&
+              event.registrationCount >= event.capacityNum ? (
+              <span className="badge bg-amber-100 text-amber-700">Sold out</span>
+            ) : null}
           </div>
           <div className="mt-0.5 text-sm text-ink-500">
             {event.whenLabel}
@@ -383,7 +410,9 @@ export function EventRow({ event }: { event: EventRowData }) {
               href={`/admin/events/${event.id}`}
               className="text-xs font-medium text-brand-600 hover:underline"
             >
-              {event.registrationCount} registered · View roster →
+              {event.registrationCount}
+              {event.capacityNum != null ? ` / ${event.capacityNum}` : ""}{" "}
+              registered · View roster →
             </Link>
           </div>
         </div>

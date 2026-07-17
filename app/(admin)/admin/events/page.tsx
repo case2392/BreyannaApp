@@ -44,8 +44,11 @@ export default async function EventsPage() {
                     date: e.startsAt ? e.startsAt.toISOString().slice(0, 10) : "",
                     time: e.startsAt ? e.startsAt.toISOString().slice(11, 16) : "",
                     price: String(e.priceCents / 100),
+                    capacity: e.capacity != null ? String(e.capacity) : "",
+                    capacityNum: e.capacity,
                     imageUrl: e.imageUrl,
                     registrationCount: e._count.registrations,
+                    registrationClosed: e.registrationClosed,
                   }}
                 />
               ))}

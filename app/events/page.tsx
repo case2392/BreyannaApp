@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel } from "@/lib/format";
+import { eventRegStatus } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
 
 export const dynamic = "force-dynamic";
@@ -11,13 +12,16 @@ export default async function EventsPage() {
   const authed = Boolean(user);
   const dashboardHref = user && isStaff(user.role) ? "/admin" : "/schedule";
   const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
 
   const events = await prisma.event.findMany({
     where: {
       active: true,
-      OR: [{ startsAt: null }, { startsAt: { gte: now } }],
+      OR: [{ startsAt: null }, { startsAt: { gte: startOfToday } }],
     },
     orderBy: [{ startsAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
+    include: { _count: { select: { registrations: true } } },
   });
 
   return (
@@ -87,9 +91,26 @@ export default async function EventsPage() {
                     <span className="font-serif text-lg font-semibold">
                       {e.priceCents === 0 ? "Free" : money(e.priceCents)}
                     </span>
-                    <span className="text-sm font-medium text-brand-600 group-hover:underline">
-                      View &amp; register →
-                    </span>
+                    {(() => {
+                      const status = eventRegStatus(e, e._count.registrations);
+                      if (status === "sold_out")
+                        return (
+                          <span className="badge bg-amber-100 text-amber-700">
+                            Sold out
+                          </span>
+                        );
+                      if (status === "closed")
+                        return (
+                          <span className="badge bg-ink-100 text-ink-500">
+                            Registration closed
+                          </span>
+                        );
+                      return (
+                        <span className="text-sm font-medium text-brand-600 group-hover:underline">
+                          View &amp; register →
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
               </Link>

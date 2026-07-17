@@ -55,8 +55,13 @@ export async function registerForEvent(eventId: string) {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event || !event.active)
     return { ok: false, error: "This event isn't available." };
-  if (event.startsAt && event.startsAt.getTime() < Date.now())
-    return { ok: false, error: "Registration for this event has closed." };
+  if (event.registrationClosed)
+    return { ok: false, error: "Registration for this event is closed." };
+  if (event.capacity != null) {
+    const count = await prisma.eventRegistration.count({ where: { eventId } });
+    if (count >= event.capacity)
+      return { ok: false, error: "This event is sold out." };
+  }
 
   const existing = await prisma.eventRegistration.findFirst({
     where: { eventId, userId: user.id },
@@ -203,6 +208,25 @@ export async function staffAddEventRegistration(
   });
   revalidatePath(`/admin/events/${eventId}`);
   revalidatePath("/admin/events");
+  return { ok: true };
+}
+
+// CRM: manually open/close registration for an event.
+export async function setEventRegistrationClosed(
+  eventId: string,
+  closed: boolean
+) {
+  const user = await getCurrentUser();
+  if (!user || !isStaff(user.role))
+    return { ok: false, error: "Not authorized." };
+  await prisma.event.update({
+    where: { id: eventId },
+    data: { registrationClosed: closed },
+  });
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath("/admin/events");
+  revalidatePath("/events");
+  revalidatePath(`/events/${eventId}`);
   return { ok: true };
 }
 
