@@ -771,3 +771,40 @@ export async function linkStripeSubscription(
   revalidatePath(`/admin/members/${userId}`);
   return { ok: true as const };
 }
+
+// ---- Profit & Loss: manual ledger entries -------------------------------
+
+export async function addLedgerEntry(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const kind = formData.get("kind") === "REVENUE" ? "REVENUE" : "EXPENSE";
+  const description = String(formData.get("description") || "").trim();
+  const category = String(formData.get("category") || "").trim() || null;
+  const amount = Number(formData.get("amount")) || 0;
+  const dateStr = String(formData.get("date") || "");
+
+  if (!description) return { error: "Add a short description." };
+  if (amount <= 0) return { error: "Enter an amount greater than zero." };
+
+  // Anchor date-only input at noon so it lands in the intended day/month.
+  const occurredAt = dateStr ? new Date(`${dateStr}T12:00:00`) : new Date();
+  if (isNaN(occurredAt.getTime())) return { error: "Invalid date." };
+
+  await prisma.ledgerEntry.create({
+    data: {
+      kind,
+      description,
+      category,
+      amountCents: Math.round(amount * 100),
+      occurredAt,
+    },
+  });
+  revalidatePath("/admin/pnl");
+  return { ok: true };
+}
+
+export async function deleteLedgerEntry(id: string) {
+  await requireStaff();
+  await prisma.ledgerEntry.delete({ where: { id } });
+  revalidatePath("/admin/pnl");
+  return { ok: true };
+}

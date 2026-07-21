@@ -286,6 +286,22 @@ model Automation {
   @@index([trigger])
 }
 
+// Manual profit & loss entries — expenses and non-Stripe revenue the studio
+// adds by hand, combined with Stripe net revenue on the P&L page.
+model LedgerEntry {
+  id          String   @id @default(cuid())
+  // "EXPENSE" | "REVENUE"
+  kind        String
+  description String
+  category    String?
+  amountCents Int
+  // The date this applies to (drives which month it lands in).
+  occurredAt  DateTime
+  createdAt   DateTime @default(now())
+
+  @@index([occurredAt])
+}
+
 // Studio events — craft nights, workshops, markets, etc. Built from scratch
 // with their own name, details, location, price, and date.
 model Event {

@@ -116,8 +116,8 @@ export default async function AdminDashboard() {
         <Stat
           label="Revenue this month"
           value={money(revenue)}
-          sub="View all transactions →"
-          href="/admin/revenue"
+          sub="Profit & loss →"
+          href="/admin/pnl"
         />
       </div>
 
