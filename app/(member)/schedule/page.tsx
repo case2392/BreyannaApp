@@ -14,7 +14,8 @@ import {
   money,
 } from "@/lib/format";
 import { BookButton } from "@/components/BookButton";
-import { BOOKING_LEAD_MS } from "@/lib/booking";
+import { GuestBookButton } from "@/components/GuestBookButton";
+import { BOOKING_LEAD_MS, availableGuestPasses } from "@/lib/booking";
 
 export const dynamic = "force-dynamic";
 
@@ -78,13 +79,22 @@ function dayItems(
   events: EventLite[],
   userId: string,
   now: Date,
-  compact: boolean
+  compact: boolean,
+  guestPasses: number
 ) {
   const items: { key: string; at: number; node: JSX.Element }[] = [
     ...sessions.map((s) => ({
       key: `c${s.id}`,
       at: s.startsAt.getTime(),
-      node: <ClassCard s={s} userId={userId} now={now} compact={compact} />,
+      node: (
+        <ClassCard
+          s={s}
+          userId={userId}
+          now={now}
+          compact={compact}
+          guestPasses={guestPasses}
+        />
+      ),
     })),
     ...events.map((e) => ({
       key: `e${e.id}`,
@@ -113,6 +123,10 @@ async function loadSessions(from: Date, to: Date) {
         where: { status: { in: ["BOOKED", "WAITLISTED", "ATTENDED", "NO_SHOW"] } },
         select: { id: true, userId: true, status: true },
       },
+      guestBookings: {
+        where: { status: { in: ["BOOKED", "ATTENDED", "NO_SHOW"] } },
+        select: { id: true },
+      },
     },
   });
 }
@@ -122,15 +136,19 @@ function ClassCard({
   s,
   userId,
   now,
+  guestPasses = 0,
   compact = false,
 }: {
   s: SessionWithDetails;
   userId: string;
   now: Date;
+  guestPasses?: number;
   compact?: boolean;
 }) {
   // Capacity/sold-out only applies to cycle classes; members never see counts.
-  const confirmed = s.bookings.filter((b) => b.status !== "WAITLISTED").length;
+  const confirmed =
+    s.bookings.filter((b) => b.status !== "WAITLISTED").length +
+    s.guestBookings.length;
   const isFull = capacityLimited(s.classType.name) && confirmed >= s.capacity;
   const mine = s.bookings.find((b) => b.userId === userId);
   const started = s.startsAt < now;
@@ -192,6 +210,9 @@ function ClassCard({
           closed={closed}
         />
       </div>
+      {guestPasses > 0 && !closed && !started && !isFull && (
+        <GuestBookButton sessionId={s.id} />
+      )}
     </div>
   );
 }
@@ -240,9 +261,11 @@ export default async function SchedulePage({
   if (isNaN(weekOffset)) weekOffset = 0;
   weekOffset = Math.max(0, Math.min(MAX_WEEKS_AHEAD, weekOffset));
 
-  const activeMemberships = await prisma.membership.count({
+  const activeMemberships = await prisma.membership.findMany({
     where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
+    include: { plan: { select: { guestPassesPerMonth: true } } },
   });
+  const guestPasses = availableGuestPasses(activeMemberships);
 
   return (
     <div>
@@ -254,7 +277,7 @@ export default async function SchedulePage({
         <Toggle view={view} weekOffset={weekOffset} />
       </div>
 
-      {activeMemberships === 0 && (
+      {activeMemberships.length === 0 && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           You don&apos;t have an active membership yet.{" "}
           <Link href="/memberships" className="font-semibold underline">
@@ -264,10 +287,21 @@ export default async function SchedulePage({
         </div>
       )}
 
+      {guestPasses > 0 && (
+        <div className="mb-6 rounded-xl border border-clay-300 bg-clay-100/50 px-4 py-3 text-sm text-ink-700">
+          🎟️ You have{" "}
+          <b>
+            {guestPasses} guest pass{guestPasses === 1 ? "" : "es"}
+          </b>{" "}
+          this month — tap &ldquo;Bring a guest&rdquo; on any class to sign
+          someone in. They reset when your membership renews.
+        </div>
+      )}
+
       {view === "week" ? (
-        <WeekView user={user} now={now} weekOffset={weekOffset} />
+        <WeekView user={user} now={now} weekOffset={weekOffset} guestPasses={guestPasses} />
       ) : (
-        <ListView user={user} now={now} />
+        <ListView user={user} now={now} guestPasses={guestPasses} />
       )}
     </div>
   );
@@ -277,10 +311,12 @@ async function WeekView({
   user,
   now,
   weekOffset,
+  guestPasses,
 }: {
   user: { id: string };
   now: Date;
   weekOffset: number;
+  guestPasses: number;
 }) {
   const weekStart = startOfWeek(now, weekOffset);
   const weekEnd = addDays(weekStart, 7); // exclusive: next Monday 00:00
@@ -326,7 +362,8 @@ async function WeekView({
             eventsByDay.get(key) ?? [],
             user.id,
             now,
-            true
+            true,
+            guestPasses
           );
           const isToday = sameDay(day, now);
           return (
@@ -359,9 +396,11 @@ async function WeekView({
 async function ListView({
   user,
   now,
+  guestPasses,
 }: {
   user: { id: string };
   now: Date;
+  guestPasses: number;
 }) {
   const horizon = addDays(now, 14);
   const [sessions, events] = await Promise.all([
@@ -396,7 +435,8 @@ async function ListView({
               eventsByDay.get(day) ?? [],
               user.id,
               now,
-              false
+              false,
+              guestPasses
             ).map((it) => (
               <div key={it.key}>{it.node}</div>
             ))}

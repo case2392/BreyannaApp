@@ -43,6 +43,7 @@ export default async function PlansPage() {
                 active: p.active,
                 activeSales: p._count.memberships,
                 restrictedClass: p.restrictedClass,
+                guestPassesPerMonth: p.guestPassesPerMonth,
               }}
             />
           ))}

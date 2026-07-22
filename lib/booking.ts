@@ -12,11 +12,36 @@ export type BookResult =
   | { ok: true; status: "BOOKED" | "WAITLISTED" }
   | { ok: false; error: string };
 
-// Count how many people currently hold a confirmed spot in a session.
+// How many guest passes a set of memberships makes available right now.
+export function availableGuestPasses(
+  memberships: {
+    plan: { guestPassesPerMonth: number };
+    guestPassesBonus: number;
+    guestPassesUsed: number;
+  }[]
+): number {
+  return memberships.reduce(
+    (sum, m) =>
+      sum +
+      Math.max(
+        0,
+        m.plan.guestPassesPerMonth + m.guestPassesBonus - m.guestPassesUsed
+      ),
+    0
+  );
+}
+
+// Count how many people currently hold a confirmed spot (members + guests).
 async function countBooked(sessionId: string): Promise<number> {
-  return prisma.booking.count({
-    where: { sessionId, status: { in: ["BOOKED", "ATTENDED", "NO_SHOW"] } },
-  });
+  const [members, guests] = await Promise.all([
+    prisma.booking.count({
+      where: { sessionId, status: { in: ["BOOKED", "ATTENDED", "NO_SHOW"] } },
+    }),
+    prisma.guestBooking.count({
+      where: { sessionId, status: { in: ["BOOKED", "ATTENDED", "NO_SHOW"] } },
+    }),
+  ]);
+  return members + guests;
 }
 
 // Find the member's usable membership for a given credit cost.
@@ -246,4 +271,106 @@ export async function cancelBooking(
   });
 
   return { ok: true, promotedUserId, sessionId: booking.sessionId };
+}
+
+// ---- Guest passes ---------------------------------------------------------
+
+export type GuestInput = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email?: string | null;
+};
+
+// Book a guest into a class using one of the host member's guest passes.
+export async function bookGuest(
+  hostUserId: string,
+  sessionId: string,
+  guest: GuestInput,
+  opts?: { staff?: boolean }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const firstName = guest.firstName.trim();
+  const lastName = guest.lastName.trim();
+  const phone = guest.phone.trim();
+  const email = (guest.email ?? "").trim() || null;
+  if (!firstName || !lastName)
+    return { ok: false, error: "Enter the guest's first and last name." };
+  if (!phone) return { ok: false, error: "Enter the guest's phone number." };
+
+  const session = await prisma.classSession.findUnique({
+    where: { id: sessionId },
+    include: { classType: true },
+  });
+  if (!session) return { ok: false, error: "Class not found." };
+  if (session.cancelled) return { ok: false, error: "This class was cancelled." };
+  if (
+    !opts?.staff &&
+    (session.registrationClosed ||
+      session.startsAt.getTime() - Date.now() < BOOKING_LEAD_MS)
+  )
+    return { ok: false, error: "Registration for this class is closed." };
+
+  const now = new Date();
+  const memberships = await prisma.membership.findMany({
+    where: { userId: hostUserId, status: "ACTIVE", expiresAt: { gt: now } },
+    include: { plan: true },
+  });
+  const usable = memberships.find(
+    (m) =>
+      m.plan.guestPassesPerMonth + m.guestPassesBonus - m.guestPassesUsed > 0
+  );
+  if (!usable)
+    return { ok: false, error: "You don't have any guest passes available." };
+
+  if (capacityLimited(session.classType.name)) {
+    const taken = await countBooked(sessionId);
+    if (taken >= session.capacity)
+      return { ok: false, error: "This class is full." };
+  }
+
+  await prisma.$transaction([
+    prisma.guestBooking.create({
+      data: {
+        sessionId,
+        hostUserId,
+        membershipId: usable.id,
+        firstName,
+        lastName,
+        phone,
+        email,
+        status: "BOOKED",
+      },
+    }),
+    prisma.membership.update({
+      where: { id: usable.id },
+      data: { guestPassesUsed: { increment: 1 } },
+    }),
+  ]);
+
+  return { ok: true };
+}
+
+// Cancel a guest booking and refund the pass.
+export async function cancelGuestBooking(
+  guestBookingId: string
+): Promise<{ ok: boolean; sessionId?: string }> {
+  const gb = await prisma.guestBooking.findUnique({
+    where: { id: guestBookingId },
+  });
+  if (!gb || gb.status === "CANCELLED") return { ok: false };
+  await prisma.$transaction([
+    prisma.guestBooking.update({
+      where: { id: gb.id },
+      data: { status: "CANCELLED" },
+    }),
+    ...(gb.membershipId
+      ? [
+          prisma.membership.update({
+            where: { id: gb.membershipId },
+            data: { guestPassesUsed: { decrement: 1 } },
+          }),
+        ]
+      : []),
+  ]);
+  return { ok: true, sessionId: gb.sessionId };
 }

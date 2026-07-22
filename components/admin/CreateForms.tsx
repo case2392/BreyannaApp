@@ -214,6 +214,20 @@ export function CreatePlanForm() {
             plan to matching class types only.
           </p>
         </div>
+        <div>
+          <label className="label">Guest passes per month</label>
+          <input
+            name="guestPasses"
+            type="number"
+            min="0"
+            className="input"
+            defaultValue={0}
+          />
+          <p className="mt-1 text-xs text-ink-400">
+            Free guest spots this plan gives each month (reset on renewal). 0 =
+            none.
+          </p>
+        </div>
       </div>
       <div className="mt-4">
         <Submit label="Add plan" />

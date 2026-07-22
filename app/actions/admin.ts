@@ -6,7 +6,7 @@ import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import { capacityLimited, dayLabel, timeLabel } from "@/lib/format";
-import { bookClass } from "@/lib/booking";
+import { bookClass, cancelGuestBooking } from "@/lib/booking";
 import { fireAutomation } from "@/lib/automations";
 
 async function requireStaff() {
@@ -259,6 +259,7 @@ export async function createPlan(_prev: unknown, formData: FormData) {
       credits: kind === "UNLIMITED" ? 0 : Number(formData.get("credits")) || 0,
       priceCents: Math.round(price * 100),
       durationDays: Number(formData.get("durationDays")) || 30,
+      guestPassesPerMonth: Number(formData.get("guestPasses")) || 0,
       restrictedClass: String(formData.get("restrictedClass") || "").trim() || null,
     },
   });
@@ -298,6 +299,7 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
       credits: kind === "UNLIMITED" ? 0 : Number(formData.get("credits")) || 0,
       priceCents: Math.round(price * 100),
       durationDays: Number(formData.get("durationDays")) || 30,
+      guestPassesPerMonth: Number(formData.get("guestPasses")) || 0,
       restrictedClass: String(formData.get("restrictedClass") || "").trim() || null,
     },
   });
@@ -807,4 +809,36 @@ export async function deleteLedgerEntry(id: string) {
   await prisma.ledgerEntry.delete({ where: { id } });
   revalidatePath("/admin/pnl");
   return { ok: true };
+}
+
+// ---- Guest passes -------------------------------------------------------
+
+// Manually grant extra guest passes for the current period (reset on renewal).
+export async function addGuestPasses(userId: string, count: number) {
+  await requireStaff();
+  const n = Math.floor(count);
+  if (!n || n <= 0) return { ok: false as const, error: "Enter a number." };
+  const m = await prisma.membership.findFirst({
+    where: { userId, status: "ACTIVE", expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!m)
+    return {
+      ok: false as const,
+      error: "This member has no active membership to add guest passes to.",
+    };
+  await prisma.membership.update({
+    where: { id: m.id },
+    data: { guestPassesBonus: { increment: n } },
+  });
+  revalidatePath(`/admin/members/${userId}`);
+  return { ok: true as const };
+}
+
+// Staff: remove a guest from a class (refunds the host's pass).
+export async function staffCancelGuest(guestBookingId: string) {
+  await requireStaff();
+  const res = await cancelGuestBooking(guestBookingId);
+  if (res.sessionId) revalidatePath(`/admin/schedule/${res.sessionId}`);
+  return { ok: res.ok };
 }

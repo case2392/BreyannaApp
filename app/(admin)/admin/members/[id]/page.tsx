@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { shortDate, dayLabel, timeLabel, money, timeAgo } from "@/lib/format";
 import { MemberNotes } from "@/components/admin/MemberNotes";
 import { LinkSubscription } from "@/components/admin/LinkSubscription";
+import { GuestPassControl } from "@/components/admin/GuestPassControl";
+import { availableGuestPasses } from "@/lib/booking";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import {
   GrantMembership,
@@ -54,6 +56,10 @@ export default async function MemberDetailPage({
   if (!member || member.role !== "MEMBER") notFound();
 
   const now = new Date();
+  const activeMems = member.memberships.filter(
+    (mm) => mm.status === "ACTIVE" && mm.expiresAt > now
+  );
+  const guestPassesAvailable = availableGuestPasses(activeMems);
   // Lifetime spend: the real total from Stripe (initial + every renewal +
   // events + donations by this customer). Falls back to what's stored locally
   // if Stripe isn't available or they have no Stripe customer yet.
@@ -210,6 +216,14 @@ export default async function MemberDetailPage({
                 </div>
               );
             })}
+          </div>
+
+          <h2 className="mb-3 mt-6 font-semibold">Guest passes</h2>
+          <div className="card p-4">
+            <GuestPassControl
+              userId={member.id}
+              available={guestPassesAvailable}
+            />
           </div>
 
           <h2 className="mb-3 mt-6 font-semibold">Studio notes</h2>

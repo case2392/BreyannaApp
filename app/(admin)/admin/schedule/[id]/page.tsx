@@ -7,6 +7,7 @@ import {
   RegistrationToggle,
 } from "@/components/admin/SessionControls";
 import { AddToClassForm } from "@/components/admin/AddToClassForm";
+import { GuestCancelButton } from "@/components/admin/GuestCancelButton";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,11 @@ export default async function RosterPage({
         bookings: {
           where: { status: { not: "CANCELLED" } },
           include: { user: true },
+          orderBy: { createdAt: "asc" },
+        },
+        guestBookings: {
+          where: { status: { not: "CANCELLED" } },
+          include: { host: { select: { firstName: true, lastName: true } } },
           orderBy: { createdAt: "asc" },
         },
       },
@@ -85,8 +91,8 @@ export default async function RosterPage({
           <h2 className="font-semibold">
             Roster (
             {capacityLimited(session.classType.name)
-              ? `${confirmed.length}/${session.capacity}`
-              : `${confirmed.length} booked`}
+              ? `${confirmed.length + session.guestBookings.length}/${session.capacity}`
+              : `${confirmed.length + session.guestBookings.length} booked`}
             )
           </h2>
         </div>
@@ -111,6 +117,37 @@ export default async function RosterPage({
           </ul>
         )}
       </div>
+
+      {session.guestBookings.length > 0 && (
+        <div className="card mt-4 p-5">
+          <h2 className="mb-3 font-semibold">
+            Guests ({session.guestBookings.length})
+          </h2>
+          <ul className="divide-y divide-ink-100">
+            {session.guestBookings.map((g) => (
+              <li
+                key={g.id}
+                className="flex items-center justify-between gap-3 py-3"
+              >
+                <div className="min-w-0">
+                  <div className="font-medium">
+                    {g.firstName} {g.lastName}{" "}
+                    <span className="badge ml-1 bg-clay-200 text-clay-500">
+                      Guest
+                    </span>
+                  </div>
+                  <div className="text-xs text-ink-500">
+                    {g.phone}
+                    {g.email ? ` · ${g.email}` : ""} · guest of{" "}
+                    {g.host.firstName} {g.host.lastName}
+                  </div>
+                </div>
+                <GuestCancelButton id={g.id} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {waitlist.length > 0 && (
         <div className="card mt-4 p-5">

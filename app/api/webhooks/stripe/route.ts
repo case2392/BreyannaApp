@@ -234,7 +234,14 @@ export async function POST(request: Request) {
               : await subscriptionPeriodEnd(subId);
             await prisma.membership.update({
               where: { id: membership.id },
-              data: { status: "ACTIVE", expiresAt, autoRenew: true },
+              data: {
+                status: "ACTIVE",
+                expiresAt,
+                autoRenew: true,
+                // Guest passes reset each renewal — they don't roll over.
+                guestPassesUsed: 0,
+                guestPassesBonus: 0,
+              },
             });
           }
         }

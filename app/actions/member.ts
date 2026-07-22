@@ -3,7 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { bookClass, cancelBooking } from "@/lib/booking";
+import {
+  bookClass,
+  cancelBooking,
+  bookGuest,
+  cancelGuestBooking,
+} from "@/lib/booking";
 import { fireAutomation } from "@/lib/automations";
 import { notifyStudio } from "@/lib/notify";
 import { dayLabel, timeLabel } from "@/lib/format";
@@ -95,4 +100,46 @@ export async function unbook(bookingId: string) {
   revalidatePath("/schedule");
   revalidatePath("/bookings");
   return result;
+}
+
+// Bring a guest to a class using one of the member's guest passes.
+export async function bringGuest(
+  sessionId: string,
+  guest: { firstName: string; lastName: string; phone: string; email?: string }
+) {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false as const, error: "Please sign in." };
+
+  const result = await bookGuest(user.id, sessionId, guest);
+
+  if (result.ok) {
+    const session = await prisma.classSession.findUnique({
+      where: { id: sessionId },
+      include: { classType: true },
+    });
+    if (session) {
+      await notifyStudio(
+        `Guest added: ${session.classType.name}`,
+        `${user.firstName} ${user.lastName} brought a guest — ${guest.firstName} ${guest.lastName} (${guest.phone}) — to ${session.classType.name} on ${dayLabel(session.startsAt)} at ${timeLabel(session.startsAt)}.`
+      );
+    }
+    revalidatePath("/schedule");
+    revalidatePath("/bookings");
+  }
+  return result;
+}
+
+// Cancel a guest the member previously added (refunds the pass).
+export async function cancelGuest(guestBookingId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false as const, error: "Please sign in." };
+  const gb = await prisma.guestBooking.findUnique({
+    where: { id: guestBookingId },
+  });
+  if (!gb || gb.hostUserId !== user.id)
+    return { ok: false as const, error: "Guest not found." };
+  await cancelGuestBooking(guestBookingId);
+  revalidatePath("/schedule");
+  revalidatePath("/bookings");
+  return { ok: true as const };
 }

@@ -39,6 +39,7 @@ model User {
   bookings    Booking[]
   memberships Membership[]
   eventRegistrations EventRegistration[]
+  guestBookings GuestBooking[]
   // Classes this user teaches (when they are an instructor)
   instructor  Instructor?
 }
@@ -105,6 +106,7 @@ model ClassSession {
   createdAt    DateTime @default(now())
 
   bookings Booking[]
+  guestBookings GuestBooking[]
 
   @@index([startsAt])
 }
@@ -129,6 +131,8 @@ model MembershipPlan {
   priceCents  Int
   // How many days the membership stays valid after purchase
   durationDays Int     @default(30)
+  // Guest passes this plan grants each month (reset on renewal). 0 = none.
+  guestPassesPerMonth Int @default(0)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -158,9 +162,36 @@ model Membership {
   // Auto-renewing subscriptions (Stripe). One-time packs leave these null/false.
   autoRenew            Boolean @default(false)
   stripeSubscriptionId String? @unique
+  // Guest passes used this period + any extra granted manually. Both reset to 0
+  // on renewal. Available = plan.guestPassesPerMonth + bonus - used.
+  guestPassesUsed  Int @default(0)
+  guestPassesBonus Int @default(0)
   createdAt       DateTime @default(now())
 
   bookings Booking[]
+  guestBookings GuestBooking[]
+}
+
+// A guest a member brought to a class using a guest pass.
+model GuestBooking {
+  id           String   @id @default(cuid())
+  sessionId    String
+  session      ClassSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  hostUserId   String
+  host         User     @relation(fields: [hostUserId], references: [id])
+  // The membership whose pass was used (to refund on cancel).
+  membershipId String?
+  membership   Membership? @relation(fields: [membershipId], references: [id])
+  firstName    String
+  lastName     String
+  phone        String
+  email        String?
+  // "BOOKED" | "CANCELLED" | "ATTENDED" | "NO_SHOW"
+  status       String   @default("BOOKED")
+  createdAt    DateTime @default(now())
+
+  @@index([sessionId])
+  @@index([hostUserId])
 }
 
 // ----------------------------------------------------------------------------

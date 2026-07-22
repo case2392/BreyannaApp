@@ -23,6 +23,7 @@ type Plan = {
   active: boolean;
   activeSales: number;
   restrictedClass: string | null;
+  guestPassesPerMonth: number;
 };
 
 function SaveBtn() {
@@ -119,6 +120,16 @@ export function PlanRow({ plan }: { plan: Plan }) {
             placeholder="e.g. Mommy — blank for all classes"
           />
         </div>
+        <div className="mt-3">
+          <label className="label">Guest passes per month</label>
+          <input
+            name="guestPasses"
+            type="number"
+            min="0"
+            defaultValue={plan.guestPassesPerMonth}
+            className="input"
+          />
+        </div>
         <div className="mt-3 flex gap-2">
           <SaveBtn />
           <button type="button" onClick={() => setEditing(false)} className="btn-ghost text-xs">
@@ -142,6 +153,11 @@ export function PlanRow({ plan }: { plan: Plan }) {
             ? "renews monthly"
             : `${plan.credits} credits · never expires`}
           {plan.restrictedClass ? ` · ${plan.restrictedClass} classes only` : ""}
+          {plan.guestPassesPerMonth > 0
+            ? ` · ${plan.guestPassesPerMonth} guest pass${
+                plan.guestPassesPerMonth === 1 ? "" : "es"
+              }/mo`
+            : ""}
           {plan.activeSales > 0 ? ` · ${plan.activeSales} active` : ""}
         </div>
       </div>
