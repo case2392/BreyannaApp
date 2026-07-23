@@ -16,6 +16,7 @@ import {
 import { BookButton } from "@/components/BookButton";
 import { GuestBookButton } from "@/components/GuestBookButton";
 import { availableGuestPasses } from "@/lib/booking";
+import { studioNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -110,7 +111,7 @@ function dayItems(
 // whole day they fall on (we don't drop them once they've started), and show as
 // "Registration closed" only when staff manually close them.
 async function loadSessions(from: Date, to: Date) {
-  const now = new Date();
+  const now = studioNow();
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const lower = from > startOfToday ? from : startOfToday;
@@ -254,7 +255,7 @@ export default async function SchedulePage({
   searchParams: { view?: string; w?: string };
 }) {
   const user = (await getCurrentUser())!;
-  const now = new Date();
+  const now = studioNow();
 
   const view = searchParams.view === "list" ? "list" : "week";
   let weekOffset = parseInt(searchParams.w ?? "0", 10);

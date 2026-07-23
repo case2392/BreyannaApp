@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { money, timeLabel, dayLabel, capacityLimited } from "@/lib/format";
+import { studioNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +34,8 @@ function Stat({
 }
 
 export default async function AdminDashboard() {
-  const now = new Date();
-  const startOfToday = new Date();
+  const now = studioNow();
+  const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
   const endOfToday = new Date(startOfToday);
   endOfToday.setDate(endOfToday.getDate() + 1);

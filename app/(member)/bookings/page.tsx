@@ -2,12 +2,13 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { dayLabel, timeLabel } from "@/lib/format";
 import { BookButton } from "@/components/BookButton";
+import { studioNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
 export default async function BookingsPage() {
   const user = (await getCurrentUser())!;
-  const now = new Date();
+  const now = studioNow();
 
   const bookings = await prisma.booking.findMany({
     where: { userId: user.id, status: { not: "CANCELLED" } },

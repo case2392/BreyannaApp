@@ -5,6 +5,7 @@ import { money, dayLabel, timeLabel, groupBy } from "@/lib/format";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { Logo, DwellSeal } from "@/components/Brand";
 import { BrandImage } from "@/components/BrandImage";
+import { studioNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export default async function LandingPage() {
   const user = await getCurrentUser();
   const authed = Boolean(user);
   const dashboardHref = user && isStaff(user.role) ? "/admin" : "/schedule";
-  const now = new Date();
+  const now = studioNow();
   const weekEnd = new Date(now);
   weekEnd.setDate(weekEnd.getDate() + 7);
 

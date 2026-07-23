@@ -4,6 +4,7 @@ import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel } from "@/lib/format";
 import { eventRegStatus } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
+import { studioNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function EventsPage() {
   const user = await getCurrentUser();
   const authed = Boolean(user);
   const dashboardHref = user && isStaff(user.role) ? "/admin" : "/schedule";
-  const now = new Date();
+  const now = studioNow();
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
 

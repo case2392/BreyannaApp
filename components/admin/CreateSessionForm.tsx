@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { createSession } from "@/app/actions/admin";
 import { capacityLimited } from "@/lib/format";
+import { studioNow } from "@/lib/time";
 
 type Opt = { id: string; name: string };
 
@@ -27,7 +28,8 @@ export function CreateSessionForm({
 }) {
   const [state, action] = useFormState(createSession, {} as { error?: string; ok?: boolean });
   const [classTypeId, setClassTypeId] = useState(classTypes[0]?.id ?? "");
-  const today = new Date().toISOString().slice(0, 10);
+  // Default to the studio's Central "today", not the browser/UTC date.
+  const today = studioNow().toISOString().slice(0, 10);
 
   const selected = classTypes.find((c) => c.id === classTypeId);
   const showCapacity = selected ? capacityLimited(selected.name) : false;

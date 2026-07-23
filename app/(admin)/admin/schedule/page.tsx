@@ -6,17 +6,21 @@ import {
   CancelSessionButton,
   RegistrationToggle,
 } from "@/components/admin/SessionControls";
+import { studioNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSchedulePage() {
-  const now = new Date();
+  // Show today's classes for the whole day (Central), not just ones still ahead.
+  const now = studioNow();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
 
   const [classTypes, instructors, sessions] = await Promise.all([
     prisma.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.instructor.findMany({ orderBy: { name: "asc" } }),
     prisma.classSession.findMany({
-      where: { startsAt: { gte: now }, cancelled: false },
+      where: { startsAt: { gte: startOfToday }, cancelled: false },
       orderBy: { startsAt: "asc" },
       include: {
         classType: true,

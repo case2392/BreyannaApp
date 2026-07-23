@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { fireAutomation } from "@/lib/automations";
 import { dayLabel, timeLabel } from "@/lib/format";
+import { studioNow } from "@/lib/time";
 
 // Sends "class reminder" automations for classes happening tomorrow.
 // Intended to be called once a day by Vercel Cron (see vercel.json).
@@ -27,8 +28,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  // Tomorrow's window (local server time).
-  const start = new Date();
+  // Tomorrow's window, in the studio's Central day.
+  const start = studioNow();
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() + 1);
   const end = new Date(start);
