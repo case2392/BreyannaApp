@@ -15,7 +15,7 @@ import {
 } from "@/lib/format";
 import { BookButton } from "@/components/BookButton";
 import { GuestBookButton } from "@/components/GuestBookButton";
-import { BOOKING_LEAD_MS, availableGuestPasses } from "@/lib/booking";
+import { availableGuestPasses } from "@/lib/booking";
 
 export const dynamic = "force-dynamic";
 
@@ -106,12 +106,14 @@ function dayItems(
   return items;
 }
 
-// `to` is exclusive (sessions strictly before it). Classes stay visible until
-// they start; within the 2-hour lead window (or when staff closed them) they
-// show as "Registration closed" rather than disappearing.
+// `to` is exclusive (sessions strictly before it). Classes stay visible for the
+// whole day they fall on (we don't drop them once they've started), and show as
+// "Registration closed" only when staff manually close them.
 async function loadSessions(from: Date, to: Date) {
   const now = new Date();
-  const lower = from > now ? from : now;
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const lower = from > startOfToday ? from : startOfToday;
   return prisma.classSession.findMany({
     where: { cancelled: false, startsAt: { gte: lower, lt: to } },
     orderBy: { startsAt: "asc" },
@@ -152,10 +154,8 @@ function ClassCard({
   const isFull = capacityLimited(s.classType.name) && confirmed >= s.capacity;
   const mine = s.bookings.find((b) => b.userId === userId);
   const started = s.startsAt < now;
-  // Booking is closed when staff closed it, or within the 2-hour lead window.
-  const closed =
-    s.registrationClosed ||
-    s.startsAt.getTime() - now.getTime() < BOOKING_LEAD_MS;
+  // Booking is closed only when staff manually closes it.
+  const closed = s.registrationClosed;
   const myStatus =
     mine?.status === "BOOKED"
       ? "BOOKED"

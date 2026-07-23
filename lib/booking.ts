@@ -4,10 +4,6 @@ import type { Membership, MembershipPlan } from "@prisma/client";
 
 type MembershipWithPlan = Membership & { plan: MembershipPlan };
 
-// Booking closes this long before a class starts, so the studio has time to
-// plan and set up. Members can't book (and don't see) classes inside this window.
-export const BOOKING_LEAD_MS = 2 * 60 * 60 * 1000; // 2 hours
-
 export type BookResult =
   | { ok: true; status: "BOOKED" | "WAITLISTED" }
   | { ok: false; error: string };
@@ -83,8 +79,8 @@ async function findUsableMembership(
 }
 
 // Book a member into a class (or waitlist them if it is full).
-// Staff booking on a member's behalf can pass opts.staff to skip the 2-hour
-// booking cutoff, and opts.comp to add them without requiring/using credits.
+// Staff booking on a member's behalf can pass opts.staff to book even when
+// registration is closed, and opts.comp to add them without requiring/using credits.
 export async function bookClass(
   userId: string,
   sessionId: string,
@@ -98,11 +94,6 @@ export async function bookClass(
   if (session.cancelled) return { ok: false, error: "This class was cancelled." };
   if (!opts?.staff && session.registrationClosed)
     return { ok: false, error: "Registration for this class is closed." };
-  if (!opts?.staff && session.startsAt.getTime() - Date.now() < BOOKING_LEAD_MS)
-    return {
-      ok: false,
-      error: "Booking has closed — classes lock 2 hours before they start.",
-    };
 
   // Already have a booking? (unique constraint also guards this)
   const existing = await prisma.booking.findUnique({
@@ -303,11 +294,7 @@ export async function bookGuest(
   });
   if (!session) return { ok: false, error: "Class not found." };
   if (session.cancelled) return { ok: false, error: "This class was cancelled." };
-  if (
-    !opts?.staff &&
-    (session.registrationClosed ||
-      session.startsAt.getTime() - Date.now() < BOOKING_LEAD_MS)
-  )
+  if (!opts?.staff && session.registrationClosed)
     return { ok: false, error: "Registration for this class is closed." };
 
   const now = new Date();
