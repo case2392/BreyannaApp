@@ -71,6 +71,76 @@ export async function createSession(_prev: unknown, formData: FormData) {
   return { ok: true };
 }
 
+// Edit an existing class's details (time, instructor, location, etc.) after
+// it's been posted. Doesn't touch existing bookings.
+export async function updateSession(_prev: unknown, formData: FormData) {
+  await requireStaff();
+
+  const sessionId = String(formData.get("sessionId") || "");
+  const classTypeId = String(formData.get("classTypeId") || "");
+  const instructorId = String(formData.get("instructorId") || "");
+  const roomName = String(formData.get("roomName") || "").trim();
+  const date = String(formData.get("date") || "");
+  const time = String(formData.get("time") || "");
+
+  if (!sessionId) return { error: "Missing class." };
+  if (!classTypeId || !instructorId || !date || !time) {
+    return { error: "Please fill in class, instructor, date and time." };
+  }
+
+  const startsAt = new Date(`${date}T${time}`);
+  if (isNaN(startsAt.getTime())) return { error: "Invalid date or time." };
+
+  const classType = await prisma.classType.findUnique({
+    where: { id: classTypeId },
+  });
+  if (!classType) return { error: "Class type not found." };
+
+  // Resolve the chosen location to a room record (create it the first time).
+  let roomId: string | null = null;
+  if (roomName) {
+    const room =
+      (await prisma.room.findFirst({ where: { name: roomName } })) ??
+      (await prisma.room.create({ data: { name: roomName } }));
+    roomId = room.id;
+  }
+
+  // Keep the current capacity unless the staff entered a new one; non-cycle
+  // classes stay effectively unlimited.
+  const existing = await prisma.classSession.findUnique({
+    where: { id: sessionId },
+    select: { capacity: true },
+  });
+  if (!existing) return { error: "Class not found." };
+  const entered = Number(formData.get("capacity"));
+  const capacity = capacityLimited(classType.name)
+    ? entered && entered > 0
+      ? entered
+      : existing.capacity
+    : 100000;
+
+  await prisma.classSession.update({
+    where: { id: sessionId },
+    data: { classTypeId, instructorId, roomId, startsAt, capacity },
+  });
+
+  revalidatePath("/admin/schedule");
+  revalidatePath(`/admin/schedule/${sessionId}`);
+  revalidatePath("/schedule");
+  return { ok: true };
+}
+
+// Save staff notes about how a class went (no-shows, heads-ups, etc.).
+export async function saveSessionNotes(sessionId: string, notes: string) {
+  await requireStaff();
+  await prisma.classSession.update({
+    where: { id: sessionId },
+    data: { notes: notes.trim() || null },
+  });
+  revalidatePath(`/admin/schedule/${sessionId}`);
+  return { ok: true };
+}
+
 export async function cancelSession(sessionId: string) {
   await requireStaff();
   await prisma.$transaction([

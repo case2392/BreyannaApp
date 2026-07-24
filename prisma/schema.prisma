@@ -103,6 +103,8 @@ model ClassSession {
   cancelled    Boolean  @default(false)
   // Staff can close booking early (independent of the automatic 2-hour cutoff).
   registrationClosed Boolean @default(false)
+  // Free-form staff notes about how the class went (no-shows, heads-ups, etc.).
+  notes        String?
   createdAt    DateTime @default(now())
 
   bookings Booking[]

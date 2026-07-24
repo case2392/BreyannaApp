@@ -8,6 +8,8 @@ import {
 } from "@/components/admin/SessionControls";
 import { AddToClassForm } from "@/components/admin/AddToClassForm";
 import { GuestCancelButton } from "@/components/admin/GuestCancelButton";
+import { EditSessionForm } from "@/components/admin/EditSessionForm";
+import { SessionNotes } from "@/components/admin/SessionNotes";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,7 @@ export default async function RosterPage({
 }: {
   params: { id: string };
 }) {
-  const [session, members] = await Promise.all([
+  const [session, members, classTypes, instructors] = await Promise.all([
     prisma.classSession.findUnique({
       where: { id: params.id },
       include: {
@@ -24,12 +26,10 @@ export default async function RosterPage({
         instructor: true,
         room: true,
         bookings: {
-          where: { status: { not: "CANCELLED" } },
           include: { user: true },
           orderBy: { createdAt: "asc" },
         },
         guestBookings: {
-          where: { status: { not: "CANCELLED" } },
           include: { host: { select: { firstName: true, lastName: true } } },
           orderBy: { createdAt: "asc" },
         },
@@ -40,18 +40,47 @@ export default async function RosterPage({
       orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
       select: { id: true, firstName: true, lastName: true },
     }),
+    prisma.classType.findMany({
+      where: { active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.instructor.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
   ]);
 
   if (!session) notFound();
 
-  // Members not already on this class's list.
-  const bookedIds = new Set(session.bookings.map((b) => b.userId));
+  // Anyone with a live (non-cancelled) booking can't be added again.
+  const activeBookings = session.bookings.filter((b) => b.status !== "CANCELLED");
+  const bookedIds = new Set(activeBookings.map((b) => b.userId));
   const addable = members
     .filter((m) => !bookedIds.has(m.id))
     .map((m) => ({ id: m.id, name: `${m.firstName} ${m.lastName}` }));
 
-  const confirmed = session.bookings.filter((b) => b.status !== "WAITLISTED");
-  const waitlist = session.bookings.filter((b) => b.status === "WAITLISTED");
+  const confirmed = activeBookings.filter((b) => b.status !== "WAITLISTED");
+  const waitlist = activeBookings.filter((b) => b.status === "WAITLISTED");
+  const cancelled = session.bookings.filter((b) => b.status === "CANCELLED");
+  const cancelledGuests = session.guestBookings.filter(
+    (g) => g.status === "CANCELLED"
+  );
+  const activeGuests = session.guestBookings.filter(
+    (g) => g.status !== "CANCELLED"
+  );
+
+  // Naive wall-clock date/time strings for the edit form (match how times are
+  // stored — see lib/time.ts).
+  const iso = session.startsAt.toISOString();
+  const editCurrent = {
+    classTypeId: session.classTypeId,
+    instructorId: session.instructorId,
+    roomName: session.room?.name ?? "",
+    date: iso.slice(0, 10),
+    time: iso.slice(11, 16),
+    capacity: session.capacity,
+  };
 
   return (
     <div>
@@ -69,20 +98,26 @@ export default async function RosterPage({
       </p>
 
       {!session.cancelled && (
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <RegistrationToggle
+        <div className="mb-6 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <RegistrationToggle
+              sessionId={session.id}
+              closed={session.registrationClosed}
+            />
+            {session.registrationClosed ? (
+              <span className="text-sm text-red-600">
+                Booking is closed — members can&apos;t sign up (you still can below).
+              </span>
+            ) : (
+              <span className="text-sm text-ink-500">Booking is open.</span>
+            )}
+          </div>
+          <EditSessionForm
             sessionId={session.id}
-            closed={session.registrationClosed}
+            classTypes={classTypes}
+            instructors={instructors}
+            current={editCurrent}
           />
-          {session.registrationClosed ? (
-            <span className="text-sm text-red-600">
-              Booking is closed — members can&apos;t sign up (you still can below).
-            </span>
-          ) : (
-            <span className="text-sm text-ink-500">
-              Booking is open.
-            </span>
-          )}
         </div>
       )}
 
@@ -91,8 +126,8 @@ export default async function RosterPage({
           <h2 className="font-semibold">
             Roster (
             {capacityLimited(session.classType.name)
-              ? `${confirmed.length + session.guestBookings.length}/${session.capacity}`
-              : `${confirmed.length + session.guestBookings.length} booked`}
+              ? `${confirmed.length + activeGuests.length}/${session.capacity}`
+              : `${confirmed.length + activeGuests.length} booked`}
             )
           </h2>
         </div>
@@ -118,13 +153,13 @@ export default async function RosterPage({
         )}
       </div>
 
-      {session.guestBookings.length > 0 && (
+      {activeGuests.length > 0 && (
         <div className="card mt-4 p-5">
           <h2 className="mb-3 font-semibold">
-            Guests ({session.guestBookings.length})
+            Guests ({activeGuests.length})
           </h2>
           <ul className="divide-y divide-ink-100">
-            {session.guestBookings.map((g) => (
+            {activeGuests.map((g) => (
               <li
                 key={g.id}
                 className="flex items-center justify-between gap-3 py-3"
@@ -162,6 +197,52 @@ export default async function RosterPage({
           </ol>
         </div>
       )}
+
+      {(cancelled.length > 0 || cancelledGuests.length > 0) && (
+        <div className="card mt-4 p-5">
+          <h2 className="mb-1 font-semibold">
+            Cancelled ({cancelled.length + cancelledGuests.length})
+          </h2>
+          <p className="mb-3 text-xs text-ink-400">
+            Members and guests who booked this class and later cancelled.
+          </p>
+          <ul className="divide-y divide-ink-100">
+            {cancelled.map((b) => (
+              <li key={b.id} className="py-2 text-sm">
+                <span className="font-medium">
+                  {b.user.firstName} {b.user.lastName}
+                </span>{" "}
+                <span className="text-ink-500">— {b.user.email}</span>
+                <span className="badge ml-2 bg-ink-100 text-ink-500">
+                  Cancelled
+                </span>
+              </li>
+            ))}
+            {cancelledGuests.map((g) => (
+              <li key={g.id} className="py-2 text-sm">
+                <span className="font-medium">
+                  {g.firstName} {g.lastName}
+                </span>{" "}
+                <span className="text-ink-500">
+                  — guest of {g.host.firstName} {g.host.lastName}
+                </span>
+                <span className="badge ml-2 bg-ink-100 text-ink-500">
+                  Cancelled
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="card mt-4 p-5">
+        <h2 className="mb-1 font-semibold">Class notes</h2>
+        <p className="mb-3 text-xs text-ink-400">
+          A record for this class — who gave a heads-up they couldn&apos;t make
+          it, how it went, anything worth remembering.
+        </p>
+        <SessionNotes sessionId={session.id} initial={session.notes ?? ""} />
+      </div>
 
       {!session.cancelled && (
         <div className="mt-4">

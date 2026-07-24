@@ -38,10 +38,17 @@ export default async function AdminSchedulePage() {
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold">Schedule</h1>
-      <p className="mb-6 text-sm text-ink-500">
-        Add classes and manage upcoming sessions.
-      </p>
+      <div className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="mb-1 text-2xl font-bold">Schedule</h1>
+          <p className="text-sm text-ink-500">
+            Add classes and manage upcoming sessions.
+          </p>
+        </div>
+        <Link href="/admin/schedule/history" className="btn-secondary text-sm">
+          Past classes →
+        </Link>
+      </div>
 
       <div className="mb-8">
         <CreateSessionForm
