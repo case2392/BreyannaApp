@@ -8,6 +8,7 @@ import {
 } from "@/components/admin/SessionControls";
 import { AddToClassForm } from "@/components/admin/AddToClassForm";
 import { GuestCancelButton } from "@/components/admin/GuestCancelButton";
+import { RemoveBookingButton } from "@/components/admin/RemoveBookingButton";
 import { EditSessionForm } from "@/components/admin/EditSessionForm";
 import { SessionNotes } from "@/components/admin/SessionNotes";
 
@@ -146,7 +147,13 @@ export default async function RosterPage({
                   </div>
                   <div className="text-xs text-ink-500">{b.user.email}</div>
                 </div>
-                <AttendanceControls bookingId={b.id} status={b.status} />
+                <div className="flex items-center gap-3">
+                  <AttendanceControls bookingId={b.id} status={b.status} />
+                  <RemoveBookingButton
+                    bookingId={b.id}
+                    name={`${b.user.firstName} ${b.user.lastName}`}
+                  />
+                </div>
               </li>
             ))}
           </ul>
@@ -187,11 +194,20 @@ export default async function RosterPage({
       {waitlist.length > 0 && (
         <div className="card mt-4 p-5">
           <h2 className="mb-3 font-semibold">Waitlist ({waitlist.length})</h2>
-          <ol className="list-inside list-decimal space-y-2 text-sm">
-            {waitlist.map((b) => (
-              <li key={b.id}>
-                {b.user.firstName} {b.user.lastName}{" "}
-                <span className="text-ink-500">— {b.user.email}</span>
+          <ol className="space-y-2 text-sm">
+            {waitlist.map((b, i) => (
+              <li
+                key={b.id}
+                className="flex items-center justify-between gap-3"
+              >
+                <span>
+                  {i + 1}. {b.user.firstName} {b.user.lastName}{" "}
+                  <span className="text-ink-500">— {b.user.email}</span>
+                </span>
+                <RemoveBookingButton
+                  bookingId={b.id}
+                  name={`${b.user.firstName} ${b.user.lastName}`}
+                />
               </li>
             ))}
           </ol>
@@ -204,18 +220,25 @@ export default async function RosterPage({
             Cancelled ({cancelled.length + cancelledGuests.length})
           </h2>
           <p className="mb-3 text-xs text-ink-400">
-            Members and guests who booked this class and later cancelled.
+            Members and guests who cancelled, or were removed by staff.
           </p>
           <ul className="divide-y divide-ink-100">
             {cancelled.map((b) => (
               <li key={b.id} className="py-2 text-sm">
-                <span className="font-medium">
-                  {b.user.firstName} {b.user.lastName}
-                </span>{" "}
-                <span className="text-ink-500">— {b.user.email}</span>
-                <span className="badge ml-2 bg-ink-100 text-ink-500">
-                  Cancelled
-                </span>
+                <div>
+                  <span className="font-medium">
+                    {b.user.firstName} {b.user.lastName}
+                  </span>{" "}
+                  <span className="text-ink-500">— {b.user.email}</span>
+                  <span className="badge ml-2 bg-ink-100 text-ink-500">
+                    {b.cancelReason ? "Removed" : "Cancelled"}
+                  </span>
+                </div>
+                {b.cancelReason && (
+                  <div className="mt-0.5 text-xs text-ink-500">
+                    Reason: {b.cancelReason}
+                  </div>
+                )}
               </li>
             ))}
             {cancelledGuests.map((g) => (

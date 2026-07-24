@@ -1,19 +1,26 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { shortDate } from "@/lib/format";
+import { availableGuestPasses } from "@/lib/booking";
 import { EditProfileForm, ChangePasswordForm } from "@/components/account/AccountForms";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const user = (await getCurrentUser())!;
+  const now = new Date();
 
-  const [bookingCount, attended] = await Promise.all([
+  const [bookingCount, attended, activeMemberships] = await Promise.all([
     prisma.booking.count({
       where: { userId: user.id, status: { not: "CANCELLED" } },
     }),
     prisma.booking.count({ where: { userId: user.id, status: "ATTENDED" } }),
+    prisma.membership.findMany({
+      where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
+      include: { plan: { select: { guestPassesPerMonth: true } } },
+    }),
   ]);
+  const guestPasses = availableGuestPasses(activeMemberships);
 
   return (
     <div className="max-w-xl">
@@ -48,6 +55,12 @@ export default async function AccountPage() {
           <div>
             <dt className="text-ink-500">Classes attended</dt>
             <dd className="font-medium">{attended}</dd>
+          </div>
+          <div>
+            <dt className="text-ink-500">Guest passes</dt>
+            <dd className="font-medium">
+              🎟️ {guestPasses} available
+            </dd>
           </div>
           <div>
             <dt className="text-ink-500">Account type</dt>

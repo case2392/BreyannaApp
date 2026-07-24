@@ -176,22 +176,54 @@ export async function bookClass(
   return { ok: true, status };
 }
 
-// Cancel a booking: refund the credit and promote the first person waiting.
-export async function cancelBooking(
-  userId: string,
-  bookingId: string
-): Promise<
+type CancelResult =
   | { ok: false; error: string }
-  | { ok: true; promotedUserId: string | null; sessionId: string }
-> {
-  const booking = await prisma.booking.findUnique({
+  | { ok: true; promotedUserId: string | null; sessionId: string };
+
+type BookingForCancel = Awaited<
+  ReturnType<typeof findBookingForCancel>
+>;
+
+function findBookingForCancel(bookingId: string) {
+  return prisma.booking.findUnique({
     where: { id: bookingId },
     include: { session: { include: { classType: true } } },
   });
+}
+
+// Cancel a booking on a member's own request: refund the credit and promote the
+// first person waiting.
+export async function cancelBooking(
+  userId: string,
+  bookingId: string
+): Promise<CancelResult> {
+  const booking = await findBookingForCancel(bookingId);
   if (!booking || booking.userId !== userId)
     return { ok: false, error: "Booking not found." };
   if (booking.status === "CANCELLED")
     return { ok: false, error: "Already cancelled." };
+  return cancelBookingRecord(booking);
+}
+
+// Staff removes a member from a roster, optionally noting why. Same refund and
+// waitlist-promotion behaviour as a self-cancel.
+export async function staffCancelBooking(
+  bookingId: string,
+  reason?: string
+): Promise<CancelResult> {
+  const booking = await findBookingForCancel(bookingId);
+  if (!booking) return { ok: false, error: "Booking not found." };
+  if (booking.status === "CANCELLED")
+    return { ok: false, error: "Already cancelled." };
+  return cancelBookingRecord(booking, { reason });
+}
+
+// Shared cancel + refund + waitlist-promotion, used by member and staff cancels.
+async function cancelBookingRecord(
+  booking: NonNullable<BookingForCancel>,
+  opts?: { reason?: string }
+): Promise<CancelResult> {
+  const reason = opts?.reason?.trim() || null;
 
   // Captures who (if anyone) was promoted off the waitlist, so the caller can
   // notify them. Set inside the transaction.
@@ -211,7 +243,7 @@ export async function cancelBooking(
     }
     await tx.booking.update({
       where: { id: booking.id },
-      data: { status: "CANCELLED", membershipId: null },
+      data: { status: "CANCELLED", membershipId: null, cancelReason: reason },
     });
 
     // If a confirmed spot opened up, promote the longest-waiting person.

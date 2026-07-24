@@ -112,6 +112,23 @@ export default async function MembershipsPage({
                       )}
                   </div>
                 </div>
+                {(() => {
+                  const gp = Math.max(
+                    0,
+                    m.plan.guestPassesPerMonth +
+                      m.guestPassesBonus -
+                      m.guestPassesUsed
+                  );
+                  if (gp <= 0) return null;
+                  return (
+                    <div className="mt-3 rounded-lg bg-clay-100/60 px-3 py-2 text-xs text-ink-600">
+                      🎟️ <b>{gp}</b> guest pass{gp === 1 ? "" : "es"} available
+                      {m.plan.kind === "UNLIMITED"
+                        ? " this month"
+                        : " — stays until used"}
+                    </div>
+                  );
+                })()}
                 {m.source === "PURCHASE" && (
                   <div className="mt-3 flex justify-end border-t border-ink-100 pt-3">
                     <CancelPlanButton membershipId={m.id} />

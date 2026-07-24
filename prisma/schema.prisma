@@ -212,6 +212,8 @@ model Booking {
   // Which membership paid for this booking (credit refunded on cancel)
   membershipId String?
   membership   Membership? @relation(fields: [membershipId], references: [id])
+  // Why staff removed this member from the roster (optional note).
+  cancelReason String?
   // Position used to order the waitlist
   createdAt    DateTime @default(now())
 

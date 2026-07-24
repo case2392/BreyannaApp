@@ -6,7 +6,7 @@ import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import { capacityLimited, dayLabel, timeLabel } from "@/lib/format";
-import { bookClass, cancelGuestBooking } from "@/lib/booking";
+import { bookClass, cancelGuestBooking, staffCancelBooking } from "@/lib/booking";
 import { fireAutomation } from "@/lib/automations";
 
 async function requireStaff() {
@@ -191,6 +191,44 @@ export async function markAttendance(
   await prisma.booking.update({ where: { id: bookingId }, data: { status } });
   revalidatePath("/admin/schedule");
   return { ok: true };
+}
+
+// Staff removes a member from a class roster, optionally noting why. Refunds any
+// credit and promotes the next person off the waitlist.
+export async function staffRemoveBooking(bookingId: string, reason?: string) {
+  await requireStaff();
+  const result = await staffCancelBooking(bookingId, reason);
+  if (!result.ok) return result;
+
+  // Notify whoever was promoted off the waitlist into the freed spot.
+  if (result.promotedUserId) {
+    const [promoted, session] = await Promise.all([
+      prisma.user.findUnique({ where: { id: result.promotedUserId } }),
+      prisma.classSession.findUnique({
+        where: { id: result.sessionId },
+        include: { classType: true },
+      }),
+    ]);
+    if (promoted && session) {
+      await fireAutomation(
+        "waitlist_promotion",
+        promoted,
+        {
+          className: session.classType.name,
+          date: dayLabel(session.startsAt),
+          time: timeLabel(session.startsAt),
+        },
+        { classTypeId: session.classTypeId }
+      );
+    }
+  }
+
+  revalidatePath(`/admin/schedule/${result.sessionId}`);
+  revalidatePath("/admin/schedule");
+  revalidatePath("/admin");
+  revalidatePath("/schedule");
+  revalidatePath("/bookings");
+  return result;
 }
 
 // Manually open/close booking for a single class (independent of the automatic
