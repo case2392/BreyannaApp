@@ -232,15 +232,19 @@ export async function POST(request: Request) {
             const expiresAt = periodEnd
               ? new Date(periodEnd * 1000)
               : await subscriptionPeriodEnd(subId);
+            // Monthly membership guest passes reset each renewal (they don't
+            // roll over). Pack-based passes (e.g. Dwell Together) are
+            // credit-like — they stay until used — so they're never reset.
+            const resetGuestPasses = membership.plan.kind === "UNLIMITED";
             await prisma.membership.update({
               where: { id: membership.id },
               data: {
                 status: "ACTIVE",
                 expiresAt,
                 autoRenew: true,
-                // Guest passes reset each renewal — they don't roll over.
-                guestPassesUsed: 0,
-                guestPassesBonus: 0,
+                ...(resetGuestPasses
+                  ? { guestPassesUsed: 0, guestPassesBonus: 0 }
+                  : {}),
               },
             });
           }

@@ -294,8 +294,8 @@ export default async function SchedulePage({
           <b>
             {guestPasses} guest pass{guestPasses === 1 ? "" : "es"}
           </b>{" "}
-          this month — tap &ldquo;Bring a guest&rdquo; on any class to sign
-          someone in. They reset when your membership renews.
+          available — tap &ldquo;Bring a guest&rdquo; on any class to sign
+          someone in.
         </div>
       )}
 

@@ -121,7 +121,9 @@ export function PlanRow({ plan }: { plan: Plan }) {
           />
         </div>
         <div className="mt-3">
-          <label className="label">Guest passes per month</label>
+          <label className="label">
+            {unlimited ? "Guest passes per month" : "Guest passes with this pass"}
+          </label>
           <input
             name="guestPasses"
             type="number"
@@ -129,6 +131,11 @@ export function PlanRow({ plan }: { plan: Plan }) {
             defaultValue={plan.guestPassesPerMonth}
             className="input"
           />
+          <p className="mt-1 text-xs text-ink-400">
+            {unlimited
+              ? "Given each month; reset on renewal."
+              : "Comes with the pass and stays until used, like class credits."}
+          </p>
         </div>
         <div className="mt-3 flex gap-2">
           <SaveBtn />
@@ -156,7 +163,7 @@ export function PlanRow({ plan }: { plan: Plan }) {
           {plan.guestPassesPerMonth > 0
             ? ` · ${plan.guestPassesPerMonth} guest pass${
                 plan.guestPassesPerMonth === 1 ? "" : "es"
-              }/mo`
+              }${unlimited ? "/mo" : ""}`
             : ""}
           {plan.activeSales > 0 ? ` · ${plan.activeSales} active` : ""}
         </div>

@@ -215,7 +215,9 @@ export function CreatePlanForm() {
           </p>
         </div>
         <div>
-          <label className="label">Guest passes per month</label>
+          <label className="label">
+            {unlimited ? "Guest passes per month" : "Guest passes with this pass"}
+          </label>
           <input
             name="guestPasses"
             type="number"
@@ -224,8 +226,9 @@ export function CreatePlanForm() {
             defaultValue={0}
           />
           <p className="mt-1 text-xs text-ink-400">
-            Free guest spots this plan gives each month (reset on renewal). 0 =
-            none.
+            {unlimited
+              ? "Free guest spots this plan gives each month (reset on renewal). 0 = none."
+              : "Free guest spots that come with the pass and stay until used, like class credits. 0 = none."}
           </p>
         </div>
       </div>
