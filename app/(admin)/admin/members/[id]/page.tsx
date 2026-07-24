@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { shortDate, dayLabel, timeLabel, money, timeAgo } from "@/lib/format";
 import { MemberNotes } from "@/components/admin/MemberNotes";
-import { LinkSubscription } from "@/components/admin/LinkSubscription";
 import { GuestPassControl } from "@/components/admin/GuestPassControl";
 import { availableGuestPasses } from "@/lib/booking";
 import { stripe, stripeEnabled } from "@/lib/stripe";
@@ -233,11 +232,6 @@ export default async function MemberDetailPage({
           <div className="card p-4">
             <ResetMemberPassword userId={member.id} />
           </div>
-          {stripeEnabled() && (
-            <div className="card mt-3 p-4">
-              <LinkSubscription userId={member.id} plans={plans} />
-            </div>
-          )}
         </div>
 
         <div>
