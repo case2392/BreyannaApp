@@ -45,24 +45,32 @@ export function EditSessionForm({
 
   if (!open) {
     return (
-      <button onClick={() => setOpen(true)} className="btn-secondary text-sm">
-        Edit class details
+      <button onClick={() => setOpen(true)} className="btn-secondary text-xs">
+        Edit details
       </button>
     );
   }
 
   return (
-    <form action={action} className="card p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-semibold">Edit class details</h3>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-sm text-ink-400 hover:text-ink-600"
-        >
-          Close
-        </button>
-      </div>
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
+      onClick={() => setOpen(false)}
+    >
+      <form
+        action={action}
+        className="card my-8 w-full max-w-lg p-5"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-semibold">Edit class details</h3>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="text-sm text-ink-400 hover:text-ink-600"
+          >
+            Close
+          </button>
+        </div>
       {state?.error && (
         <p className="mb-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
           {state.error}
@@ -156,9 +164,10 @@ export function EditSessionForm({
           </div>
         </div>
       </div>
-      <div className="mt-4">
-        <Submit />
-      </div>
-    </form>
+        <div className="mt-4">
+          <Submit />
+        </div>
+      </form>
+    </div>
   );
 }

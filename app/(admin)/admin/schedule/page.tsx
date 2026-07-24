@@ -6,6 +6,7 @@ import {
   CancelSessionButton,
   RegistrationToggle,
 } from "@/components/admin/SessionControls";
+import { EditSessionForm } from "@/components/admin/EditSessionForm";
 import { studioNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -120,6 +121,19 @@ export default async function AdminSchedulePage() {
                       >
                         Roster
                       </Link>
+                      <EditSessionForm
+                        sessionId={s.id}
+                        classTypes={classTypes}
+                        instructors={instructors}
+                        current={{
+                          classTypeId: s.classTypeId,
+                          instructorId: s.instructorId,
+                          roomName: s.room?.name ?? "",
+                          date: s.startsAt.toISOString().slice(0, 10),
+                          time: s.startsAt.toISOString().slice(11, 16),
+                          capacity: s.capacity,
+                        }}
+                      />
                       <RegistrationToggle
                         sessionId={s.id}
                         closed={s.registrationClosed}
