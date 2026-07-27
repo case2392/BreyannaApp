@@ -238,7 +238,9 @@ export default async function AdminDashboard() {
             </div>
             <div className="text-right">
               <div className="font-semibold">
-                {s.bookings.length}/{s.capacity}
+                {capacityLimited(s.classType.name)
+                  ? `${s.bookings.length}/${s.capacity}`
+                  : s.bookings.length}
               </div>
               <div className="text-xs text-ink-500">booked</div>
             </div>
