@@ -186,8 +186,13 @@ model GuestBooking {
   membership   Membership? @relation(fields: [membershipId], references: [id])
   firstName    String
   lastName     String
-  phone        String
+  phone        String?
   email        String?
+  // How the spot was paid for: "PASS" (a member's guest pass) | "GIFT" (someone
+  // paid the drop-in rate to gift this spot to a named person).
+  source       String   @default("PASS")
+  amountCents  Int      @default(0)
+  stripeRef    String?  @unique
   // "BOOKED" | "CANCELLED" | "ATTENDED" | "NO_SHOW"
   status       String   @default("BOOKED")
   createdAt    DateTime @default(now())

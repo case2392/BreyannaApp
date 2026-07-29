@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { stripe, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe";
 import { grantMembership } from "@/lib/membership";
 import { fulfillEventOrder } from "@/app/actions/events";
+import { fulfillClassGift } from "@/app/actions/gift";
 import { notifyStudio } from "@/lib/notify";
 import { money } from "@/lib/format";
 
@@ -74,6 +75,16 @@ export async function POST(request: Request) {
         if (session.metadata?.kind === "event_order") {
           const orderId = session.metadata?.orderId;
           if (orderId) await fulfillEventOrder(orderId);
+          break;
+        }
+
+        // Gifted single-class spot.
+        if (session.metadata?.kind === "class_gift") {
+          await fulfillClassGift(
+            session.metadata as Record<string, string>,
+            session.amount_total ?? 0,
+            session.id
+          );
           break;
         }
 

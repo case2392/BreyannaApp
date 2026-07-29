@@ -163,30 +163,34 @@ export default async function RosterPage({
       {activeGuests.length > 0 && (
         <div className="card mt-4 p-5">
           <h2 className="mb-3 font-semibold">
-            Guests ({activeGuests.length})
+            Guests &amp; gifts ({activeGuests.length})
           </h2>
           <ul className="divide-y divide-ink-100">
-            {activeGuests.map((g) => (
-              <li
-                key={g.id}
-                className="flex items-center justify-between gap-3 py-3"
-              >
-                <div className="min-w-0">
-                  <div className="font-medium">
-                    {g.firstName} {g.lastName}{" "}
-                    <span className="badge ml-1 bg-clay-200 text-clay-500">
-                      Guest
-                    </span>
+            {activeGuests.map((g) => {
+              const gift = g.source === "GIFT";
+              return (
+                <li
+                  key={g.id}
+                  className="flex items-center justify-between gap-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium">
+                      {g.firstName} {g.lastName}{" "}
+                      <span className="badge ml-1 bg-clay-200 text-clay-500">
+                        {gift ? "Gift" : "Guest"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-ink-500">
+                      {[g.phone, g.email].filter(Boolean).join(" · ")}
+                      {(g.phone || g.email) && " · "}
+                      {gift ? "gifted by" : "guest of"} {g.host.firstName}{" "}
+                      {g.host.lastName}
+                    </div>
                   </div>
-                  <div className="text-xs text-ink-500">
-                    {g.phone}
-                    {g.email ? ` · ${g.email}` : ""} · guest of{" "}
-                    {g.host.firstName} {g.host.lastName}
-                  </div>
-                </div>
-                <GuestCancelButton id={g.id} />
-              </li>
-            ))}
+                  <GuestCancelButton id={g.id} />
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

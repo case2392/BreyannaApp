@@ -273,7 +273,12 @@ export default async function SchedulePage({
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">Class schedule</h1>
-          <p className="text-sm text-ink-500">Book your spot.</p>
+          <p className="text-sm text-ink-500">
+            Book your spot ·{" "}
+            <Link href="/gift" className="font-medium text-brand-600">
+              🎁 Gift a class
+            </Link>
+          </p>
         </div>
         <Toggle view={view} weekOffset={weekOffset} />
       </div>
