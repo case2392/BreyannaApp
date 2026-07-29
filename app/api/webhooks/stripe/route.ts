@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { prisma } from "@/lib/db";
 import { stripe, STRIPE_WEBHOOK_SECRET } from "@/lib/stripe";
 import { grantMembership } from "@/lib/membership";
+import { fulfillEventOrder } from "@/app/actions/events";
 import { notifyStudio } from "@/lib/notify";
 import { money } from "@/lib/format";
 
@@ -69,7 +70,14 @@ export async function POST(request: Request) {
           break;
         }
 
-        // Event registration payment.
+        // Multi-ticket / gift event purchase.
+        if (session.metadata?.kind === "event_order") {
+          const orderId = session.metadata?.orderId;
+          if (orderId) await fulfillEventOrder(orderId);
+          break;
+        }
+
+        // Event registration payment (single legacy ticket).
         if (session.metadata?.kind === "event") {
           const eventId = session.metadata?.eventId;
           if (eventId) {

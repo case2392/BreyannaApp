@@ -376,7 +376,32 @@ model EventRegistration {
   source      String?
   amountCents Int      @default(0)
   stripeRef   String?  @unique
+  // A gift ticket bought by someone else (userId is null; buyer recorded below).
+  isGift           Boolean @default(false)
+  purchasedByUserId String?
+  // Groups every ticket bought in one checkout (the EventOrder id).
+  purchaseRef      String?
   createdAt   DateTime @default(now())
+
+  @@index([eventId])
+  @@index([purchaseRef])
+}
+
+// A pending multi-ticket event purchase. Created before Stripe checkout so the
+// attendee names/emails survive the round-trip; fulfilled into EventRegistration
+// rows once payment completes (idempotent by status).
+model EventOrder {
+  id             String   @id @default(cuid())
+  eventId        String
+  buyerUserId    String?
+  // [{ firstName, lastName, email, isBuyer }]
+  attendees      Json
+  quantity       Int
+  amountCents    Int
+  stripeSessionId String? @unique
+  // PENDING | FULFILLED
+  status         String   @default("PENDING")
+  createdAt      DateTime @default(now())
 
   @@index([eventId])
 }

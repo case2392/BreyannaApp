@@ -15,6 +15,8 @@ export function sourceBadgeClass(source: string | null): string {
   switch (source) {
     case "Paid online":
       return "bg-green-100 text-green-700";
+    case "Gift":
+      return "bg-clay-100 text-clay-500";
     case "Eventbrite":
       return "bg-orange-100 text-orange-700";
     case "Complimentary":

@@ -3,10 +3,10 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel } from "@/lib/format";
-import { finalizeEventCheckout } from "@/app/actions/events";
+import { finalizeEventCheckout, finalizeEventOrder } from "@/app/actions/events";
 import { eventRegStatus } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
-import { EventRegisterButton } from "@/components/EventRegisterButton";
+import { EventTicketForm } from "@/components/EventTicketForm";
 
 export const dynamic = "force-dynamic";
 
@@ -17,9 +17,12 @@ export default async function EventDetailPage({
   params: { id: string };
   searchParams: { status?: string; session_id?: string };
 }) {
-  // If returning from Stripe, make sure the paid registration is recorded.
+  // If returning from Stripe, make sure the paid registration(s) are recorded.
+  // New purchases go through order-based checkout; the older single-ticket path
+  // is still finalized for any in-flight sessions.
   if (searchParams.session_id) {
-    await finalizeEventCheckout(searchParams.session_id);
+    const done = await finalizeEventOrder(searchParams.session_id);
+    if (!done) await finalizeEventCheckout(searchParams.session_id);
   }
 
   const user = await getCurrentUser();
@@ -100,34 +103,38 @@ export default async function EventDetailPage({
 
           {/* Register card */}
           <div className="md:sticky md:top-24 md:self-start">
-            <div className="card p-6 text-center">
-              <div className="font-serif text-3xl font-semibold">{priceLabel}</div>
+            <div className="card p-6">
+              <div className="text-center font-serif text-3xl font-semibold">
+                {priceLabel}
+              </div>
               <div className="mt-4">
-                {registered ? (
-                  <div className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
-                    ✓ You&apos;re registered
-                  </div>
-                ) : status === "sold_out" ? (
-                  <div className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700">
+                {status === "sold_out" ? (
+                  <div className="rounded-full bg-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-700">
                     Sold out
                   </div>
                 ) : status === "closed" ? (
-                  <div className="rounded-full bg-ink-100 px-4 py-2 text-sm font-medium text-ink-500">
+                  <div className="rounded-full bg-ink-100 px-4 py-2 text-center text-sm font-medium text-ink-500">
                     Registration closed
                   </div>
                 ) : (
-                  <EventRegisterButton
+                  <EventTicketForm
                     eventId={event.id}
+                    priceCents={event.priceCents}
                     priceLabel={priceLabel}
                     authed={authed}
+                    selfRegistered={registered}
+                    me={
+                      user
+                        ? {
+                            firstName: user.firstName,
+                            lastName: user.lastName,
+                            email: user.email,
+                          }
+                        : null
+                    }
                   />
                 )}
               </div>
-              {!authed && status === "open" && !registered && (
-                <p className="mt-3 text-xs text-ink-500">
-                  You&apos;ll sign in to complete your registration.
-                </p>
-              )}
             </div>
           </div>
         </div>
