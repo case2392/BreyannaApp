@@ -12,7 +12,12 @@ export default async function MembersPage() {
     orderBy: { createdAt: "desc" },
     include: {
       memberships: {
-        where: { status: "ACTIVE", expiresAt: { gt: now } },
+        where: {
+          OR: [
+            { status: "ACTIVE", expiresAt: { gt: now } },
+            { status: "PAST_DUE" },
+          ],
+        },
         include: { plan: true },
       },
       _count: { select: { bookings: true } },
@@ -45,8 +50,13 @@ export default async function MembersPage() {
           </thead>
           <tbody className="divide-y divide-ink-100">
             {members.map((m) => {
-              const active = m.memberships[0];
-              const renewing = m.memberships.find((mm) => mm.autoRenew);
+              const active = m.memberships.find((mm) => mm.status === "ACTIVE");
+              const pastDue = m.memberships.find(
+                (mm) => mm.status === "PAST_DUE"
+              );
+              const renewing = m.memberships.find(
+                (mm) => mm.status === "ACTIVE" && mm.autoRenew
+              );
               return (
                 <tr key={m.id} className="hover:bg-ink-50">
                   <td className="px-4 py-3">
@@ -62,6 +72,10 @@ export default async function MembersPage() {
                     {active ? (
                       <span className="badge bg-green-100 text-green-700">
                         {active.plan.name}
+                      </span>
+                    ) : pastDue ? (
+                      <span className="badge bg-amber-100 text-amber-800">
+                        Payment failed
                       </span>
                     ) : (
                       <span className="badge bg-ink-100 text-ink-500">None</span>

@@ -141,7 +141,9 @@ model MembershipPlan {
   memberships Membership[]
 }
 
-// MembershipStatus values: "ACTIVE" | "EXPIRED" | "CANCELLED"
+// MembershipStatus values: "ACTIVE" | "EXPIRED" | "CANCELLED" | "PAST_DUE"
+// PAST_DUE = a recurring payment failed; access is paused (can't book) until the
+// payment clears (Stripe retry / updated card), which flips it back to ACTIVE.
 
 // A plan a member has purchased
 model Membership {

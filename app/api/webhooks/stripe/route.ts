@@ -6,6 +6,7 @@ import { grantMembership } from "@/lib/membership";
 import { fulfillEventOrder } from "@/app/actions/events";
 import { fulfillClassGift } from "@/app/actions/gift";
 import { notifyStudio } from "@/lib/notify";
+import { sendEmail } from "@/lib/messaging";
 import { money } from "@/lib/format";
 
 export const runtime = "nodejs";
@@ -28,6 +29,27 @@ async function subscriptionPeriodEnd(subId: string): Promise<Date> {
     /* fall through to +1 month */
   }
   return fallback;
+}
+
+// The subscription id lives in different places across Stripe API versions —
+// check them all so we never miss a renewal or a failed payment.
+function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const inv = invoice as any;
+  return (
+    (typeof invoice.subscription === "string"
+      ? invoice.subscription
+      : invoice.subscription?.id) ??
+    inv.parent?.subscription_details?.subscription ??
+    inv.subscription_details?.subscription ??
+    inv.lines?.data?.[0]?.subscription ??
+    inv.lines?.data?.[0]?.parent?.subscription_item_details?.subscription ??
+    null
+  );
+}
+
+// The site URL for links in member emails.
+function siteUrl(): string {
+  return process.env.NEXT_PUBLIC_BASE_URL || "https://www.dwellstudiolnk.com";
 }
 
 export async function POST(request: Request) {
@@ -271,8 +293,43 @@ export async function POST(request: Request) {
         break;
       }
 
+      // A recurring payment was declined / failed. Pause the membership so it
+      // can't book, and let the member (and studio) know.
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subId = invoiceSubscriptionId(invoice);
+        if (!subId) break;
+        const membership = await prisma.membership.findUnique({
+          where: { stripeSubscriptionId: subId },
+          include: { plan: true, user: true },
+        });
+        if (membership && membership.status !== "PAST_DUE") {
+          await prisma.membership.update({
+            where: { id: membership.id },
+            data: { status: "PAST_DUE" },
+          });
+          const who = `${membership.user.firstName} ${membership.user.lastName}`;
+          await notifyStudio(
+            `Payment failed: ${who}`,
+            `${who} (${membership.user.email})'s payment for "${membership.plan.name}" was declined. ` +
+              `Their membership is paused (can't book) until it's resolved.`
+          );
+          await sendEmail(
+            membership.user.email,
+            "Action needed: your Dwell Studio payment didn't go through",
+            `Hi ${membership.user.firstName},\n\n` +
+              `We tried to process the payment for your "${membership.plan.name}" membership, but it didn't go through. ` +
+              `For now your membership is paused, so you won't be able to book classes until it's back in good standing.\n\n` +
+              `Please update your payment method here:\n${siteUrl()}/memberships\n\n` +
+              `Once the payment clears, your access turns back on automatically. If you think this is a mistake or need a hand, just reply to this email.\n\n` +
+              `— Dwell Studio`
+          );
+        }
+        break;
+      }
+
       // Any subscription change — cancel-at-period-end, reactivation, plan
-      // change, etc. Keep the CRM's renew status and date in step with Stripe.
+      // change, past-due, etc. Keep the CRM's status and date in step with Stripe.
       case "customer.subscription.updated": {
         const sub = event.data.object as Stripe.Subscription;
         const membership = await prisma.membership.findUnique({
@@ -280,6 +337,7 @@ export async function POST(request: Request) {
         });
         if (membership) {
           const active = sub.status === "active" || sub.status === "trialing";
+          const pastDue = sub.status === "past_due" || sub.status === "unpaid";
           const end =
             (sub as any).current_period_end ??
             (sub as any).items?.data?.[0]?.current_period_end;
@@ -287,7 +345,9 @@ export async function POST(request: Request) {
             where: { id: membership.id },
             data: {
               autoRenew: active && !sub.cancel_at_period_end,
+              // active recovers the membership; past_due/unpaid pauses it.
               ...(active ? { status: "ACTIVE" } : {}),
+              ...(pastDue ? { status: "PAST_DUE" } : {}),
               ...(active && end ? { expiresAt: new Date(end * 1000) } : {}),
             },
           });

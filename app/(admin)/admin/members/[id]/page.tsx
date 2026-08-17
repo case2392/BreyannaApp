@@ -19,6 +19,7 @@ const statusColor: Record<string, string> = {
   ACTIVE: "bg-green-100 text-green-700",
   EXPIRED: "bg-ink-100 text-ink-500",
   CANCELLED: "bg-red-100 text-red-700",
+  PAST_DUE: "bg-amber-100 text-amber-800",
 };
 
 export default async function MemberDetailPage({
@@ -196,7 +197,9 @@ export default async function MemberDetailPage({
                           {m.source === "GIFT" ? "Gift" : "Comp"}
                         </span>
                       )}
-                      <span className={`badge ${statusColor[label]}`}>{label}</span>
+                      <span className={`badge ${statusColor[label]}`}>
+                        {label === "PAST_DUE" ? "Payment failed" : label}
+                      </span>
                     </div>
                   </div>
                   <div className="mt-1 text-xs text-ink-500">

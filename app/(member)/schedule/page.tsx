@@ -262,10 +262,15 @@ export default async function SchedulePage({
   if (isNaN(weekOffset)) weekOffset = 0;
   weekOffset = Math.max(0, Math.min(MAX_WEEKS_AHEAD, weekOffset));
 
-  const activeMemberships = await prisma.membership.findMany({
-    where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
-    include: { plan: { select: { guestPassesPerMonth: true } } },
-  });
+  const [activeMemberships, pastDueCount] = await Promise.all([
+    prisma.membership.findMany({
+      where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
+      include: { plan: { select: { guestPassesPerMonth: true } } },
+    }),
+    prisma.membership.count({
+      where: { userId: user.id, status: "PAST_DUE" },
+    }),
+  ]);
   const guestPasses = availableGuestPasses(activeMemberships);
 
   return (
@@ -283,7 +288,17 @@ export default async function SchedulePage({
         <Toggle view={view} weekOffset={weekOffset} />
       </div>
 
-      {activeMemberships.length === 0 && (
+      {pastDueCount > 0 && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          ⚠️ A payment didn&apos;t go through, so booking is paused.{" "}
+          <Link href="/memberships" className="font-semibold underline">
+            Update your payment
+          </Link>{" "}
+          to turn your access back on.
+        </div>
+      )}
+
+      {activeMemberships.length === 0 && pastDueCount === 0 && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           You don&apos;t have an active membership yet.{" "}
           <Link href="/memberships" className="font-semibold underline">

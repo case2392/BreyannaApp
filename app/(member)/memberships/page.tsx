@@ -32,7 +32,7 @@ export default async function MembershipsPage({
     await finalizeCheckoutSession(user.id, searchParams.session_id);
   }
 
-  const [mine, plans] = await Promise.all([
+  const [mine, plans, pastDue] = await Promise.all([
     prisma.membership.findMany({
       where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
       include: { plan: true },
@@ -41,6 +41,10 @@ export default async function MembershipsPage({
     prisma.membershipPlan.findMany({
       where: { active: true },
       orderBy: { priceCents: "asc" },
+    }),
+    prisma.membership.findMany({
+      where: { userId: user.id, status: "PAST_DUE" },
+      include: { plan: true },
     }),
   ]);
 
@@ -62,6 +66,27 @@ export default async function MembershipsPage({
       {searchParams.status === "cancel" && (
         <div className="mb-6 rounded-xl border border-ink-200 bg-ink-100 px-4 py-3 text-sm text-ink-700">
           Checkout cancelled — no charge was made.
+        </div>
+      )}
+
+      {pastDue.length > 0 && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-800">
+          <div className="font-semibold">
+            ⚠️ A payment didn&apos;t go through — your membership is paused
+          </div>
+          <p className="mt-1">
+            We couldn&apos;t process the latest payment for your{" "}
+            {pastDue.map((m) => m.plan.name).join(", ")} membership, so booking
+            is paused for now. Update your payment method to turn access back on
+            — it reactivates automatically once the payment clears.
+          </p>
+          <div className="mt-3">
+            {payments ? (
+              <ManageBillingButton />
+            ) : (
+              <span className="text-xs">Contact the studio to sort it out.</span>
+            )}
+          </div>
         </div>
       )}
 
