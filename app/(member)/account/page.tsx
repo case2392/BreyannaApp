@@ -17,7 +17,10 @@ export default async function AccountPage() {
     prisma.booking.count({ where: { userId: user.id, status: "ATTENDED" } }),
     prisma.membership.findMany({
       where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
-      include: { plan: { select: { guestPassesPerMonth: true } } },
+      include: {
+        plan: { select: { name: true, kind: true, guestPassesPerMonth: true } },
+      },
+      orderBy: { expiresAt: "asc" },
     }),
   ]);
   const guestPasses = availableGuestPasses(activeMemberships);
@@ -67,6 +70,33 @@ export default async function AccountPage() {
             <dd className="font-medium capitalize">{user.role.toLowerCase()}</dd>
           </div>
         </dl>
+
+        {activeMemberships.length > 0 && (
+          <div className="mt-6 border-t border-ink-100 pt-6">
+            <div className="mb-2 text-sm font-semibold">Membership</div>
+            <ul className="space-y-2 text-sm">
+              {activeMemberships.map((m) => {
+                const comp =
+                  (m.source === "COMP" || m.source === "GIFT") &&
+                  !m.stripeSubscriptionId;
+                const detail =
+                  m.plan.kind === "UNLIMITED"
+                    ? comp
+                      ? "Never expires"
+                      : `${m.autoRenew ? "Renews" : "Expires"} ${shortDate(
+                          m.expiresAt
+                        )}`
+                    : `${m.creditsRemaining} credits · no expiry`;
+                return (
+                  <li key={m.id} className="flex items-center justify-between gap-3">
+                    <span className="font-medium">{m.plan.name}</span>
+                    <span className="text-ink-500">{detail}</span>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid gap-6 md:grid-cols-2">
