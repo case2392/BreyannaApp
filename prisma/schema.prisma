@@ -412,3 +412,17 @@ model EventOrder {
 
   @@index([eventId])
 }
+
+// A site-wide promo popup (e.g. an event flyer) shown to visitors and members
+// until it's turned off or its end date passes. Managed from the CRM.
+model Promo {
+  id        String    @id @default(cuid())
+  imageUrl  String
+  // Optional link the image points to (e.g. an event page).
+  linkUrl   String?
+  active    Boolean   @default(false)
+  // Stop showing after this moment (studio local time). Null = no end date.
+  endsAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}

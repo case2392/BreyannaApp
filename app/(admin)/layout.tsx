@@ -34,6 +34,7 @@ export default async function AdminLayout({
       <NavLink href="/admin/classes" label="Classes" icon={<DumbbellIcon className="h-4 w-4" />} />
       <NavLink href="/admin/plans" label="Plans" icon={<TagIcon className="h-4 w-4" />} />
       <NavLink href="/admin/events" label="Events" icon={<TicketIcon className="h-4 w-4" />} />
+      <NavLink href="/admin/popup" label="Popup" icon={<MegaphoneIcon className="h-4 w-4" />} />
       <NavLink href="/admin/messages" label="Messages" icon={<MegaphoneIcon className="h-4 w-4" />} />
       <NavLink href="/admin/sponsorships" label="Sponsor a Sister" icon={<HeartIcon className="h-4 w-4" />} />
     </>

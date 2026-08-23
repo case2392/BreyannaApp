@@ -827,3 +827,31 @@ export async function staffCancelGuest(guestBookingId: string) {
   if (res.sessionId) revalidatePath(`/admin/schedule/${res.sessionId}`);
   return { ok: res.ok };
 }
+
+// ---- Promo popup ----------------------------------------------------------
+
+// Create/update the single site-wide promo popup (an uploaded flyer shown to
+// visitors and members until turned off or its end date passes).
+export async function savePromo(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  const imageUrl = String(formData.get("imageUrl") || "").trim();
+  if (!imageUrl) return { error: "Upload an image (or paste an image URL) first." };
+  const linkUrl = String(formData.get("linkUrl") || "").trim() || null;
+  const active = formData.get("active") === "on";
+  const dateStr = String(formData.get("endsAt") || "").trim();
+  // Show through the end of the chosen day (studio local, naive wall-clock).
+  const endsAt = dateStr ? new Date(`${dateStr}T23:59:59`) : null;
+  if (endsAt && isNaN(endsAt.getTime())) return { error: "Invalid end date." };
+
+  const existing = await prisma.promo.findFirst({ orderBy: { createdAt: "desc" } });
+  if (existing) {
+    await prisma.promo.update({
+      where: { id: existing.id },
+      data: { imageUrl, linkUrl, active, endsAt },
+    });
+  } else {
+    await prisma.promo.create({ data: { imageUrl, linkUrl, active, endsAt } });
+  }
+  revalidatePath("/admin/popup");
+  return { ok: true };
+}
