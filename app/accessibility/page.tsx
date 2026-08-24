@@ -33,8 +33,14 @@ export default function AccessibilityPage() {
       <p>
         If you have trouble using any part of this site, or need information in
         another format, please let us know and we&apos;ll help and work to fix
-        the issue. Dwell Studio · 800 West Stockwell St, Lincoln, NE 68522 ·
-        Instagram{" "}
+        the issue. Dwell Studio · Email{" "}
+        <a
+          href="mailto:dwellstudio.lnk@gmail.com"
+          className="text-brand-600 hover:underline"
+        >
+          dwellstudio.lnk@gmail.com
+        </a>{" "}
+        · 800 West Stockwell St, Lincoln, NE 68522 · Instagram{" "}
         <a
           href="https://instagram.com/dwellstudio.lnk"
           className="text-brand-600 hover:underline"

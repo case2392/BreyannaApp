@@ -102,7 +102,14 @@ export default function TermsPage() {
 
       <LegalH2>Contact us</LegalH2>
       <p>
-        Dwell Studio · 800 West Stockwell St, Lincoln, NE 68522 · Instagram{" "}
+        Dwell Studio · 800 West Stockwell St, Lincoln, NE 68522 · Email{" "}
+        <a
+          href="mailto:dwellstudio.lnk@gmail.com"
+          className="text-brand-600 hover:underline"
+        >
+          dwellstudio.lnk@gmail.com
+        </a>{" "}
+        · Instagram{" "}
         <a
           href="https://instagram.com/dwellstudio.lnk"
           className="text-brand-600 hover:underline"
