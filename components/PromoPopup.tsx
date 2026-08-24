@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
-type Promo = { id: string; imageUrl: string; linkUrl: string | null };
+type Promo = {
+  id: string;
+  imageUrl: string;
+  alt: string | null;
+  linkUrl: string | null;
+};
 
 // Site-wide promo popup: shows an uploaded flyer once (until dismissed) to
 // visitors and members. Skipped inside the admin CRM. Dismissal is remembered
@@ -43,13 +48,24 @@ export function PromoPopup() {
     }
   }
 
+  // Close on Escape for keyboard users.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismiss();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, promo]);
+
   if (!open || !promo) return null;
 
   // eslint-disable-next-line @next/next/no-img-element
   const image = (
     <img
       src={promo.imageUrl}
-      alt="Studio announcement"
+      alt={promo.alt || "Studio announcement"}
       className="block max-h-[85vh] w-auto max-w-full rounded-2xl shadow-2xl"
     />
   );

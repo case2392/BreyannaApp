@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { shortDate } from "@/lib/format";
@@ -114,6 +115,21 @@ export default async function AccountPage() {
           <ChangePasswordForm />
         </div>
       </div>
+
+      <nav
+        aria-label="Legal"
+        className="mt-8 flex flex-wrap justify-center gap-x-5 gap-y-1 text-xs text-ink-500"
+      >
+        <Link href="/privacy" className="hover:text-brand-600">
+          Privacy Policy
+        </Link>
+        <Link href="/terms" className="hover:text-brand-600">
+          Terms of Service
+        </Link>
+        <Link href="/accessibility" className="hover:text-brand-600">
+          Accessibility
+        </Link>
+      </nav>
     </div>
   );
 }

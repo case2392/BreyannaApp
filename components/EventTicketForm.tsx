@@ -141,12 +141,14 @@ export function EventTicketForm({
                 <input
                   className="input"
                   placeholder="First name"
+                  aria-label={`Guest ${i + 1} first name`}
                   value={g.firstName}
                   onChange={(e) => setGift(i, "firstName", e.target.value)}
                 />
                 <input
                   className="input"
                   placeholder="Last name"
+                  aria-label={`Guest ${i + 1} last name`}
                   value={g.lastName}
                   onChange={(e) => setGift(i, "lastName", e.target.value)}
                 />
@@ -155,6 +157,7 @@ export function EventTicketForm({
                 className="input mt-2"
                 type="email"
                 placeholder="Email"
+                aria-label={`Guest ${i + 1} email`}
                 value={g.email}
                 onChange={(e) => setGift(i, "email", e.target.value)}
               />

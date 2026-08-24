@@ -66,6 +66,7 @@ export default async function LandingPage() {
     <div className="bg-ink-50">
       <MarketingHeader authed={authed} dashboardHref={dashboardHref} />
 
+      <main id="main-content">
       {/* Hero */}
       <section className="relative overflow-hidden">
         {/* Optional hero photo (shows if /photos/hero.jpg exists). */}
@@ -408,6 +409,7 @@ export default async function LandingPage() {
           </Link>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer
@@ -455,7 +457,21 @@ export default async function LandingPage() {
             </div>
           </div>
         </div>
-        <div className="border-t border-ink-100 py-5 text-center text-xs text-ink-400">
+        <div className="border-t border-ink-100 py-5 text-center text-xs text-ink-500">
+          <nav
+            aria-label="Legal"
+            className="mb-2 flex flex-wrap justify-center gap-x-5 gap-y-1"
+          >
+            <Link href="/privacy" className="hover:text-brand-600">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="hover:text-brand-600">
+              Terms of Service
+            </Link>
+            <Link href="/accessibility" className="hover:text-brand-600">
+              Accessibility
+            </Link>
+          </nav>
           © {new Date().getFullYear()} Dwell Studio · Lincoln, NE
         </div>
       </footer>

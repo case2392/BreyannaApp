@@ -49,12 +49,14 @@ export function GuestBookButton({ sessionId }: { sessionId: string }) {
         <input
           name="firstName"
           placeholder="First name"
+          aria-label="Guest first name"
           className="input px-2 py-1 text-xs"
           required
         />
         <input
           name="lastName"
           placeholder="Last name"
+          aria-label="Guest last name"
           className="input px-2 py-1 text-xs"
           required
         />
@@ -63,6 +65,7 @@ export function GuestBookButton({ sessionId }: { sessionId: string }) {
         name="phone"
         type="tel"
         placeholder="Phone"
+        aria-label="Guest phone"
         className="input px-2 py-1 text-xs"
         required
       />
@@ -70,6 +73,7 @@ export function GuestBookButton({ sessionId }: { sessionId: string }) {
         name="email"
         type="email"
         placeholder="Email (optional)"
+        aria-label="Guest email (optional)"
         className="input px-2 py-1 text-xs"
       />
       {error && <p className="text-[11px] text-red-600">{error}</p>}

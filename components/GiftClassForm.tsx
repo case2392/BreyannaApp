@@ -48,8 +48,9 @@ export function GiftClassForm({
   return (
     <div className="card space-y-4 p-6">
       <div>
-        <label className="label">Which class?</label>
+        <label className="label" htmlFor="gift-class">Which class?</label>
         <select
+          id="gift-class"
           className="input"
           value={sessionId}
           onChange={(e) => setSessionId(e.target.value)}
@@ -68,12 +69,14 @@ export function GiftClassForm({
           <input
             className="input"
             placeholder="First name"
+            aria-label="Recipient first name"
             value={firstName}
             onChange={(e) => setFirst(e.target.value)}
           />
           <input
             className="input"
             placeholder="Last name"
+            aria-label="Recipient last name"
             value={lastName}
             onChange={(e) => setLast(e.target.value)}
           />
@@ -82,6 +85,7 @@ export function GiftClassForm({
           className="input mt-2"
           type="email"
           placeholder="Their email"
+          aria-label="Recipient email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />

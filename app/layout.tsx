@@ -39,7 +39,8 @@ export const metadata: Metadata = {
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // Allow pinch-zoom up to 5x for accessibility (WCAG 1.4.4 / 1.4.10).
+  maximumScale: 5,
   themeColor: "#F4F1EC",
 };
 
@@ -54,6 +55,12 @@ export default function RootLayout({
       className={`${brand.variable} ${serif.variable} ${sans.variable}`}
     >
       <body>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+        >
+          Skip to main content
+        </a>
         {children}
         <PromoPopup />
       </body>

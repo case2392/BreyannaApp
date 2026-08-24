@@ -837,6 +837,7 @@ export async function savePromo(_prev: unknown, formData: FormData) {
   const imageUrl = String(formData.get("imageUrl") || "").trim();
   if (!imageUrl) return { error: "Upload an image (or paste an image URL) first." };
   const linkUrl = String(formData.get("linkUrl") || "").trim() || null;
+  const alt = String(formData.get("alt") || "").trim() || null;
   const active = formData.get("active") === "on";
   const dateStr = String(formData.get("endsAt") || "").trim();
   // Show through the end of the chosen day (studio local, naive wall-clock).
@@ -847,7 +848,7 @@ export async function savePromo(_prev: unknown, formData: FormData) {
   if (existing) {
     await prisma.promo.update({
       where: { id: existing.id },
-      data: { imageUrl, linkUrl, active, endsAt },
+      data: { imageUrl, alt, linkUrl, active, endsAt },
     });
   } else {
     await prisma.promo.create({ data: { imageUrl, linkUrl, active, endsAt } });

@@ -19,6 +19,7 @@ export async function GET() {
       promo: {
         id: promo.id,
         imageUrl: promo.imageUrl,
+        alt: promo.alt,
         linkUrl: promo.linkUrl,
       },
     });

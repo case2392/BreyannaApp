@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { updateSession } from "@/app/actions/admin";
 import { capacityLimited } from "@/lib/format";
@@ -43,6 +43,16 @@ export function EditSessionForm({
   const selected = classTypes.find((c) => c.id === classTypeId);
   const showCapacity = selected ? capacityLimited(selected.name) : false;
 
+  // Close the modal on Escape for keyboard users.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
   if (!open) {
     return (
       <button onClick={() => setOpen(true)} className="btn-secondary text-xs">
@@ -55,6 +65,9 @@ export function EditSessionForm({
     <div
       className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4"
       onClick={() => setOpen(false)}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-session-title"
     >
       <form
         action={action}
@@ -62,7 +75,7 @@ export function EditSessionForm({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="font-semibold">Edit class details</h3>
+          <h3 id="edit-session-title" className="font-semibold">Edit class details</h3>
           <button
             type="button"
             onClick={() => setOpen(false)}

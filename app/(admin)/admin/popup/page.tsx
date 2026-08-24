@@ -42,6 +42,7 @@ export default async function PopupPage() {
       <PromoForm
         current={{
           imageUrl: promo?.imageUrl ?? "",
+          alt: promo?.alt ?? "",
           linkUrl: promo?.linkUrl ?? "",
           endsAt: promo?.endsAt
             ? promo.endsAt.toISOString().slice(0, 10)

@@ -16,7 +16,7 @@ export default async function LoginPage({
       : undefined;
 
   return (
-    <main className="flex min-h-screen flex-col md:flex-row">
+    <main id="main-content" className="flex min-h-screen flex-col md:flex-row">
       {/* Brand / story panel */}
       <section className="bg-sunset relative flex flex-col items-center justify-center px-6 py-12 text-center md:w-1/2 md:py-0">
         <div className="absolute inset-0 bg-ink-900/10" />

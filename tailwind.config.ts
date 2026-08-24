@@ -14,7 +14,7 @@ const config: Config = {
           100: "#ECE7DE",
           200: "#DED5C7",
           300: "#C9BCA8",
-          400: "#A89A85",
+          400: "#756C5A", // darkened for WCAG AA text contrast (used only as text-ink-400)
           500: "#7C7363",
           600: "#5C5547",
           700: "#44403A",

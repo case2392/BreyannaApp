@@ -58,6 +58,7 @@ export function PromoForm({
 }: {
   current: {
     imageUrl: string;
+    alt: string;
     linkUrl: string;
     endsAt: string; // YYYY-MM-DD or ""
     active: boolean;
@@ -146,6 +147,24 @@ export function PromoForm({
           </p>
         )}
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      </div>
+
+      <div>
+        <label className="label" htmlFor="promo-alt">
+          Image description (for screen readers)
+        </label>
+        <input
+          id="promo-alt"
+          type="text"
+          name="alt"
+          defaultValue={current.alt}
+          placeholder="e.g. Family Worship Night, Saturday August 29 at Dwell Studio"
+          className="input"
+        />
+        <p className="mt-1 text-xs text-ink-400">
+          Describe what the flyer says, so people using a screen reader get the
+          same info.
+        </p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">

@@ -8,7 +8,7 @@ export default async function RegisterPage() {
   if (user) redirect(user.role === "MEMBER" ? "/schedule" : "/admin");
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-ink-50 to-sage-50 px-4 py-10">
+    <main id="main-content" className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-ink-50 to-sage-50 px-4 py-10">
       <div className="w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
           <DwellSeal size={96} />
@@ -23,6 +23,17 @@ export default async function RegisterPage() {
             It only takes a minute to get started.
           </p>
           <RegisterForm />
+          <p className="mt-4 text-center text-xs text-ink-500">
+            By creating an account, you agree to our{" "}
+            <a href="/terms" className="text-brand-600 hover:underline">
+              Terms
+            </a>{" "}
+            and{" "}
+            <a href="/privacy" className="text-brand-600 hover:underline">
+              Privacy Policy
+            </a>
+            .
+          </p>
         </div>
       </div>
     </main>

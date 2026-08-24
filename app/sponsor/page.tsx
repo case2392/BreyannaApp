@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { MarketingHeader } from "@/components/MarketingHeader";
+import { MarketingFooter } from "@/components/MarketingFooter";
 import { DonateForm } from "@/components/DonateForm";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,7 @@ export default async function SponsorPage({
     <div className="bg-ink-50">
       <MarketingHeader authed={authed} dashboardHref={dashboardHref} />
 
+      <main id="main-content">
       {searchParams.status === "thanks" && (
         <div className="border-b border-green-200 bg-green-50 px-4 py-3 text-center text-sm text-green-800">
           Thank you for sponsoring a sister 🤍 Your generosity makes a real
@@ -66,11 +68,13 @@ export default async function SponsorPage({
         </div>
       </section>
 
+      </main>
       <footer className="border-t border-ink-200 bg-white py-8 text-center text-sm text-ink-500">
         <Link href="/" className="font-semibold text-brand-600 hover:underline">
           ← Back to Dwell Studio
         </Link>
       </footer>
+      <MarketingFooter />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel } from "@/lib/format";
 import { eventRegStatus } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
+import { MarketingFooter } from "@/components/MarketingFooter";
 import { studioNow } from "@/lib/time";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export default async function EventsPage() {
     <div className="bg-ink-50">
       <MarketingHeader authed={authed} dashboardHref={dashboardHref} />
 
+      <main id="main-content">
       {/* Header */}
       <section className="border-b border-ink-200 bg-white">
         <div className="mx-auto max-w-6xl px-4 py-16 text-center">
@@ -119,6 +121,8 @@ export default async function EventsPage() {
           </div>
         )}
       </section>
+      </main>
+      <MarketingFooter />
     </div>
   );
 }

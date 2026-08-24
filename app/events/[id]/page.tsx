@@ -6,6 +6,7 @@ import { money, dayLabel, timeLabel } from "@/lib/format";
 import { finalizeEventCheckout, finalizeEventOrder } from "@/app/actions/events";
 import { eventRegStatus } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
+import { MarketingFooter } from "@/components/MarketingFooter";
 import { EventTicketForm } from "@/components/EventTicketForm";
 
 export const dynamic = "force-dynamic";
@@ -50,6 +51,7 @@ export default async function EventDetailPage({
     <div className="bg-ink-50">
       <MarketingHeader authed={authed} dashboardHref={dashboardHref} />
 
+      <main id="main-content">
       {searchParams.status === "success" && (
         <div className="border-b border-green-200 bg-green-50 px-4 py-3 text-center text-sm text-green-800">
           You&apos;re registered — see you there! A confirmation is on its way.
@@ -139,6 +141,8 @@ export default async function EventDetailPage({
           </div>
         </div>
       </div>
+      </main>
+      <MarketingFooter />
     </div>
   );
 }

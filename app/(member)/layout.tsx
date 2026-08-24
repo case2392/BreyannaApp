@@ -59,7 +59,7 @@ export default async function MemberLayout({
       </header>
 
       {/* Content */}
-      <main className="mx-auto max-w-5xl px-4 pb-24 pt-6 md:pb-10">{children}</main>
+      <main id="main-content" className="mx-auto max-w-5xl px-4 pb-24 pt-6 md:pb-10">{children}</main>
 
       {/* Bottom mobile nav */}
       <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-ink-200 bg-white md:hidden">
