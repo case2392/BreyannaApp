@@ -34,6 +34,7 @@ export function EditSessionForm({
     date: string; // YYYY-MM-DD
     time: string; // HH:MM
     capacity: number;
+    isPrivate: boolean;
   };
 }) {
   const [open, setOpen] = useState(false);
@@ -177,6 +178,21 @@ export function EditSessionForm({
           </div>
         </div>
       </div>
+        <label className="mt-4 flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="isPrivate"
+            defaultChecked={current.isPrivate}
+            className="mt-0.5"
+          />
+          <span>
+            <span className="font-medium">Private (invite-only)</span>
+            <span className="block text-xs text-ink-500">
+              Hidden from the site and member schedule; bookable only via its
+              invite link.
+            </span>
+          </span>
+        </label>
         <div className="mt-4">
           <Submit />
         </div>

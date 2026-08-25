@@ -55,7 +55,7 @@ export default async function LandingPage() {
     prisma.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.membershipPlan.findMany({ where: { active: true }, orderBy: { priceCents: "asc" } }),
     prisma.classSession.findMany({
-      where: { cancelled: false, registrationClosed: false, startsAt: { gt: now, lt: weekEnd } },
+      where: { cancelled: false, registrationClosed: false, isPrivate: false, startsAt: { gt: now, lt: weekEnd } },
       orderBy: { startsAt: "asc" },
       include: { classType: true, instructor: true },
     }),

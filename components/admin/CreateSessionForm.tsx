@@ -103,6 +103,17 @@ export function CreateSessionForm({
           </div>
         </div>
       </div>
+      <label className="mt-4 flex items-start gap-2 text-sm">
+        <input type="checkbox" name="isPrivate" className="mt-0.5" />
+        <span>
+          <span className="font-medium">Private (invite-only)</span>
+          <span className="block text-xs text-ink-500">
+            Hidden from the site and the member schedule. Bookable only through
+            its invite link — you&apos;ll get the link on the class&apos;s roster
+            page.
+          </span>
+        </span>
+      </label>
       <div className="mt-4">
         <Submit />
       </div>

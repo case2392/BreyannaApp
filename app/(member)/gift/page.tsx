@@ -26,6 +26,7 @@ export default async function GiftPage({
       where: {
         cancelled: false,
         registrationClosed: false,
+        isPrivate: false,
         startsAt: { gte: now, lt: horizon },
       },
       orderBy: { startsAt: "asc" },

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
@@ -56,6 +57,10 @@ export async function createSession(_prev: unknown, formData: FormData) {
       : classType.capacity
     : 100000;
 
+  // Invite-only class: hidden everywhere, reservable only via its secret link.
+  const isPrivate = formData.get("isPrivate") === "on";
+  const inviteToken = isPrivate ? randomUUID().replace(/-/g, "") : null;
+
   await prisma.classSession.create({
     data: {
       classTypeId,
@@ -63,6 +68,8 @@ export async function createSession(_prev: unknown, formData: FormData) {
       roomId,
       startsAt,
       capacity,
+      isPrivate,
+      inviteToken,
     },
   });
 
@@ -109,7 +116,7 @@ export async function updateSession(_prev: unknown, formData: FormData) {
   // classes stay effectively unlimited.
   const existing = await prisma.classSession.findUnique({
     where: { id: sessionId },
-    select: { capacity: true },
+    select: { capacity: true, inviteToken: true },
   });
   if (!existing) return { error: "Class not found." };
   const entered = Number(formData.get("capacity"));
@@ -119,9 +126,15 @@ export async function updateSession(_prev: unknown, formData: FormData) {
       : existing.capacity
     : 100000;
 
+  // Keep a stable invite token; generate one the first time it becomes private.
+  const isPrivate = formData.get("isPrivate") === "on";
+  const inviteToken = isPrivate
+    ? existing.inviteToken ?? randomUUID().replace(/-/g, "")
+    : existing.inviteToken;
+
   await prisma.classSession.update({
     where: { id: sessionId },
-    data: { classTypeId, instructorId, roomId, startsAt, capacity },
+    data: { classTypeId, instructorId, roomId, startsAt, capacity, isPrivate, inviteToken },
   });
 
   revalidatePath("/admin/schedule");

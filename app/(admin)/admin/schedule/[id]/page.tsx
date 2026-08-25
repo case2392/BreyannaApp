@@ -11,6 +11,7 @@ import { GuestCancelButton } from "@/components/admin/GuestCancelButton";
 import { RemoveBookingButton } from "@/components/admin/RemoveBookingButton";
 import { EditSessionForm } from "@/components/admin/EditSessionForm";
 import { SessionNotes } from "@/components/admin/SessionNotes";
+import { CopyInviteLink } from "@/components/admin/CopyInviteLink";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,7 @@ export default async function RosterPage({
     date: iso.slice(0, 10),
     time: iso.slice(11, 16),
     capacity: session.capacity,
+    isPrivate: session.isPrivate,
   };
 
   return (
@@ -96,7 +98,24 @@ export default async function RosterPage({
         {session.cancelled && (
           <span className="badge ml-2 bg-red-100 text-red-700">Cancelled</span>
         )}
+        {session.isPrivate && (
+          <span className="badge ml-2 bg-brand-100 text-brand-700">
+            Private · invite-only
+          </span>
+        )}
       </p>
+
+      {session.isPrivate && session.inviteToken && !session.cancelled && (
+        <div className="card mb-6 p-5">
+          <h2 className="mb-1 font-semibold">Invite link</h2>
+          <p className="mb-3 text-xs text-ink-500">
+            Share this link only with the people you&apos;re inviting. This class
+            is hidden from the site and the member schedule — it can only be
+            booked through this link.
+          </p>
+          <CopyInviteLink token={session.inviteToken} />
+        </div>
+      )}
 
       {!session.cancelled && (
         <div className="mb-6 space-y-3">

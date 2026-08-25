@@ -84,7 +84,7 @@ async function findUsableMembership(
 export async function bookClass(
   userId: string,
   sessionId: string,
-  opts?: { staff?: boolean; comp?: boolean }
+  opts?: { staff?: boolean; comp?: boolean; allowPrivate?: boolean }
 ): Promise<BookResult> {
   const session = await prisma.classSession.findUnique({
     where: { id: sessionId },
@@ -92,6 +92,9 @@ export async function bookClass(
   });
   if (!session) return { ok: false, error: "Class not found." };
   if (session.cancelled) return { ok: false, error: "This class was cancelled." };
+  // Invite-only classes can only be booked via their invite link (or by staff).
+  if (session.isPrivate && !opts?.staff && !opts?.allowPrivate)
+    return { ok: false, error: "This class is invite-only." };
   if (!opts?.staff && session.registrationClosed)
     return { ok: false, error: "Registration for this class is closed." };
 

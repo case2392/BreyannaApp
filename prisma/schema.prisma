@@ -105,6 +105,10 @@ model ClassSession {
   registrationClosed Boolean @default(false)
   // Free-form staff notes about how the class went (no-shows, heads-ups, etc.).
   notes        String?
+  // Invite-only class: hidden from the public site and the member schedule, and
+  // only reservable via its secret invite link (inviteToken).
+  isPrivate    Boolean  @default(false)
+  inviteToken  String?  @unique
   createdAt    DateTime @default(now())
 
   bookings Booking[]

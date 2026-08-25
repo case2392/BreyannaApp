@@ -116,7 +116,11 @@ async function loadSessions(from: Date, to: Date) {
   startOfToday.setHours(0, 0, 0, 0);
   const lower = from > startOfToday ? from : startOfToday;
   return prisma.classSession.findMany({
-    where: { cancelled: false, startsAt: { gte: lower, lt: to } },
+    where: {
+      cancelled: false,
+      isPrivate: false,
+      startsAt: { gte: lower, lt: to },
+    },
     orderBy: { startsAt: "asc" },
     include: {
       classType: true,

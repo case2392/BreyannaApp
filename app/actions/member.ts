@@ -54,6 +54,47 @@ export async function book(sessionId: string) {
   return result;
 }
 
+// Reserve a spot in an invite-only class via its secret invite link. Booking
+// rules (membership/credits, capacity) still apply like any class.
+export async function reservePrivateClass(token: string) {
+  const user = await getCurrentUser();
+  if (!user)
+    return { ok: false as const, error: "Please sign in.", needAuth: true };
+
+  const session = await prisma.classSession.findUnique({
+    where: { inviteToken: token },
+    include: { classType: true, instructor: true },
+  });
+  if (!session || session.cancelled)
+    return { ok: false as const, error: "This class isn't available." };
+
+  const result = await bookClass(user.id, session.id, { allowPrivate: true });
+
+  if (result.ok) {
+    const when = `${dayLabel(session.startsAt)} at ${timeLabel(session.startsAt)}`;
+    if (result.status === "BOOKED") {
+      await fireAutomation(
+        "booking_confirmation",
+        user,
+        {
+          className: session.classType.name,
+          date: dayLabel(session.startsAt),
+          time: timeLabel(session.startsAt),
+          instructor: session.instructor.name,
+        },
+        { classTypeId: session.classType.id }
+      );
+    }
+    await notifyStudio(
+      `Private class reservation: ${session.classType.name}`,
+      `${user.firstName} ${user.lastName} reserved ${session.classType.name} on ${when}.`
+    );
+    revalidatePath(`/c/${token}`);
+    revalidatePath("/bookings");
+  }
+  return result;
+}
+
 export async function unbook(bookingId: string) {
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Please sign in." };

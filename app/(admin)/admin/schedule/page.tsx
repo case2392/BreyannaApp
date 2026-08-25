@@ -91,6 +91,11 @@ export default async function AdminSchedulePage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold">{s.classType.name}</span>
+                        {s.isPrivate && (
+                          <span className="badge bg-brand-100 text-brand-700">
+                            Private
+                          </span>
+                        )}
                         {s.registrationClosed && (
                           <span className="badge bg-red-100 text-red-700">
                             Booking closed
@@ -132,6 +137,7 @@ export default async function AdminSchedulePage() {
                           date: s.startsAt.toISOString().slice(0, 10),
                           time: s.startsAt.toISOString().slice(11, 16),
                           capacity: s.capacity,
+                          isPrivate: s.isPrivate,
                         }}
                       />
                       <RegistrationToggle
