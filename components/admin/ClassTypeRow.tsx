@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
-import { updateClassType, deleteClassType } from "@/app/actions/admin";
+import {
+  updateClassType,
+  deleteClassType,
+  toggleClassType,
+} from "@/app/actions/admin";
 
 type ClassType = {
   id: string;
@@ -45,6 +49,13 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
     start(async () => {
       const res = await deleteClassType(ct.id);
       if (!res.ok) alert(res.error);
+      router.refresh();
+    });
+  }
+
+  function toggleHidden() {
+    start(async () => {
+      await toggleClassType(ct.id, !ct.active);
       router.refresh();
     });
   }
@@ -118,6 +129,13 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
         </div>
       </div>
       <button onClick={() => setEditing(true)} className="btn-ghost text-xs">Edit</button>
+      <button
+        onClick={toggleHidden}
+        disabled={pending}
+        className="text-xs font-medium text-ink-500 hover:text-brand-600"
+      >
+        {ct.active ? "Hide" : "Show"}
+      </button>
       <button onClick={remove} disabled={pending} className="text-xs text-ink-400 hover:text-red-600">
         Delete
       </button>

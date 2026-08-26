@@ -32,24 +32,62 @@ export default async function ClassesPage() {
         <div>
           <h2 className="mb-3 font-semibold">Class types</h2>
           <div className="mb-4 space-y-2">
-            {classTypes.map((c) => (
-              <ClassTypeRow
-                key={c.id}
-                ct={{
-                  id: c.id,
-                  name: c.name,
-                  description: c.description,
-                  duration: c.duration,
-                  capacity: c.capacity,
-                  creditCost: c.creditCost,
-                  free: c.free,
-                  color: c.color,
-                  active: c.active,
-                  sessions: c._count.sessions,
-                }}
-              />
-            ))}
+            {classTypes
+              .filter((c) => c.active)
+              .map((c) => (
+                <ClassTypeRow
+                  key={c.id}
+                  ct={{
+                    id: c.id,
+                    name: c.name,
+                    description: c.description,
+                    duration: c.duration,
+                    capacity: c.capacity,
+                    creditCost: c.creditCost,
+                    free: c.free,
+                    color: c.color,
+                    active: c.active,
+                    sessions: c._count.sessions,
+                  }}
+                />
+              ))}
           </div>
+
+          {classTypes.some((c) => !c.active) && (
+            <details className="mb-4">
+              <summary className="cursor-pointer text-sm font-medium text-ink-500 hover:text-brand-600">
+                {classTypes.filter((c) => !c.active).length} hidden class type
+                {classTypes.filter((c) => !c.active).length === 1 ? "" : "s"}
+              </summary>
+              <p className="mt-1 text-xs text-ink-400">
+                Hidden from the public site and the &ldquo;add a class&rdquo;
+                dropdown. Already-scheduled classes still run. Tap
+                &ldquo;Show&rdquo; to bring one back.
+              </p>
+              <div className="mt-2 space-y-2">
+                {classTypes
+                  .filter((c) => !c.active)
+                  .map((c) => (
+                    <ClassTypeRow
+                      key={c.id}
+                      ct={{
+                        id: c.id,
+                        name: c.name,
+                        description: c.description,
+                        duration: c.duration,
+                        capacity: c.capacity,
+                        creditCost: c.creditCost,
+                        free: c.free,
+                        color: c.color,
+                        active: c.active,
+                        sessions: c._count.sessions,
+                      }}
+                    />
+                  ))}
+              </div>
+            </details>
+          )}
+
           <CreateClassTypeForm />
         </div>
 

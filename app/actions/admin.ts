@@ -443,6 +443,20 @@ export async function deletePlan(planId: string) {
   return { ok: true };
 }
 
+// Quick hide/show a class type. Hidden types drop off the public site and the
+// "add a class" dropdown; existing scheduled sessions are unaffected.
+export async function toggleClassType(classTypeId: string, active: boolean) {
+  await requireStaff();
+  await prisma.classType.update({
+    where: { id: classTypeId },
+    data: { active },
+  });
+  revalidatePath("/admin/classes");
+  revalidatePath("/schedule");
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function updateClassType(_prev: unknown, formData: FormData) {
   await requireStaff();
   const id = String(formData.get("id") || "");
