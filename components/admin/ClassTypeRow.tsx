@@ -19,6 +19,7 @@ type ClassType = {
   free: boolean;
   color: string;
   active: boolean;
+  requiresMatchingPlan: boolean;
   sessions: number;
 };
 
@@ -102,6 +103,23 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
               Free class — anyone can book without a membership or credits
             </span>
           </label>
+          <label className="flex items-start gap-2 sm:col-span-2">
+            <input
+              type="checkbox"
+              name="requiresMatchingPlan"
+              defaultChecked={ct.requiresMatchingPlan}
+              className="mt-0.5"
+            />
+            <span className="text-sm text-ink-700">
+              Only bookable with its own pack
+              <span className="block text-xs text-ink-500">
+                Requires a membership/pack made for this class (matching its
+                &ldquo;only for classes containing&rdquo; keyword). General
+                credits and single-class passes can&apos;t book it. Members who
+                already bought passes keep their current access until used.
+              </span>
+            </span>
+          </label>
         </div>
         <div className="mt-3 flex gap-2">
           <SaveBtn />
@@ -120,6 +138,9 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{ct.name}</span>
           {ct.free && <span className="badge bg-sage-200 text-sage-700">Free</span>}
+          {ct.requiresMatchingPlan && (
+            <span className="badge bg-brand-100 text-brand-700">Own pack only</span>
+          )}
           {!ct.active && <span className="badge bg-ink-100 text-ink-500">Hidden</span>}
         </div>
         <div className="text-xs text-ink-500">

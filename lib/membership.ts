@@ -69,6 +69,8 @@ export async function grantMembership(
       giftedByUserId: opts.giftedByUserId ?? null,
       autoRenew: isSubscription,
       stripeSubscriptionId: opts.stripeSubscriptionId ?? null,
+      // New purchases are subject to class gating (existing ones are grandfathered).
+      grandfathered: false,
     },
   });
 

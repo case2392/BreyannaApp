@@ -83,6 +83,11 @@ model ClassType {
   free        Boolean @default(false)
   color       String  @default("#ec4899")
   active      Boolean @default(true)
+  // If true, this class can only be booked with a membership/pack whose plan is
+  // restricted to match it (e.g. a Mommy & Me pack) — general credits and
+  // single-class passes can't book it. Memberships bought before this was turned
+  // on are grandfathered (see Membership.grandfathered).
+  requiresMatchingPlan Boolean @default(false)
 
   sessions    ClassSession[]
   automations Automation[]
@@ -174,6 +179,10 @@ model Membership {
   // on renewal. Available = plan.guestPassesPerMonth + bonus - used.
   guestPassesUsed  Int @default(0)
   guestPassesBonus Int @default(0)
+  // Grandfather flag: memberships that already existed when class gating was
+  // introduced keep the old, unrestricted coverage until their credits run out.
+  // New purchases are created with grandfathered = false, so class gating applies.
+  grandfathered   Boolean @default(true)
   createdAt       DateTime @default(now())
 
   bookings Booking[]

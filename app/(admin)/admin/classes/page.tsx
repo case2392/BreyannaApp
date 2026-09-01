@@ -47,6 +47,7 @@ export default async function ClassesPage() {
                     free: c.free,
                     color: c.color,
                     active: c.active,
+                    requiresMatchingPlan: c.requiresMatchingPlan,
                     sessions: c._count.sessions,
                   }}
                 />
@@ -80,6 +81,7 @@ export default async function ClassesPage() {
                         free: c.free,
                         color: c.color,
                         active: c.active,
+                        requiresMatchingPlan: c.requiresMatchingPlan,
                         sessions: c._count.sessions,
                       }}
                     />

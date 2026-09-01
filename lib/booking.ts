@@ -54,10 +54,27 @@ export function planCoversClass(
   return className.toLowerCase().includes(r.toLowerCase());
 }
 
+// Can this specific membership book this class? Adds gating on top of the plan's
+// own restriction: when the class requires a matching plan, only a membership
+// whose plan is restricted to match it qualifies — unless the membership is
+// grandfathered (bought before gating existed), which keeps the old coverage.
+function membershipCoversClass(
+  membership: { plan: { restrictedClass: string | null }; grandfathered: boolean },
+  className: string,
+  requiresMatchingPlan: boolean
+): boolean {
+  if (requiresMatchingPlan && !membership.grandfathered) {
+    const r = membership.plan.restrictedClass?.trim();
+    return Boolean(r) && className.toLowerCase().includes(r!.toLowerCase());
+  }
+  return planCoversClass(membership.plan, className);
+}
+
 async function findUsableMembership(
   userId: string,
   creditCost: number,
-  className: string
+  className: string,
+  requiresMatchingPlan: boolean
 ): Promise<MembershipWithPlan | null> {
   const now = new Date();
   const memberships = await prisma.membership.findMany({
@@ -66,7 +83,9 @@ async function findUsableMembership(
     orderBy: { expiresAt: "asc" },
   });
 
-  const usable = memberships.filter((m) => planCoversClass(m.plan, className));
+  const usable = memberships.filter((m) =>
+    membershipCoversClass(m, className, requiresMatchingPlan)
+  );
 
   const unlimited = usable.find((m) => m.plan.kind === "UNLIMITED");
   if (unlimited) return unlimited;
@@ -115,7 +134,8 @@ export async function bookClass(
     membership = await findUsableMembership(
       userId,
       creditCost,
-      session.classType.name
+      session.classType.name,
+      session.classType.requiresMatchingPlan
     );
     if (!membership) {
       // If they have an active membership that just doesn't cover this class
@@ -125,10 +145,11 @@ export async function bookClass(
       });
       return {
         ok: false,
-        error:
-          activeCount > 0
-            ? "Your membership doesn't cover this class — buy a single class or class pack to book it."
-            : "You need an active membership or class pack to book.",
+        error: session.classType.requiresMatchingPlan
+          ? `This class can only be booked with a ${session.classType.name} membership or pack.`
+          : activeCount > 0
+          ? "Your membership doesn't cover this class — buy a single class or class pack to book it."
+          : "You need an active membership or class pack to book.",
       };
     }
   }
@@ -271,7 +292,13 @@ async function cancelBookingRecord(
         });
         const cost = next.session.classType.creditCost;
         const className = next.session.classType.name;
-        const usable = memberships.filter((m) => planCoversClass(m.plan, className));
+        const usable = memberships.filter((m) =>
+          membershipCoversClass(
+            m,
+            className,
+            next.session.classType.requiresMatchingPlan
+          )
+        );
         const unlimited = usable.find((m) => m.plan.kind === "UNLIMITED");
         const pack = usable.find(
           (m) => m.plan.kind !== "UNLIMITED" && m.creditsRemaining >= cost
