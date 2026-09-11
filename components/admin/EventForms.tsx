@@ -185,6 +185,8 @@ function EventFields({
     capacity?: string;
     date?: string;
     time?: string;
+    allowCredits?: boolean;
+    creditCost?: string;
   };
   currentImage?: string | null;
   onUploadingChange?: (busy: boolean) => void;
@@ -246,6 +248,34 @@ function EventFields({
           Registration closes automatically when this many people have signed up.
         </p>
       </div>
+      <div className="rounded-xl border border-ink-200 p-3">
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            name="allowCredits"
+            defaultChecked={defaults?.allowCredits}
+            className="mt-0.5"
+          />
+          <span className="text-sm text-ink-700">
+            Let members book with their membership/credits
+            <span className="block text-xs text-ink-500">
+              For special workout-class events. Unlimited plans book free; packs
+              spend the credits below. Leave the price at 0 for members-only, or
+              set a price to also sell tickets to non-members.
+            </span>
+          </span>
+        </label>
+        <div className="mt-2">
+          <label className="label">Credits per booking</label>
+          <input
+            name="creditCost"
+            type="number"
+            min="1"
+            className="input w-28"
+            defaultValue={defaults?.creditCost ?? "1"}
+          />
+        </div>
+      </div>
       <div>
         <label className="label">Description</label>
         <textarea
@@ -304,6 +334,8 @@ type EventRowData = {
   price: string;
   capacity: string;
   capacityNum: number | null;
+  allowCredits: boolean;
+  creditCost: string;
   imageUrl: string | null;
   registrationCount: number;
   registrationClosed: boolean;
@@ -350,6 +382,8 @@ export function EventRow({ event }: { event: EventRowData }) {
             capacity: event.capacity,
             date: event.date,
             time: event.time,
+            allowCredits: event.allowCredits,
+            creditCost: event.creditCost,
           }}
         />
         <label className="mt-3 flex items-center gap-2">

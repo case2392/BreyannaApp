@@ -437,8 +437,131 @@ export async function removeRegistration(registrationId: string) {
     where: { id: registrationId },
   });
   if (!reg) return { ok: false, error: "Registration not found." };
-  await prisma.eventRegistration.delete({ where: { id: registrationId } });
+  // Refund any membership credits that were spent on this registration.
+  await prisma.$transaction(async (tx) => {
+    if (reg.membershipId && reg.creditsSpent > 0) {
+      await tx.membership.update({
+        where: { id: reg.membershipId },
+        data: { creditsRemaining: { increment: reg.creditsSpent } },
+      });
+    }
+    await tx.eventRegistration.delete({ where: { id: registrationId } });
+  });
   revalidatePath("/admin/events");
   revalidatePath(`/admin/events/${reg.eventId}`);
+  revalidatePath(`/events/${reg.eventId}`);
   return { ok: true };
+}
+
+// Register for an event using the member's membership/credits (like a class):
+// unlimited plans register free; packs/drop-ins spend the event's creditCost.
+export async function bookEventWithCredits(eventId: string) {
+  const user = await getCurrentUser();
+  if (!user)
+    return { ok: false as const, error: "Please sign in.", needAuth: true };
+
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event || !event.active)
+    return { ok: false as const, error: "This event isn't available." };
+  if (!event.allowCredits)
+    return {
+      ok: false as const,
+      error: "This event can't be booked with a membership.",
+    };
+  if (event.registrationClosed)
+    return { ok: false as const, error: "Registration for this event is closed." };
+
+  const existing = await prisma.eventRegistration.findFirst({
+    where: { eventId, userId: user.id },
+  });
+  if (existing) return { ok: true as const, already: true };
+
+  if (event.capacity != null) {
+    const count = await prisma.eventRegistration.count({ where: { eventId } });
+    if (count >= event.capacity)
+      return { ok: false as const, error: "This event is sold out." };
+  }
+
+  const now = new Date();
+  const memberships = await prisma.membership.findMany({
+    where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
+    include: { plan: true },
+    orderBy: { expiresAt: "asc" },
+  });
+  const unlimited = memberships.find((m) => m.plan.kind === "UNLIMITED");
+  const pack = memberships.find(
+    (m) => m.plan.kind !== "UNLIMITED" && m.creditsRemaining >= event.creditCost
+  );
+  const chosen = unlimited ?? pack;
+  if (!chosen) {
+    return {
+      ok: false as const,
+      error:
+        memberships.length > 0
+          ? `You don't have enough credits — this event costs ${event.creditCost} credit${
+              event.creditCost === 1 ? "" : "s"
+            }.`
+          : "You need an active membership or class pack to book this with credits.",
+    };
+  }
+  const charge = chosen.plan.kind !== "UNLIMITED";
+
+  await prisma.$transaction(async (tx) => {
+    await tx.eventRegistration.create({
+      data: {
+        eventId,
+        userId: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        status: "REGISTERED",
+        source: "Membership",
+        amountCents: 0,
+        membershipId: charge ? chosen.id : null,
+        creditsSpent: charge ? event.creditCost : 0,
+      },
+    });
+    if (charge) {
+      await tx.membership.update({
+        where: { id: chosen.id },
+        data: { creditsRemaining: { decrement: event.creditCost } },
+      });
+    }
+  });
+
+  await notifyStudio(
+    `Event registration: ${event.name}`,
+    `${user.firstName} ${user.lastName} registered for ${event.name} using their membership.`
+  );
+  revalidatePath(`/events/${eventId}`);
+  revalidatePath("/admin/events");
+  return { ok: true as const, registered: true };
+}
+
+// A member cancels their own free/credit event registration (refunds credits).
+// Paid tickets are handled by the studio.
+export async function cancelMyEventRegistration(registrationId: string) {
+  const user = await getCurrentUser();
+  if (!user) return { ok: false as const, error: "Please sign in." };
+  const reg = await prisma.eventRegistration.findUnique({
+    where: { id: registrationId },
+  });
+  if (!reg || reg.userId !== user.id)
+    return { ok: false as const, error: "Registration not found." };
+  if (reg.status === "PAID")
+    return {
+      ok: false as const,
+      error: "Paid tickets can't be cancelled here — please contact the studio.",
+    };
+  await prisma.$transaction(async (tx) => {
+    if (reg.membershipId && reg.creditsSpent > 0) {
+      await tx.membership.update({
+        where: { id: reg.membershipId },
+        data: { creditsRemaining: { increment: reg.creditsSpent } },
+      });
+    }
+    await tx.eventRegistration.delete({ where: { id: reg.id } });
+  });
+  revalidatePath(`/events/${reg.eventId}`);
+  revalidatePath("/admin/events");
+  return { ok: true as const };
 }

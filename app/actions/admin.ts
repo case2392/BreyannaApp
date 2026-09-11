@@ -635,12 +635,16 @@ export async function createEvent(_prev: unknown, formData: FormData) {
   );
 
   const cap = Number(formData.get("capacity"));
+  const allowCredits = formData.get("allowCredits") === "on";
+  const creditCost = Math.max(1, Number(formData.get("creditCost")) || 1);
   await prisma.event.create({
     data: {
       name,
       description: String(formData.get("description") || "").trim() || null,
       location: String(formData.get("location") || "").trim() || null,
       priceCents: Math.round(price * 100),
+      allowCredits,
+      creditCost,
       capacity: cap > 0 ? Math.floor(cap) : null,
       startsAt,
       imageUrl: eventImageUrl(formData),
@@ -664,6 +668,8 @@ export async function updateEvent(_prev: unknown, formData: FormData) {
   );
 
   const cap = Number(formData.get("capacity"));
+  const allowCredits = formData.get("allowCredits") === "on";
+  const creditCost = Math.max(1, Number(formData.get("creditCost")) || 1);
   await prisma.event.update({
     where: { id },
     data: {
@@ -671,6 +677,8 @@ export async function updateEvent(_prev: unknown, formData: FormData) {
       description: String(formData.get("description") || "").trim() || null,
       location: String(formData.get("location") || "").trim() || null,
       priceCents: Math.round(price * 100),
+      allowCredits,
+      creditCost,
       capacity: cap > 0 ? Math.floor(cap) : null,
       startsAt,
       imageUrl: eventImageUrl(formData),

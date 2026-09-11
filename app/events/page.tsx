@@ -92,7 +92,11 @@ export default async function EventsPage() {
                   )}
                   <div className="mt-auto flex items-center justify-between pt-4">
                     <span className="font-serif text-lg font-semibold">
-                      {e.priceCents === 0 ? "Free" : money(e.priceCents)}
+                      {e.allowCredits && e.priceCents === 0
+                        ? "Membership"
+                        : e.priceCents === 0
+                        ? "Free"
+                        : money(e.priceCents)}
                     </span>
                     {(() => {
                       const status = eventRegStatus(e, e._count.registrations);

@@ -8,6 +8,8 @@ import { eventRegStatus } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { EventTicketForm } from "@/components/EventTicketForm";
+import { EventBookWithCredits } from "@/components/EventBookWithCredits";
+import { CancelMyEventRegistration } from "@/components/CancelMyEventRegistration";
 
 export const dynamic = "force-dynamic";
 
@@ -36,16 +38,19 @@ export default async function EventDetailPage({
   });
   if (!event || !event.active) notFound();
 
-  const registered = user
-    ? Boolean(
-        await prisma.eventRegistration.findFirst({
-          where: { eventId: event.id, userId: user.id },
-        })
-      )
-    : false;
+  const myReg = user
+    ? await prisma.eventRegistration.findFirst({
+        where: { eventId: event.id, userId: user.id },
+        select: { id: true, status: true },
+      })
+    : null;
+  const registered = Boolean(myReg);
 
   const status = eventRegStatus(event, event._count.registrations);
   const priceLabel = event.priceCents === 0 ? "Free" : money(event.priceCents);
+  // Show the ticket/registration form when there's a ticket to sell, or when the
+  // event isn't credit-based (free/paid classic events).
+  const showTicketForm = event.priceCents > 0 || !event.allowCredits;
 
   return (
     <div className="bg-ink-50">
@@ -107,8 +112,16 @@ export default async function EventDetailPage({
           <div className="md:sticky md:top-24 md:self-start">
             <div className="card p-6">
               <div className="text-center font-serif text-3xl font-semibold">
-                {priceLabel}
+                {event.allowCredits && event.priceCents === 0
+                  ? "Members"
+                  : priceLabel}
               </div>
+              {event.allowCredits && (
+                <p className="mt-1 text-center text-xs text-ink-500">
+                  Bookable with your membership
+                  {event.priceCents > 0 ? " or a ticket" : ""}
+                </p>
+              )}
               <div className="mt-4">
                 {status === "sold_out" ? (
                   <div className="rounded-full bg-amber-100 px-4 py-2 text-center text-sm font-semibold text-amber-700">
@@ -119,22 +132,56 @@ export default async function EventDetailPage({
                     Registration closed
                   </div>
                 ) : (
-                  <EventTicketForm
-                    eventId={event.id}
-                    priceCents={event.priceCents}
-                    priceLabel={priceLabel}
-                    authed={authed}
-                    selfRegistered={registered}
-                    me={
-                      user
-                        ? {
-                            firstName: user.firstName,
-                            lastName: user.lastName,
-                            email: user.email,
-                          }
-                        : null
-                    }
-                  />
+                  <div className="space-y-4">
+                    {/* Book with membership/credits */}
+                    {!registered && event.allowCredits && (
+                      authed ? (
+                        <EventBookWithCredits
+                          eventId={event.id}
+                          creditCost={event.creditCost}
+                        />
+                      ) : (
+                        <a
+                          href={`/login?next=/events/${event.id}`}
+                          className="btn-primary block w-full text-center"
+                        >
+                          Sign in to book with your membership
+                        </a>
+                      )
+                    )}
+
+                    {/* Ticket / free registration (+ gifting) */}
+                    {showTicketForm && (
+                      <EventTicketForm
+                        eventId={event.id}
+                        priceCents={event.priceCents}
+                        priceLabel={priceLabel}
+                        authed={authed}
+                        selfRegistered={registered}
+                        me={
+                          user
+                            ? {
+                                firstName: user.firstName,
+                                lastName: user.lastName,
+                                email: user.email,
+                              }
+                            : null
+                        }
+                      />
+                    )}
+
+                    {/* Members-only credit event: show the registered state here */}
+                    {registered && !showTicketForm && (
+                      <div className="rounded-full bg-green-100 px-4 py-2 text-center text-sm font-semibold text-green-700">
+                        ✓ You&apos;re registered
+                      </div>
+                    )}
+
+                    {/* Cancel a free/credit registration (paid tickets: contact studio) */}
+                    {registered && myReg && myReg.status !== "PAID" && (
+                      <CancelMyEventRegistration registrationId={myReg.id} />
+                    )}
+                  </div>
                 )}
               </div>
             </div>

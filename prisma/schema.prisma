@@ -366,6 +366,11 @@ model Event {
   location    String?
   // Ticket price in cents (0 = free).
   priceCents  Int       @default(0)
+  // If true, members can register using their membership/credits (like a class),
+  // spending creditCost credits (unlimited plans register free). A ticket price
+  // can still be offered alongside for non-members.
+  allowCredits Boolean  @default(false)
+  creditCost   Int      @default(1)
   startsAt    DateTime?
   // Max registrations before it's "sold out". Null = unlimited.
   capacity    Int?
@@ -396,6 +401,10 @@ model EventRegistration {
   source      String?
   amountCents Int      @default(0)
   stripeRef   String?  @unique
+  // If registered with membership credits: which membership was charged and how
+  // many credits, so they can be refunded on cancellation.
+  membershipId String?
+  creditsSpent Int     @default(0)
   // A gift ticket bought by someone else (userId is null; buyer recorded below).
   isGift           Boolean @default(false)
   purchasedByUserId String?

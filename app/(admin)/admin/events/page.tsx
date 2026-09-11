@@ -46,6 +46,8 @@ export default async function EventsPage() {
                     price: String(e.priceCents / 100),
                     capacity: e.capacity != null ? String(e.capacity) : "",
                     capacityNum: e.capacity,
+                    allowCredits: e.allowCredits,
+                    creditCost: String(e.creditCost),
                     imageUrl: e.imageUrl,
                     registrationCount: e._count.registrations,
                     registrationClosed: e.registrationClosed,
