@@ -179,64 +179,6 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Is this for me? */}
-      <section className="relative overflow-hidden bg-sage-100 py-20">
-        <span className="ambient bg-sunset -right-28 -top-10 h-72 w-72 opacity-25" />
-        <div className="relative z-10 mx-auto max-w-3xl px-4">
-          <div className="text-center">
-            <h2 className="text-4xl font-semibold">How do I know this is for me?</h2>
-            <span className="rule mt-5" />
-            <p className="mt-5 text-ink-600">
-              If your answer is yes to any of these, you&apos;re in the right
-              place.
-            </p>
-          </div>
-          <ul className="mx-auto mt-8 max-w-2xl space-y-3">
-            {reflections.map((q) => (
-              <li key={q} className="flex items-start gap-3 rounded-2xl bg-white/70 px-5 py-4 shadow-soft transition-colors hover:bg-white">
-                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-500" />
-                <span className="text-ink-700">{q}</span>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-8 text-center">
-            <Link href="/register" className="btn-primary px-6 py-3">
-              This is for me — let&apos;s begin
-            </Link>
-          </p>
-        </div>
-      </section>
-
-      {/* Classes */}
-      <section id="classes" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
-        <div className="text-center">
-          <p className="eyebrow">
-            Move with us
-          </p>
-          <h2 className="mt-3 text-4xl font-semibold">Our classes</h2>
-          <span className="rule mt-5" />
-          <p className="mx-auto mt-5 max-w-xl text-ink-600">
-            A variety of formats welcome to all experience levels, set to music
-            that honors God, and produces a pleasing aroma and offering of
-            worship to Him.
-          </p>
-        </div>
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {classTypes.map((c) => (
-            <div key={c.id} className="card card-interactive overflow-hidden">
-              <div className="h-2 w-full" style={{ backgroundColor: c.color }} />
-              <div className="p-6">
-                <h3 className="text-xl font-semibold">{c.name}</h3>
-                <p className="mt-2 text-sm text-ink-600">{c.description}</p>
-                <p className="mt-3 text-xs uppercase tracking-wide text-ink-400">
-                  {c.duration} minutes
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Community gallery */}
       <section className="bg-white py-20">
         <div className="mx-auto max-w-6xl px-4">
@@ -317,6 +259,64 @@ export default async function LandingPage() {
           <Link href="/register" className="btn-primary px-6 py-3">
             Create an account to book
           </Link>
+        </div>
+      </section>
+
+      {/* Classes */}
+      <section id="classes" className="scroll-mt-20 mx-auto max-w-6xl px-4 py-20">
+        <div className="text-center">
+          <p className="eyebrow">
+            Move with us
+          </p>
+          <h2 className="mt-3 text-4xl font-semibold">Our classes</h2>
+          <span className="rule mt-5" />
+          <p className="mx-auto mt-5 max-w-xl text-ink-600">
+            A variety of formats welcome to all experience levels, set to music
+            that honors God, and produces a pleasing aroma and offering of
+            worship to Him.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {classTypes.map((c) => (
+            <div key={c.id} className="card card-interactive overflow-hidden">
+              <div className="h-2 w-full" style={{ backgroundColor: c.color }} />
+              <div className="p-6">
+                <h3 className="text-xl font-semibold">{c.name}</h3>
+                <p className="mt-2 text-sm text-ink-600">{c.description}</p>
+                <p className="mt-3 text-xs uppercase tracking-wide text-ink-400">
+                  {c.duration} minutes
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Is this for me? */}
+      <section className="relative overflow-hidden bg-sage-100 py-20">
+        <span className="ambient bg-sunset -right-28 -top-10 h-72 w-72 opacity-25" />
+        <div className="relative z-10 mx-auto max-w-3xl px-4">
+          <div className="text-center">
+            <h2 className="text-4xl font-semibold">How do I know this is for me?</h2>
+            <span className="rule mt-5" />
+            <p className="mt-5 text-ink-600">
+              If your answer is yes to any of these, you&apos;re in the right
+              place.
+            </p>
+          </div>
+          <ul className="mx-auto mt-8 max-w-2xl space-y-3">
+            {reflections.map((q) => (
+              <li key={q} className="flex items-start gap-3 rounded-2xl bg-white/70 px-5 py-4 shadow-soft transition-colors hover:bg-white">
+                <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-brand-500" />
+                <span className="text-ink-700">{q}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-8 text-center">
+            <Link href="/register" className="btn-primary px-6 py-3">
+              This is for me — let&apos;s begin
+            </Link>
+          </p>
         </div>
       </section>
 

@@ -5,6 +5,7 @@ import { shortDate, dayLabel, timeLabel, money, timeAgo } from "@/lib/format";
 import { MemberNotes } from "@/components/admin/MemberNotes";
 import { GuestPassControl } from "@/components/admin/GuestPassControl";
 import { availableGuestPasses } from "@/lib/booking";
+import { studioNow } from "@/lib/time";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import {
   GrantMembership,
@@ -27,7 +28,7 @@ export default async function MemberDetailPage({
 }: {
   params: { id: string };
 }) {
-  const [member, plans, lastBooking] = await Promise.all([
+  const [member, plans, lastBooking, eventRegs] = await Promise.all([
     prisma.user.findUnique({
       where: { id: params.id },
       include: {
@@ -50,6 +51,12 @@ export default async function MemberDetailPage({
       where: { userId: params.id },
       orderBy: { createdAt: "desc" },
       select: { createdAt: true },
+    }),
+    // This member's event registrations (upcoming + past).
+    prisma.eventRegistration.findMany({
+      where: { userId: params.id },
+      include: { event: { select: { id: true, name: true, startsAt: true } } },
+      orderBy: { createdAt: "desc" },
     }),
   ]);
 
@@ -240,8 +247,8 @@ export default async function MemberDetailPage({
         <div>
           <h2 className="mb-3 font-semibold">Recent activity</h2>
           <div className="space-y-2">
-            {member.bookings.length === 0 && (
-              <div className="card p-4 text-sm text-ink-500">No bookings yet.</div>
+            {member.bookings.length === 0 && eventRegs.length === 0 && (
+              <div className="card p-4 text-sm text-ink-500">No activity yet.</div>
             )}
             {member.bookings.map((b) => (
               <div
@@ -259,6 +266,51 @@ export default async function MemberDetailPage({
                 </span>
               </div>
             ))}
+
+            {eventRegs.length > 0 && (
+              <>
+                <h3 className="mt-4 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                  Events
+                </h3>
+                {[...eventRegs]
+                  .sort(
+                    (a, b) =>
+                      (b.event.startsAt?.getTime() ?? Infinity) -
+                      (a.event.startsAt?.getTime() ?? Infinity)
+                  )
+                  .map((r) => {
+                    const upcoming = r.event.startsAt
+                      ? r.event.startsAt >= studioNow()
+                      : true;
+                    return (
+                      <div
+                        key={r.id}
+                        className="flex items-center justify-between rounded-xl border border-ink-200 bg-white px-4 py-3"
+                      >
+                        <div>
+                          <div className="font-medium">
+                            {r.event.name}{" "}
+                            <span className="badge ml-1 bg-clay-200 text-clay-500">
+                              Event
+                            </span>
+                          </div>
+                          <div className="text-xs text-ink-500">
+                            {r.event.startsAt
+                              ? `${dayLabel(r.event.startsAt)} · ${timeLabel(
+                                  r.event.startsAt
+                                )}`
+                              : "Date TBA"}
+                            {r.status === "PAID" ? " · paid" : ""}
+                          </div>
+                        </div>
+                        <span className="badge bg-ink-100 text-ink-700">
+                          {upcoming ? "upcoming" : "past"}
+                        </span>
+                      </div>
+                    );
+                  })}
+              </>
+            )}
           </div>
         </div>
       </div>
