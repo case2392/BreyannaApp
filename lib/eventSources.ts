@@ -1,6 +1,7 @@
 // Where an event registration came from. Staff pick one when adding someone
 // manually; online Stripe payments are tagged "Paid online" automatically.
 export const EVENT_SOURCES = [
+  "Website",
   "Eventbrite",
   "Complimentary",
   "Partnership",
@@ -15,6 +16,8 @@ export function sourceBadgeClass(source: string | null): string {
   switch (source) {
     case "Paid online":
       return "bg-green-100 text-green-700";
+    case "Website":
+      return "bg-brand-100 text-brand-700";
     case "Gift":
       return "bg-clay-100 text-clay-500";
     case "Eventbrite":
