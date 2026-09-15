@@ -18,7 +18,12 @@ export default async function AdminSchedulePage() {
   startOfToday.setHours(0, 0, 0, 0);
 
   const [classTypes, instructors, sessions] = await Promise.all([
-    prisma.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
+    // Include hidden (not-public) class types too, so staff can still schedule
+    // them; active ones first, hidden ones labeled.
+    prisma.classType.findMany({
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, active: true },
+    }),
     prisma.instructor.findMany({ orderBy: { name: "asc" } }),
     prisma.classSession.findMany({
       where: { startsAt: { gte: startOfToday }, cancelled: false },
@@ -36,6 +41,11 @@ export default async function AdminSchedulePage() {
   ]);
 
   const byDay = groupBy(sessions, (s) => s.startsAt.toDateString());
+  // Label hidden (not-public) types in the pickers.
+  const classTypeOpts = classTypes.map((c) => ({
+    id: c.id,
+    name: c.active ? c.name : `${c.name} (hidden)`,
+  }));
 
   return (
     <div>
@@ -53,7 +63,7 @@ export default async function AdminSchedulePage() {
 
       <div className="mb-8">
         <CreateSessionForm
-          classTypes={classTypes}
+          classTypes={classTypeOpts}
           instructors={instructors}
         />
       </div>
@@ -128,7 +138,7 @@ export default async function AdminSchedulePage() {
                       </Link>
                       <EditSessionForm
                         sessionId={s.id}
-                        classTypes={classTypes}
+                        classTypes={classTypeOpts}
                         instructors={instructors}
                         current={{
                           classTypeId: s.classTypeId,

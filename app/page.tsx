@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
-import { money, dayLabel, timeLabel, groupBy } from "@/lib/format";
+import { money, dayLabel, timeLabel, groupBy, planInclusions } from "@/lib/format";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { Logo, DwellSeal } from "@/components/Brand";
 import { BrandImage } from "@/components/BrandImage";
@@ -55,7 +55,7 @@ export default async function LandingPage() {
     prisma.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.membershipPlan.findMany({ where: { active: true }, orderBy: { priceCents: "asc" } }),
     prisma.classSession.findMany({
-      where: { cancelled: false, registrationClosed: false, isPrivate: false, startsAt: { gt: now, lt: weekEnd } },
+      where: { cancelled: false, registrationClosed: false, isPrivate: false, classType: { active: true }, startsAt: { gt: now, lt: weekEnd } },
       orderBy: { startsAt: "asc" },
       include: { classType: true, instructor: true },
     }),
@@ -342,21 +342,20 @@ export default async function LandingPage() {
                     {kindLabel[p.kind]}
                   </span>
                   <h3 className="mt-1 text-xl font-semibold">{p.name}</h3>
+                  {p.description && (
+                    <p className="mt-2 text-sm text-ink-500">{p.description}</p>
+                  )}
                   <div className="mt-3">
                     <span className="font-serif text-4xl font-semibold">{money(p.priceCents)}</span>
                     {p.kind === "UNLIMITED" && <span className="text-sm text-ink-500">/month</span>}
                   </div>
                   <ul className="mt-4 space-y-1 text-sm text-ink-600">
-                    <li>
-                      {p.kind === "UNLIMITED"
-                        ? "Unlimited classes"
-                        : `${p.credits} class credit${p.credits === 1 ? "" : "s"}`}
-                    </li>
-                    <li>
-                      {p.kind === "UNLIMITED"
-                        ? "Auto-renews monthly"
-                        : "Credits never expire"}
-                    </li>
+                    {planInclusions(p).map((item) => (
+                      <li key={item} className="flex gap-1.5">
+                        <span className="text-brand-500">✓</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
                   </ul>
                   <Link href="/register" className="btn-primary mt-6">
                     Get started

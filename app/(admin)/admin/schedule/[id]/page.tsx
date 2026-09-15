@@ -43,9 +43,8 @@ export default async function RosterPage({
       select: { id: true, firstName: true, lastName: true },
     }),
     prisma.classType.findMany({
-      where: { active: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, active: true },
     }),
     prisma.instructor.findMany({
       orderBy: { name: "asc" },
@@ -134,7 +133,10 @@ export default async function RosterPage({
           </div>
           <EditSessionForm
             sessionId={session.id}
-            classTypes={classTypes}
+            classTypes={classTypes.map((c) => ({
+              id: c.id,
+              name: c.active ? c.name : `${c.name} (hidden)`,
+            }))}
             instructors={instructors}
             current={editCurrent}
           />

@@ -13,6 +13,36 @@ export function money(cents: number): string {
   });
 }
 
+// A plain-language list of what a plan includes, derived from its settings —
+// so members see the details even when no description is written.
+export function planInclusions(plan: {
+  kind: string;
+  credits: number;
+  guestPassesPerMonth: number;
+  restrictedClass: string | null;
+}): string[] {
+  const items: string[] = [];
+  items.push(
+    plan.kind === "UNLIMITED"
+      ? "Unlimited classes"
+      : `${plan.credits} class credit${plan.credits === 1 ? "" : "s"}`
+  );
+  items.push(
+    plan.kind === "UNLIMITED" ? "Auto-renews monthly" : "Credits never expire"
+  );
+  if (plan.guestPassesPerMonth > 0) {
+    const n = plan.guestPassesPerMonth;
+    items.push(
+      plan.kind === "UNLIMITED"
+        ? `${n} guest pass${n === 1 ? "" : "es"} each month`
+        : `${n} guest pass${n === 1 ? "" : "es"} included`
+    );
+  }
+  const r = plan.restrictedClass?.trim();
+  if (r) items.push(`For ${r} classes only`);
+  return items;
+}
+
 export function dayLabel(d: Date): string {
   return d.toLocaleDateString("en-US", {
     weekday: "long",

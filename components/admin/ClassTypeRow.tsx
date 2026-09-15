@@ -95,7 +95,7 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
           </div>
           <label className="flex items-center gap-2 sm:col-span-2">
             <input type="checkbox" name="active" defaultChecked={ct.active} />
-            <span className="text-sm text-ink-700">Show on the public site &amp; booking</span>
+            <span className="text-sm text-ink-700">Show on the public website</span>
           </label>
           <label className="flex items-center gap-2 sm:col-span-2">
             <input type="checkbox" name="free" defaultChecked={ct.free} />

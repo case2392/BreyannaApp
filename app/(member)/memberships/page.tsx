@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { money, shortDate } from "@/lib/format";
+import { money, shortDate, planInclusions } from "@/lib/format";
 import { stripeEnabled } from "@/lib/stripe";
 import { finalizeCheckoutSession } from "@/lib/membership";
 import {
@@ -182,7 +182,7 @@ export default async function MembershipsPage({
                 {p.name}
               </div>
               {p.description && (
-                <p className="mt-1 line-clamp-3 text-xs text-ink-500 sm:text-sm">
+                <p className="mt-1 text-xs text-ink-500 sm:text-sm">
                   {p.description}
                 </p>
               )}
@@ -195,16 +195,12 @@ export default async function MembershipsPage({
                 )}
               </div>
               <ul className="mb-4 space-y-1 text-xs text-ink-700 sm:mb-5 sm:text-sm">
-                <li>
-                  {p.kind === "UNLIMITED"
-                    ? "Unlimited classes"
-                    : `${p.credits} class credit${p.credits === 1 ? "" : "s"}`}
-                </li>
-                <li>
-                  {p.kind === "UNLIMITED"
-                    ? "Auto-renews monthly"
-                    : "Credits never expire"}
-                </li>
+                {planInclusions(p).map((item) => (
+                  <li key={item} className="flex gap-1.5">
+                    <span className="text-brand-500">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
               </ul>
               <div className="mt-auto">
                 {activePlanIds.has(p.id) ? (

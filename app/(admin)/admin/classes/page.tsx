@@ -61,9 +61,10 @@ export default async function ClassesPage() {
                 {classTypes.filter((c) => !c.active).length === 1 ? "" : "s"}
               </summary>
               <p className="mt-1 text-xs text-ink-400">
-                Hidden from the public site and the &ldquo;add a class&rdquo;
-                dropdown. Already-scheduled classes still run. Tap
-                &ldquo;Show&rdquo; to bring one back.
+                Hidden from the public website (the &ldquo;classes&rdquo; list
+                and the weekly teaser). You can still schedule them, and members
+                can still see and book them on their schedule. Tap
+                &ldquo;Show&rdquo; to make one public again.
               </p>
               <div className="mt-2 space-y-2">
                 {classTypes
