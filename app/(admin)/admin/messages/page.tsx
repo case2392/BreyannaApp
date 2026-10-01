@@ -8,6 +8,7 @@ import { TestEmailButton } from "@/components/admin/TestEmailButton";
 import { BoltIcon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function MessagesPage() {
   const [audienceMembers, campaigns, members] = await Promise.all([
@@ -73,7 +74,11 @@ export default async function MessagesPage() {
           ) : (
             <div className="space-y-2">
               {campaigns.map((c) => (
-                <div key={c.id} className="card p-4">
+                <Link
+                  key={c.id}
+                  href={`/admin/messages/${c.id}`}
+                  className="card block p-4 transition hover:border-brand-300"
+                >
                   <div className="flex items-center justify-between gap-2">
                     <span className="badge bg-ink-100 text-ink-700">
                       {c.channel === "EMAIL" ? "Email" : "Text"}
@@ -100,8 +105,11 @@ export default async function MessagesPage() {
                         Simulated
                       </span>
                     )}
+                    <span className="ml-auto font-medium text-brand-600">
+                      View results →
+                    </span>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

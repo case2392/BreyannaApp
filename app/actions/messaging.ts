@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { resolveAudience } from "@/lib/audiences";
-import { sendEmail, sendSms } from "@/lib/messaging";
+import { sendEmail, sendSms, sendEmailBatch } from "@/lib/messaging";
 import {
   AUTOMATIONS,
   TRIGGER_KEYS,
@@ -89,27 +89,89 @@ export async function sendCampaign(_prev: unknown, formData: FormData) {
   let failed = 0;
   let simulatedAny = false;
 
-  await inBatches(reachable, 8, async (r) => {
-    const to = channel === "EMAIL" ? r.email : r.phone!;
-    const result =
-      channel === "EMAIL"
-        ? await sendEmail(to, subject, body)
-        : await sendSms(to, body);
-    if (result.simulated) simulatedAny = true;
-    if (result.ok) sent++;
-    else failed++;
-    await prisma.messageLog.create({
-      data: {
-        campaignId: campaign.id,
+  // Collected per-recipient delivery records, written in one go at the end.
+  const logs: {
+    userId: string;
+    to: string;
+    status: string;
+    error: string | null;
+  }[] = [];
+
+  if (channel === "EMAIL") {
+    // Send in batches of up to 100 in a SINGLE Resend request each — this avoids
+    // the per-second rate limit that was failing most recipients. If a batch
+    // request fails, fall back to individual sends so we can record exactly who
+    // failed and why.
+    for (let i = 0; i < reachable.length; i += 100) {
+      const chunk = reachable.slice(i, i + 100);
+      const batch = await sendEmailBatch(
+        chunk.map((r) => ({ to: r.email!, subject, text: body }))
+      );
+      if (batch.ok) {
+        if (batch.simulated) simulatedAny = true;
+        for (const r of chunk) {
+          sent++;
+          logs.push({
+            userId: r.id,
+            to: r.email!,
+            status: batch.simulated ? "SIMULATED" : "SENT",
+            error: null,
+          });
+        }
+      } else {
+        // Granular fallback (throttled to respect the rate limit).
+        for (const r of chunk) {
+          const result = await sendEmail(r.email!, subject, body);
+          if (result.simulated) simulatedAny = true;
+          if (result.ok) {
+            sent++;
+            logs.push({
+              userId: r.id,
+              to: r.email!,
+              status: result.simulated ? "SIMULATED" : "SENT",
+              error: null,
+            });
+          } else {
+            failed++;
+            logs.push({
+              userId: r.id,
+              to: r.email!,
+              status: "FAILED",
+              error: result.error ?? "Send failed.",
+            });
+          }
+          await new Promise((res) => setTimeout(res, 250));
+        }
+      }
+    }
+  } else {
+    await inBatches(reachable, 4, async (r) => {
+      const result = await sendSms(r.phone!, body);
+      if (result.simulated) simulatedAny = true;
+      if (result.ok) sent++;
+      else failed++;
+      logs.push({
         userId: r.id,
-        channel,
-        to,
-        kind: "campaign",
+        to: r.phone!,
         status: result.simulated ? "SIMULATED" : result.ok ? "SENT" : "FAILED",
-        error: result.error,
-      },
+        error: result.error ?? null,
+      });
     });
-  });
+  }
+
+  if (logs.length > 0) {
+    await prisma.messageLog.createMany({
+      data: logs.map((l) => ({
+        campaignId: campaign.id,
+        userId: l.userId,
+        channel,
+        to: l.to,
+        kind: "campaign",
+        status: l.status,
+        error: l.error,
+      })),
+    });
+  }
 
   await prisma.campaign.update({
     where: { id: campaign.id },

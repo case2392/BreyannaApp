@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { shortDate, timeAgo } from "@/lib/format";
 import { AddMemberForm } from "@/components/admin/MemberTools";
+import { CopyEmailsButton } from "@/components/admin/CopyEmailsButton";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,10 @@ export default async function MembersPage() {
           <h1 className="text-2xl font-bold">Members</h1>
           <p className="text-sm text-ink-500">{members.length} members</p>
         </div>
+        <CopyEmailsButton
+          emails={members.map((m) => m.email)}
+          label="Copy all member emails"
+        />
       </div>
 
       <div className="mb-4">

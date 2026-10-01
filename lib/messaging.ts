@@ -57,6 +57,43 @@ export async function sendEmail(
   }
 }
 
+// Send many emails in ONE Resend request (up to 100). This avoids the per-second
+// rate limit that makes a loop of individual sends fail en masse. Returns an
+// overall result; on failure the caller can fall back to individual sends to
+// get a per-recipient breakdown.
+export async function sendEmailBatch(
+  messages: { to: string; subject: string; text: string }[]
+): Promise<SendResult> {
+  if (messages.length === 0) return { ok: true, simulated: false };
+  if (!RESEND_API_KEY) return { ok: true, simulated: true };
+
+  try {
+    const res = await fetch("https://api.resend.com/emails/batch", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(
+        messages.map((m) => ({
+          from: RESEND_FROM,
+          to: [m.to],
+          subject: m.subject,
+          text: m.text,
+          ...(RESEND_REPLY_TO ? { reply_to: RESEND_REPLY_TO } : {}),
+        }))
+      ),
+    });
+    if (!res.ok) {
+      const detail = await res.text();
+      return { ok: false, simulated: false, error: `Resend ${res.status}: ${detail.slice(0, 180)}` };
+    }
+    return { ok: true, simulated: false };
+  } catch (e: any) {
+    return { ok: false, simulated: false, error: e?.message ?? "Batch send failed." };
+  }
+}
+
 export async function sendSms(to: string, body: string): Promise<SendResult> {
   if (!to) return { ok: false, simulated: false, error: "No phone number." };
   if (!smsConfigured()) return { ok: true, simulated: true };
