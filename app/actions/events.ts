@@ -8,6 +8,7 @@ import { stripe, stripeEnabled } from "@/lib/stripe";
 import { notifyStudio } from "@/lib/notify";
 import { money } from "@/lib/format";
 import { EVENT_SOURCES } from "@/lib/eventSources";
+import { eventEligiblePlanIds } from "@/lib/eventStatus";
 
 function siteOrigin(): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
@@ -483,11 +484,28 @@ export async function bookEventWithCredits(eventId: string) {
   }
 
   const now = new Date();
-  const memberships = await prisma.membership.findMany({
+  const allMemberships = await prisma.membership.findMany({
     where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
     include: { plan: true },
     orderBy: { expiresAt: "asc" },
   });
+  // If the event is limited to specific plans, only those memberships count.
+  const eligible = eventEligiblePlanIds(event.creditPlanIds);
+  const memberships = eligible
+    ? allMemberships.filter((m) => eligible.includes(m.planId))
+    : allMemberships;
+  if (eligible && memberships.length === 0) {
+    const names = await prisma.membershipPlan.findMany({
+      where: { id: { in: eligible } },
+      select: { name: true },
+    });
+    return {
+      ok: false as const,
+      error: `This can only be booked with a ${names
+        .map((n) => n.name)
+        .join(" or ")} membership. You can buy a ticket instead.`,
+    };
+  }
   const unlimited = memberships.find((m) => m.plan.kind === "UNLIMITED");
   const pack = memberships.find(
     (m) => m.plan.kind !== "UNLIMITED" && m.creditsRemaining >= event.creditCost

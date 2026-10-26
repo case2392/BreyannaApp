@@ -5,10 +5,27 @@ import { CreateEventForm, EventRow } from "@/components/admin/EventForms";
 export const dynamic = "force-dynamic";
 
 export default async function EventsPage() {
-  const events = await prisma.event.findMany({
-    orderBy: [{ startsAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
-    include: { _count: { select: { registrations: true } } },
-  });
+  const [events, planRows] = await Promise.all([
+    prisma.event.findMany({
+      orderBy: [{ startsAt: { sort: "asc", nulls: "last" } }, { createdAt: "desc" }],
+      include: { _count: { select: { registrations: true } } },
+    }),
+    prisma.membershipPlan.findMany({
+      where: { active: true },
+      orderBy: [{ kind: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, kind: true },
+    }),
+  ]);
+  const kindLabel: Record<string, string> = {
+    UNLIMITED: "Unlimited",
+    PACK: "Class pack",
+    DROP_IN: "Drop-in",
+  };
+  const plans = planRows.map((p) => ({
+    id: p.id,
+    name: p.name,
+    kindLabel: kindLabel[p.kind] ?? p.kind,
+  }));
 
   return (
     <div>
@@ -30,6 +47,7 @@ export default async function EventsPage() {
               {events.map((e) => (
                 <EventRow
                   key={e.id}
+                  plans={plans}
                   event={{
                     id: e.id,
                     name: e.name,
@@ -48,6 +66,7 @@ export default async function EventsPage() {
                     capacityNum: e.capacity,
                     allowCredits: e.allowCredits,
                     creditCost: String(e.creditCost),
+                    creditPlanIds: (e.creditPlanIds ?? "").split(",").filter(Boolean),
                     imageUrl: e.imageUrl,
                     registrationCount: e._count.registrations,
                     registrationClosed: e.registrationClosed,
@@ -59,7 +78,7 @@ export default async function EventsPage() {
         </div>
 
         <div>
-          <CreateEventForm />
+          <CreateEventForm plans={plans} />
         </div>
       </div>
     </div>

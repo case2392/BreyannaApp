@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { money, dayLabel, timeLabel } from "@/lib/format";
 import { finalizeEventCheckout, finalizeEventOrder } from "@/app/actions/events";
-import { eventRegStatus } from "@/lib/eventStatus";
+import { eventRegStatus, eventEligiblePlanIds } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { EventTicketForm } from "@/components/EventTicketForm";
@@ -51,6 +51,32 @@ export default async function EventDetailPage({
   // Show the ticket/registration form when there's a ticket to sell, or when the
   // event isn't credit-based (free/paid classic events).
   const showTicketForm = event.priceCents > 0 || !event.allowCredits;
+
+  // Membership booking: which plans qualify, and does this member hold one?
+  const eligiblePlanIds = eventEligiblePlanIds(event.creditPlanIds);
+  const eligiblePlanNames = eligiblePlanIds
+    ? (
+        await prisma.membershipPlan.findMany({
+          where: { id: { in: eligiblePlanIds } },
+          select: { name: true },
+        })
+      ).map((p) => p.name)
+    : [];
+  const canUseMembership =
+    event.allowCredits && user
+      ? (await prisma.membership.count({
+          where: {
+            userId: user.id,
+            status: "ACTIVE",
+            expiresAt: { gt: new Date() },
+            ...(eligiblePlanIds ? { planId: { in: eligiblePlanIds } } : {}),
+          },
+        })) > 0
+      : false;
+  const membershipLabel =
+    eligiblePlanNames.length > 0
+      ? `${eligiblePlanNames.join(" or ")} members`
+      : "Members";
 
   return (
     <div className="bg-ink-50">
@@ -113,13 +139,15 @@ export default async function EventDetailPage({
             <div className="card p-6">
               <div className="text-center font-serif text-3xl font-semibold">
                 {event.allowCredits && event.priceCents === 0
-                  ? "Members"
+                  ? membershipLabel
                   : priceLabel}
               </div>
               {event.allowCredits && (
                 <p className="mt-1 text-center text-xs text-ink-500">
-                  Bookable with your membership
-                  {event.priceCents > 0 ? " or a ticket" : ""}
+                  {eligiblePlanNames.length > 0
+                    ? `${eligiblePlanNames.join(" or ")} members book with their membership`
+                    : "Bookable with your membership"}
+                  {event.priceCents > 0 ? " · or buy a ticket" : ""}
                 </p>
               )}
               <div className="mt-4">
@@ -133,20 +161,33 @@ export default async function EventDetailPage({
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Book with membership/credits */}
+                    {/* Book with membership — only for members holding an eligible plan */}
                     {!registered && event.allowCredits && (
-                      authed ? (
-                        <EventBookWithCredits
-                          eventId={event.id}
-                          creditCost={event.creditCost}
-                        />
-                      ) : (
+                      !authed ? (
                         <a
                           href={`/login?next=/events/${event.id}`}
                           className="btn-primary block w-full text-center"
                         >
-                          Sign in to book with your membership
+                          {eligiblePlanNames.length > 0
+                            ? `${eligiblePlanNames.join(" or ")} member? Sign in to book`
+                            : "Sign in to book with your membership"}
                         </a>
+                      ) : canUseMembership ? (
+                        <EventBookWithCredits
+                          eventId={event.id}
+                          creditCost={event.creditCost}
+                        />
+                      ) : eligiblePlanNames.length > 0 ? (
+                        <p className="rounded-xl bg-ink-50 px-3 py-2 text-center text-xs text-ink-500">
+                          Booking with a membership requires{" "}
+                          {eligiblePlanNames.join(" or ")}.
+                          {event.priceCents > 0 ? " You can buy a ticket below." : ""}
+                        </p>
+                      ) : (
+                        <EventBookWithCredits
+                          eventId={event.id}
+                          creditCost={event.creditCost}
+                        />
                       )
                     )}
 

@@ -19,3 +19,13 @@ export function eventStatusLabel(s: EventRegStatus): string {
     ? "Sold out"
     : "Registration closed";
 }
+
+// Parse an event's comma-separated eligible plan ids. Returns null when the
+// event isn't restricted (any active membership may book with credits).
+export function eventEligiblePlanIds(raw: string | null | undefined): string[] | null {
+  const ids = (raw ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return ids.length > 0 ? ids : null;
+}

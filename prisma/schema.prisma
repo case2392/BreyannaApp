@@ -371,6 +371,9 @@ model Event {
   // can still be offered alongside for non-members.
   allowCredits Boolean  @default(false)
   creditCost   Int      @default(1)
+  // Optional: only these membership plans (comma-separated plan ids) may book
+  // with their membership. Blank = any active membership/pack.
+  creditPlanIds String?
   startsAt    DateTime?
   // Max registrations before it's "sold out". Null = unlimited.
   capacity    Int?

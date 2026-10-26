@@ -637,6 +637,13 @@ export async function createEvent(_prev: unknown, formData: FormData) {
   const cap = Number(formData.get("capacity"));
   const allowCredits = formData.get("allowCredits") === "on";
   const creditCost = Math.max(1, Number(formData.get("creditCost")) || 1);
+  // Which plans may book with their membership (blank = any).
+  const creditPlanIds =
+    formData
+      .getAll("creditPlanIds")
+      .map((v) => String(v).trim())
+      .filter(Boolean)
+      .join(",") || null;
   await prisma.event.create({
     data: {
       name,
@@ -645,6 +652,7 @@ export async function createEvent(_prev: unknown, formData: FormData) {
       priceCents: Math.round(price * 100),
       allowCredits,
       creditCost,
+      creditPlanIds: allowCredits ? creditPlanIds : null,
       capacity: cap > 0 ? Math.floor(cap) : null,
       startsAt,
       imageUrl: eventImageUrl(formData),
@@ -670,6 +678,13 @@ export async function updateEvent(_prev: unknown, formData: FormData) {
   const cap = Number(formData.get("capacity"));
   const allowCredits = formData.get("allowCredits") === "on";
   const creditCost = Math.max(1, Number(formData.get("creditCost")) || 1);
+  // Which plans may book with their membership (blank = any).
+  const creditPlanIds =
+    formData
+      .getAll("creditPlanIds")
+      .map((v) => String(v).trim())
+      .filter(Boolean)
+      .join(",") || null;
   await prisma.event.update({
     where: { id },
     data: {
@@ -679,6 +694,7 @@ export async function updateEvent(_prev: unknown, formData: FormData) {
       priceCents: Math.round(price * 100),
       allowCredits,
       creditCost,
+      creditPlanIds: allowCredits ? creditPlanIds : null,
       capacity: cap > 0 ? Math.floor(cap) : null,
       startsAt,
       imageUrl: eventImageUrl(formData),

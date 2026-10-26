@@ -172,10 +172,13 @@ function Err({ msg }: { msg?: string }) {
 }
 
 // Shared field layout for create + edit.
+export type PlanOpt = { id: string; name: string; kindLabel: string };
+
 function EventFields({
   defaults,
   currentImage,
   onUploadingChange,
+  plans = [],
 }: {
   defaults?: {
     name?: string;
@@ -187,9 +190,11 @@ function EventFields({
     time?: string;
     allowCredits?: boolean;
     creditCost?: string;
+    creditPlanIds?: string[];
   };
   currentImage?: string | null;
   onUploadingChange?: (busy: boolean) => void;
+  plans?: PlanOpt[];
 }) {
   return (
     <div className="space-y-3">
@@ -275,6 +280,34 @@ function EventFields({
             defaultValue={defaults?.creditCost ?? "1"}
           />
         </div>
+        {plans.length > 0 && (
+          <fieldset className="mt-3">
+            <legend className="label">
+              Which memberships can book with their membership?
+            </legend>
+            <p className="mb-2 text-xs text-ink-500">
+              Leave all unchecked to allow any active membership or pack. Check
+              specific plans to limit it — e.g. only &ldquo;Mommy &amp; Me
+              Unlimited.&rdquo; Everyone else can still buy a ticket.
+            </p>
+            <div className="grid gap-1 sm:grid-cols-2">
+              {plans.map((p) => (
+                <label key={p.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="creditPlanIds"
+                    value={p.id}
+                    defaultChecked={defaults?.creditPlanIds?.includes(p.id)}
+                  />
+                  <span>
+                    {p.name}{" "}
+                    <span className="text-xs text-ink-500">({p.kindLabel})</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        )}
       </div>
       <div>
         <label className="label">Description</label>
@@ -293,7 +326,7 @@ function EventFields({
   );
 }
 
-export function CreateEventForm() {
+export function CreateEventForm({ plans = [] }: { plans?: PlanOpt[] }) {
   const ref = useRef<HTMLFormElement>(null);
   const [uploading, setUploading] = useState(false);
   const [state, action] = useFormState(
@@ -312,7 +345,7 @@ export function CreateEventForm() {
     <form ref={ref} action={action} className="card p-5">
       <h3 className="mb-4 font-semibold">New event</h3>
       <Err msg={state?.error} />
-      <EventFields onUploadingChange={setUploading} />
+      <EventFields onUploadingChange={setUploading} plans={plans} />
       <div className="mt-4">
         <Submit label="Create event" disabled={uploading} />
       </div>
@@ -336,12 +369,19 @@ type EventRowData = {
   capacityNum: number | null;
   allowCredits: boolean;
   creditCost: string;
+  creditPlanIds: string[];
   imageUrl: string | null;
   registrationCount: number;
   registrationClosed: boolean;
 };
 
-export function EventRow({ event }: { event: EventRowData }) {
+export function EventRow({
+  event,
+  plans = [],
+}: {
+  event: EventRowData;
+  plans?: PlanOpt[];
+}) {
   const [editing, setEditing] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [isDeleting, startDelete] = useTransition();
@@ -374,6 +414,7 @@ export function EventRow({ event }: { event: EventRowData }) {
         <EventFields
           currentImage={event.imageUrl}
           onUploadingChange={setUploading}
+          plans={plans}
           defaults={{
             name: event.name,
             description: event.description,
@@ -384,6 +425,7 @@ export function EventRow({ event }: { event: EventRowData }) {
             time: event.time,
             allowCredits: event.allowCredits,
             creditCost: event.creditCost,
+            creditPlanIds: event.creditPlanIds,
           }}
         />
         <label className="mt-3 flex items-center gap-2">
