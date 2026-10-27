@@ -19,12 +19,23 @@ export default async function ClassesPage() {
       include: { _count: { select: { sessions: true } } },
     }),
     prisma.membershipPlan.findMany({
-      where: { restrictedClass: { not: null } },
-      select: { restrictedClass: true },
+      orderBy: [{ active: "desc" }, { kind: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, kind: true, active: true, restrictedClass: true },
     }),
   ]);
+  const kindLabel: Record<string, string> = {
+    UNLIMITED: "Unlimited",
+    PACK: "Class pack",
+    DROP_IN: "Single class",
+  };
+  const plans = restrictedPlans.map((p) => ({
+    id: p.id,
+    name: p.name,
+    kindLabel: `${kindLabel[p.kind] ?? p.kind}${p.active ? "" : ", not for sale"}`,
+  }));
   // A class with its own dedicated plan is automatically "own pack only".
   const keywords = restrictedPlans
+    .filter((p) => p.restrictedClass)
     .map((p) => p.restrictedClass?.trim().toLowerCase())
     .filter((k): k is string => Boolean(k));
   const isAutoGated = (name: string) =>
@@ -46,6 +57,7 @@ export default async function ClassesPage() {
               .filter((c) => c.active)
               .map((c) => (
                 <ClassTypeRow
+                  plans={plans}
                   key={c.id}
                   ct={{
                     id: c.id,
@@ -59,6 +71,7 @@ export default async function ClassesPage() {
                     active: c.active,
                     requiresMatchingPlan: c.requiresMatchingPlan,
                     autoGated: isAutoGated(c.name),
+                    allowedPlanIds: (c.allowedPlanIds ?? "").split(",").filter(Boolean),
                     sessions: c._count.sessions,
                   }}
                 />
@@ -82,6 +95,7 @@ export default async function ClassesPage() {
                   .filter((c) => !c.active)
                   .map((c) => (
                     <ClassTypeRow
+                  plans={plans}
                       key={c.id}
                       ct={{
                         id: c.id,
@@ -95,6 +109,7 @@ export default async function ClassesPage() {
                         active: c.active,
                         requiresMatchingPlan: c.requiresMatchingPlan,
                         autoGated: isAutoGated(c.name),
+                    allowedPlanIds: (c.allowedPlanIds ?? "").split(",").filter(Boolean),
                         sessions: c._count.sessions,
                       }}
                     />
@@ -103,7 +118,7 @@ export default async function ClassesPage() {
             </details>
           )}
 
-          <CreateClassTypeForm />
+          <CreateClassTypeForm plans={plans} />
         </div>
 
         <div>

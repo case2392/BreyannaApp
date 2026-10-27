@@ -54,28 +54,53 @@ export function planCoversClass(
   return className.toLowerCase().includes(r.toLowerCase());
 }
 
-// Can this specific membership book this class? Adds gating on top of the plan's
-// own restriction: when the class requires a matching plan, only a membership
-// whose plan is restricted to match it qualifies — unless the membership is
-// grandfathered (bought before gating existed), which keeps the old coverage.
-function membershipCoversClass(
-  membership: { plan: { restrictedClass: string | null }; grandfathered: boolean },
-  className: string,
-  requiresMatchingPlan: boolean
-): boolean {
-  if (requiresMatchingPlan && !membership.grandfathered) {
-    const r = membership.plan.restrictedClass?.trim();
-    return Boolean(r) && className.toLowerCase().includes(r!.toLowerCase());
-  }
-  return planCoversClass(membership.plan, className);
+// Parse a comma-separated list of plan ids; null when empty.
+export function parsePlanIds(raw: string | null | undefined): string[] | null {
+  const ids = (raw ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return ids.length > 0 ? ids : null;
 }
 
-// Is this class gated to its own plan? Either staff ticked "Only bookable with
-// its own pack", or — automatically — some plan is dedicated to it (its
-// "only for classes containing" keyword matches the class name, e.g. a Mommy &
-// Me plan keyed to "Mommy"). The automatic check means a class with its own
-// plan can never be booked with a single-class pass or general pack, even if
-// the checkbox was never ticked.
+// Who may book a class, resolved once per booking.
+export type ClassAccess = {
+  name: string;
+  // Explicit list chosen by staff on the class type. When set, it is the ONLY
+  // rule: a membership qualifies iff its plan is in this list.
+  allowedPlanIds: string[] | null;
+  // Fallback (no explicit list): the class is gated to its own plan.
+  gated: boolean;
+};
+
+// Can this specific membership book this class?
+function membershipCoversClass(
+  membership: {
+    planId: string;
+    plan: { restrictedClass: string | null; kind: string };
+    grandfathered: boolean;
+  },
+  access: ClassAccess
+): boolean {
+  // 1) Staff picked exactly which plans can book this class — that's final.
+  if (access.allowedPlanIds) {
+    return access.allowedPlanIds.includes(membership.planId);
+  }
+  // 2) Fallback for classes not configured yet. Gated classes need a plan
+  //    dedicated to them. Older packs bought before gating stay grandfathered —
+  //    but never single-class (drop-in) passes, which are for adult classes only.
+  const grandfathered =
+    membership.grandfathered && membership.plan.kind !== "DROP_IN";
+  if (access.gated && !grandfathered) {
+    const r = membership.plan.restrictedClass?.trim();
+    return Boolean(r) && access.name.toLowerCase().includes(r!.toLowerCase());
+  }
+  return planCoversClass(membership.plan, access.name);
+}
+
+// Fallback gating for classes with no explicit plan list: staff ticked the old
+// "Only bookable with its own pack" option, or a plan is dedicated to the class
+// by its "only for classes containing" keyword.
 export async function classIsGated(classType: {
   name: string;
   requiresMatchingPlan: boolean;
@@ -92,11 +117,24 @@ export async function classIsGated(classType: {
   });
 }
 
+// Resolve who may book a class type.
+export async function classAccess(classType: {
+  name: string;
+  requiresMatchingPlan: boolean;
+  allowedPlanIds: string | null;
+}): Promise<ClassAccess> {
+  const allowedPlanIds = parsePlanIds(classType.allowedPlanIds);
+  return {
+    name: classType.name,
+    allowedPlanIds,
+    gated: allowedPlanIds ? false : await classIsGated(classType),
+  };
+}
+
 async function findUsableMembership(
   userId: string,
   creditCost: number,
-  className: string,
-  requiresMatchingPlan: boolean
+  access: ClassAccess
 ): Promise<MembershipWithPlan | null> {
   const now = new Date();
   const memberships = await prisma.membership.findMany({
@@ -105,9 +143,7 @@ async function findUsableMembership(
     orderBy: { expiresAt: "asc" },
   });
 
-  const usable = memberships.filter((m) =>
-    membershipCoversClass(m, className, requiresMatchingPlan)
-  );
+  const usable = memberships.filter((m) => membershipCoversClass(m, access));
 
   const unlimited = usable.find((m) => m.plan.kind === "UNLIMITED");
   if (unlimited) return unlimited;
@@ -153,13 +189,8 @@ export async function bookClass(
   // Free community classes (or a staff comp) need no membership or credits.
   let membership: MembershipWithPlan | null = null;
   if (!isFree && !opts?.comp) {
-    const gated = await classIsGated(session.classType);
-    membership = await findUsableMembership(
-      userId,
-      creditCost,
-      session.classType.name,
-      gated
-    );
+    const access = await classAccess(session.classType);
+    membership = await findUsableMembership(userId, creditCost, access);
     if (!membership) {
       // If they have an active membership that just doesn't cover this class
       // style, give a clearer message than "you need a membership".
@@ -168,7 +199,16 @@ export async function bookClass(
       });
       return {
         ok: false,
-        error: gated
+        error: access.allowedPlanIds
+          ? `This class can only be booked with: ${(
+              await prisma.membershipPlan.findMany({
+                where: { id: { in: access.allowedPlanIds } },
+                select: { name: true },
+              })
+            )
+              .map((p) => p.name)
+              .join(", ")}.`
+          : access.gated
           ? `This class can only be booked with a ${session.classType.name} membership or pack.`
           : activeCount > 0
           ? "Your membership doesn't cover this class — buy a single class or class pack to book it."
@@ -315,9 +355,9 @@ async function cancelBookingRecord(
         });
         const cost = next.session.classType.creditCost;
         const className = next.session.classType.name;
-        const nextGated = await classIsGated(next.session.classType);
+        const nextAccess = await classAccess(next.session.classType);
         const usable = memberships.filter((m) =>
-          membershipCoversClass(m, className, nextGated)
+          membershipCoversClass(m, nextAccess)
         );
         const unlimited = usable.find((m) => m.plan.kind === "UNLIMITED");
         const pack = usable.find(

@@ -8,6 +8,7 @@ import {
   createPlan,
   createRoom,
 } from "@/app/actions/admin";
+import { PlanChecklist, type PlanOpt } from "@/components/admin/PlanChecklist";
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -27,7 +28,7 @@ function Err({ msg }: { msg?: string }) {
   );
 }
 
-export function CreateClassTypeForm() {
+export function CreateClassTypeForm({ plans = [] }: { plans?: PlanOpt[] }) {
   const ref = useRef<HTMLFormElement>(null);
   const [state, action] = useFormState(
     async (prev: unknown, fd: FormData) => {
@@ -75,17 +76,7 @@ export function CreateClassTypeForm() {
             Free class — anyone can book without a membership or credits
           </span>
         </label>
-        <label className="flex items-start gap-2">
-          <input type="checkbox" name="requiresMatchingPlan" className="mt-0.5" />
-          <span className="text-sm text-ink-700">
-            Only bookable with its own pack
-            <span className="block text-xs text-ink-500">
-              Requires a membership/pack made for this class (matching its
-              &ldquo;only for classes containing&rdquo; keyword). General credits
-              and single-class passes can&apos;t book it.
-            </span>
-          </span>
-        </label>
+        <PlanChecklist plans={plans} />
       </div>
       <div className="mt-4">
         <Submit label="Add class type" />

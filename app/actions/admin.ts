@@ -274,7 +274,12 @@ export async function createClassType(_prev: unknown, formData: FormData) {
       creditCost: Number(formData.get("creditCost")) || 1,
       free: formData.get("free") === "on",
       color: String(formData.get("color") || "#6A7A5F"),
-      requiresMatchingPlan: formData.get("requiresMatchingPlan") === "on",
+      allowedPlanIds:
+        formData
+          .getAll("allowedPlanIds")
+          .map((v) => String(v).trim())
+          .filter(Boolean)
+          .join(",") || null,
     },
   });
   revalidatePath("/admin/classes");
@@ -475,7 +480,12 @@ export async function updateClassType(_prev: unknown, formData: FormData) {
       free: formData.get("free") === "on",
       color: String(formData.get("color") || "#6A7A5F"),
       active: formData.get("active") === "on",
-      requiresMatchingPlan: formData.get("requiresMatchingPlan") === "on",
+      allowedPlanIds:
+        formData
+          .getAll("allowedPlanIds")
+          .map((v) => String(v).trim())
+          .filter(Boolean)
+          .join(",") || null,
     },
   });
   revalidatePath("/admin/classes");

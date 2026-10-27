@@ -8,6 +8,7 @@ import {
   deleteClassType,
   toggleClassType,
 } from "@/app/actions/admin";
+import { PlanChecklist, type PlanOpt } from "@/components/admin/PlanChecklist";
 
 type ClassType = {
   id: string;
@@ -22,6 +23,8 @@ type ClassType = {
   requiresMatchingPlan: boolean;
   // Gated automatically because a plan is dedicated to this class.
   autoGated?: boolean;
+  // Plans explicitly allowed to book this class (empty = not configured).
+  allowedPlanIds: string[];
   sessions: number;
 };
 
@@ -34,7 +37,13 @@ function SaveBtn() {
   );
 }
 
-export function ClassTypeRow({ ct }: { ct: ClassType }) {
+export function ClassTypeRow({
+  ct,
+  plans = [],
+}: {
+  ct: ClassType;
+  plans?: PlanOpt[];
+}) {
   const [editing, setEditing] = useState(false);
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -105,23 +114,7 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
               Free class — anyone can book without a membership or credits
             </span>
           </label>
-          <label className="flex items-start gap-2 sm:col-span-2">
-            <input
-              type="checkbox"
-              name="requiresMatchingPlan"
-              defaultChecked={ct.requiresMatchingPlan}
-              className="mt-0.5"
-            />
-            <span className="text-sm text-ink-700">
-              Only bookable with its own pack
-              <span className="block text-xs text-ink-500">
-                Requires a membership/pack made for this class (matching its
-                &ldquo;only for classes containing&rdquo; keyword). General
-                credits and single-class passes can&apos;t book it. Members who
-                already bought passes keep their current access until used.
-              </span>
-            </span>
-          </label>
+          <PlanChecklist plans={plans} selected={ct.allowedPlanIds} />
         </div>
         <div className="mt-3 flex gap-2">
           <SaveBtn />
@@ -140,7 +133,8 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{ct.name}</span>
           {ct.free && <span className="badge bg-sage-200 text-sage-700">Free</span>}
-          {(ct.requiresMatchingPlan || ct.autoGated) && (
+          {ct.allowedPlanIds.length === 0 &&
+            (ct.requiresMatchingPlan || ct.autoGated) && (
             <span
               className="badge bg-brand-100 text-brand-700"
               title={
@@ -158,6 +152,21 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
           {ct.duration} min ·{" "}
           {ct.free ? "free to enter" : `${ct.creditCost} credit${ct.creditCost === 1 ? "" : "s"}`}{" "}
           · {ct.sessions} sessions
+          {ct.allowedPlanIds.length > 0 ? (
+            <div className="mt-0.5 text-ink-600">
+              Bookable with:{" "}
+              {plans
+                .filter((p) => ct.allowedPlanIds.includes(p.id))
+                .map((p) => p.name)
+                .join(", ") || "selected plans"}
+            </div>
+          ) : (
+            !ct.free && (
+              <div className="mt-0.5 text-amber-700">
+                Booking plans not chosen yet — edit to pick who can book.
+              </div>
+            )
+          )}
         </div>
       </div>
       <button onClick={() => setEditing(true)} className="btn-ghost text-xs">Edit</button>

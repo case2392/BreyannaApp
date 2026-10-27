@@ -88,6 +88,10 @@ model ClassType {
   // single-class passes can't book it. Memberships bought before this was turned
   // on are grandfathered (see Membership.grandfathered).
   requiresMatchingPlan Boolean @default(false)
+  // Explicit list of membership plans (comma-separated plan ids) allowed to book
+  // this class. When set, ONLY these plans can book it — this overrides every
+  // keyword/automatic rule. Blank = fall back to the older rules.
+  allowedPlanIds String?
 
   sessions    ClassSession[]
   automations Automation[]
