@@ -368,6 +368,34 @@ export async function deleteRoom(roomId: string) {
 
 // ---- Plans -----------------------------------------------------------------
 
+// Plan-side view of class access: add/remove a plan from the "who can book"
+// list of each class type that has one. Only class types with an explicit list
+// are touched — unconfigured class types keep their default rules (adding a
+// plan to an empty list would lock everyone else out).
+async function syncPlanClassAccess(planId: string, formData: FormData) {
+  if (formData.get("classAccessShown") !== "1") return;
+  const checked = new Set(
+    formData.getAll("classTypeIds").map((v) => String(v).trim()).filter(Boolean)
+  );
+  const classTypes = await prisma.classType.findMany({
+    where: { allowedPlanIds: { not: null } },
+    select: { id: true, allowedPlanIds: true },
+  });
+  for (const ct of classTypes) {
+    const list = (ct.allowedPlanIds ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (list.length === 0) continue;
+    const has = list.includes(planId);
+    const want = checked.has(ct.id);
+    if (has === want) continue;
+    const next = want ? [...list, planId] : list.filter((id) => id !== planId);
+    await prisma.classType.update({
+      where: { id: ct.id },
+      data: { allowedPlanIds: next.length > 0 ? next.join(",") : null },
+    });
+  }
+  revalidatePath("/admin/classes");
+}
+
 export async function createPlan(_prev: unknown, formData: FormData) {
   await requireStaff();
   const name = String(formData.get("name") || "").trim();
@@ -378,7 +406,7 @@ export async function createPlan(_prev: unknown, formData: FormData) {
   const price = Number(formData.get("price")) || 0;
   if (!name) return { error: "Name is required." };
 
-  await prisma.membershipPlan.create({
+  const created = await prisma.membershipPlan.create({
     data: {
       name,
       description: String(formData.get("description") || "").trim() || null,
@@ -390,6 +418,7 @@ export async function createPlan(_prev: unknown, formData: FormData) {
       restrictedClass: String(formData.get("restrictedClass") || "").trim() || null,
     },
   });
+  await syncPlanClassAccess(created.id, formData);
   revalidatePath("/admin/plans");
   revalidatePath("/memberships");
   return { ok: true };
@@ -430,6 +459,7 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
       restrictedClass: String(formData.get("restrictedClass") || "").trim() || null,
     },
   });
+  await syncPlanClassAccess(id, formData);
   revalidatePath("/admin/plans");
   revalidatePath("/memberships");
   return { ok: true };

@@ -11,9 +11,8 @@ export default async function EventsPage() {
       include: { _count: { select: { registrations: true } } },
     }),
     prisma.membershipPlan.findMany({
-      where: { active: true },
-      orderBy: [{ kind: "asc" }, { name: "asc" }],
-      select: { id: true, name: true, kind: true },
+      orderBy: [{ active: "desc" }, { kind: "asc" }, { name: "asc" }],
+      select: { id: true, name: true, kind: true, active: true },
     }),
   ]);
   const kindLabel: Record<string, string> = {
@@ -24,7 +23,7 @@ export default async function EventsPage() {
   const plans = planRows.map((p) => ({
     id: p.id,
     name: p.name,
-    kindLabel: kindLabel[p.kind] ?? p.kind,
+    kindLabel: `${kindLabel[p.kind] ?? p.kind}${p.active ? "" : ", not for sale"}`,
   }));
 
   return (

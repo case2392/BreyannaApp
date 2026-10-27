@@ -5,14 +5,29 @@ import { PlanRow } from "@/components/admin/PlanRow";
 export const dynamic = "force-dynamic";
 
 export default async function PlansPage() {
-  const plans = await prisma.membershipPlan.findMany({
-    orderBy: { priceCents: "asc" },
-    include: {
-      _count: {
-        select: { memberships: { where: { status: "ACTIVE" } } },
+  const [plans, classTypeRows] = await Promise.all([
+    prisma.membershipPlan.findMany({
+      orderBy: { priceCents: "asc" },
+      include: {
+        _count: {
+          select: { memberships: { where: { status: "ACTIVE" } } },
+        },
       },
-    },
-  });
+    }),
+    // Class types whose "who can book" list has been set up.
+    prisma.classType.findMany({
+      where: { allowedPlanIds: { not: null } },
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+      select: { id: true, name: true, active: true, allowedPlanIds: true },
+    }),
+  ]);
+  const classTypes = classTypeRows
+    .map((c) => ({
+      id: c.id,
+      name: c.active ? c.name : `${c.name} (hidden)`,
+      allowedPlanIds: (c.allowedPlanIds ?? "").split(",").filter(Boolean),
+    }))
+    .filter((c) => c.allowedPlanIds.length > 0);
 
   return (
     <div>
@@ -32,6 +47,7 @@ export default async function PlansPage() {
           {plans.map((p) => (
             <PlanRow
               key={p.id}
+              classTypes={classTypes}
               plan={{
                 id: p.id,
                 name: p.name,
@@ -50,7 +66,7 @@ export default async function PlansPage() {
         </div>
 
         <div>
-          <CreatePlanForm />
+          <CreatePlanForm classTypes={classTypes} />
         </div>
       </div>
     </div>

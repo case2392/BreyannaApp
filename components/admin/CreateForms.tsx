@@ -9,6 +9,10 @@ import {
   createRoom,
 } from "@/app/actions/admin";
 import { PlanChecklist, type PlanOpt } from "@/components/admin/PlanChecklist";
+import {
+  ClassAccessChecklist,
+  type ClassAccessOpt,
+} from "@/components/admin/ClassAccessChecklist";
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -149,7 +153,11 @@ export function CreateRoomForm() {
   );
 }
 
-export function CreatePlanForm() {
+export function CreatePlanForm({
+  classTypes = [],
+}: {
+  classTypes?: ClassAccessOpt[];
+}) {
   const ref = useRef<HTMLFormElement>(null);
   const [kind, setKind] = useState("PACK");
   const [state, action] = useFormState(
@@ -233,6 +241,9 @@ export function CreatePlanForm() {
               : "Free guest spots that come with the pass and stay until used, like class credits. 0 = none."}
           </p>
         </div>
+      </div>
+      <div className="mt-4">
+        <ClassAccessChecklist classTypes={classTypes} />
       </div>
       <div className="mt-4">
         <Submit label="Add plan" />

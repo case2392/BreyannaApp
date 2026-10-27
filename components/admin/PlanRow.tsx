@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
 import { updatePlan, deletePlan, togglePlan } from "@/app/actions/admin";
 import { money } from "@/lib/format";
+import {
+  ClassAccessChecklist,
+  type ClassAccessOpt,
+} from "@/components/admin/ClassAccessChecklist";
 
 const kindLabel: Record<string, string> = {
   UNLIMITED: "Unlimited",
@@ -35,7 +39,13 @@ function SaveBtn() {
   );
 }
 
-export function PlanRow({ plan }: { plan: Plan }) {
+export function PlanRow({
+  plan,
+  classTypes = [],
+}: {
+  plan: Plan;
+  classTypes?: ClassAccessOpt[];
+}) {
   const [editing, setEditing] = useState(false);
   const [kind, setKind] = useState(plan.kind);
   const [pending, start] = useTransition();
@@ -136,6 +146,9 @@ export function PlanRow({ plan }: { plan: Plan }) {
               ? "Given each month; reset on renewal."
               : "Comes with the pass and stays until used, like class credits."}
           </p>
+        </div>
+        <div className="mt-3">
+          <ClassAccessChecklist classTypes={classTypes} planId={plan.id} />
         </div>
         <div className="mt-3 flex gap-2">
           <SaveBtn />
