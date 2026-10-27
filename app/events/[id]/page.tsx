@@ -69,7 +69,9 @@ export default async function EventDetailPage({
             userId: user.id,
             status: "ACTIVE",
             expiresAt: { gt: new Date() },
-            ...(eligiblePlanIds ? { planId: { in: eligiblePlanIds } } : {}),
+            ...(eligiblePlanIds
+              ? { planId: { in: eligiblePlanIds } }
+              : { plan: { kind: { not: "DROP_IN" } } }),
           },
         })) > 0
       : false;
@@ -184,10 +186,12 @@ export default async function EventDetailPage({
                           {event.priceCents > 0 ? " You can buy a ticket below." : ""}
                         </p>
                       ) : (
-                        <EventBookWithCredits
-                          eventId={event.id}
-                          creditCost={event.creditCost}
-                        />
+                        <p className="rounded-xl bg-ink-50 px-3 py-2 text-center text-xs text-ink-500">
+                          Booking with a membership needs an active membership or
+                          class pack — single-class passes are for regular classes
+                          only.
+                          {event.priceCents > 0 ? " You can buy a ticket below." : ""}
+                        </p>
                       )
                     )}
 

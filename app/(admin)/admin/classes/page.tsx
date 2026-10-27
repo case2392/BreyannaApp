@@ -9,7 +9,7 @@ import { InstructorRow } from "@/components/admin/InstructorRow";
 export const dynamic = "force-dynamic";
 
 export default async function ClassesPage() {
-  const [classTypes, instructors] = await Promise.all([
+  const [classTypes, instructors, restrictedPlans] = await Promise.all([
     prisma.classType.findMany({
       orderBy: { name: "asc" },
       include: { _count: { select: { sessions: true } } },
@@ -18,7 +18,17 @@ export default async function ClassesPage() {
       orderBy: { name: "asc" },
       include: { _count: { select: { sessions: true } } },
     }),
+    prisma.membershipPlan.findMany({
+      where: { restrictedClass: { not: null } },
+      select: { restrictedClass: true },
+    }),
   ]);
+  // A class with its own dedicated plan is automatically "own pack only".
+  const keywords = restrictedPlans
+    .map((p) => p.restrictedClass?.trim().toLowerCase())
+    .filter((k): k is string => Boolean(k));
+  const isAutoGated = (name: string) =>
+    keywords.some((k) => name.toLowerCase().includes(k));
 
   return (
     <div>
@@ -48,6 +58,7 @@ export default async function ClassesPage() {
                     color: c.color,
                     active: c.active,
                     requiresMatchingPlan: c.requiresMatchingPlan,
+                    autoGated: isAutoGated(c.name),
                     sessions: c._count.sessions,
                   }}
                 />
@@ -83,6 +94,7 @@ export default async function ClassesPage() {
                         color: c.color,
                         active: c.active,
                         requiresMatchingPlan: c.requiresMatchingPlan,
+                        autoGated: isAutoGated(c.name),
                         sessions: c._count.sessions,
                       }}
                     />

@@ -490,10 +490,20 @@ export async function bookEventWithCredits(eventId: string) {
     orderBy: { expiresAt: "asc" },
   });
   // If the event is limited to specific plans, only those memberships count.
+  // Otherwise any membership or class pack works — but never a single-class
+  // (drop-in) pass, which is meant for regular classes only.
   const eligible = eventEligiblePlanIds(event.creditPlanIds);
   const memberships = eligible
     ? allMemberships.filter((m) => eligible.includes(m.planId))
-    : allMemberships;
+    : allMemberships.filter((m) => m.plan.kind !== "DROP_IN");
+  if (!eligible && memberships.length === 0 && allMemberships.length > 0) {
+    return {
+      ok: false as const,
+      error:
+        "Single-class passes can only be used for regular classes, not events." +
+        (event.priceCents > 0 ? " You can buy a ticket instead." : ""),
+    };
+  }
   if (eligible && memberships.length === 0) {
     const names = await prisma.membershipPlan.findMany({
       where: { id: { in: eligible } },

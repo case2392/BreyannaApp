@@ -70,6 +70,28 @@ function membershipCoversClass(
   return planCoversClass(membership.plan, className);
 }
 
+// Is this class gated to its own plan? Either staff ticked "Only bookable with
+// its own pack", or — automatically — some plan is dedicated to it (its
+// "only for classes containing" keyword matches the class name, e.g. a Mommy &
+// Me plan keyed to "Mommy"). The automatic check means a class with its own
+// plan can never be booked with a single-class pass or general pack, even if
+// the checkbox was never ticked.
+export async function classIsGated(classType: {
+  name: string;
+  requiresMatchingPlan: boolean;
+}): Promise<boolean> {
+  if (classType.requiresMatchingPlan) return true;
+  const plans = await prisma.membershipPlan.findMany({
+    where: { restrictedClass: { not: null } },
+    select: { restrictedClass: true },
+  });
+  const name = classType.name.toLowerCase();
+  return plans.some((p) => {
+    const r = p.restrictedClass?.trim().toLowerCase();
+    return Boolean(r) && name.includes(r!);
+  });
+}
+
 async function findUsableMembership(
   userId: string,
   creditCost: number,
@@ -131,11 +153,12 @@ export async function bookClass(
   // Free community classes (or a staff comp) need no membership or credits.
   let membership: MembershipWithPlan | null = null;
   if (!isFree && !opts?.comp) {
+    const gated = await classIsGated(session.classType);
     membership = await findUsableMembership(
       userId,
       creditCost,
       session.classType.name,
-      session.classType.requiresMatchingPlan
+      gated
     );
     if (!membership) {
       // If they have an active membership that just doesn't cover this class
@@ -145,7 +168,7 @@ export async function bookClass(
       });
       return {
         ok: false,
-        error: session.classType.requiresMatchingPlan
+        error: gated
           ? `This class can only be booked with a ${session.classType.name} membership or pack.`
           : activeCount > 0
           ? "Your membership doesn't cover this class — buy a single class or class pack to book it."
@@ -292,12 +315,9 @@ async function cancelBookingRecord(
         });
         const cost = next.session.classType.creditCost;
         const className = next.session.classType.name;
+        const nextGated = await classIsGated(next.session.classType);
         const usable = memberships.filter((m) =>
-          membershipCoversClass(
-            m,
-            className,
-            next.session.classType.requiresMatchingPlan
-          )
+          membershipCoversClass(m, className, nextGated)
         );
         const unlimited = usable.find((m) => m.plan.kind === "UNLIMITED");
         const pack = usable.find(

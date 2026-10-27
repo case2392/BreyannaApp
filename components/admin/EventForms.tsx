@@ -286,7 +286,8 @@ function EventFields({
               Which memberships can book with their membership?
             </legend>
             <p className="mb-2 text-xs text-ink-500">
-              Leave all unchecked to allow any active membership or pack. Check
+              Leave all unchecked to allow any active membership or class pack
+              (single-class passes are never accepted for events). Check
               specific plans to limit it — e.g. only &ldquo;Mommy &amp; Me
               Unlimited.&rdquo; Everyone else can still buy a ticket.
             </p>

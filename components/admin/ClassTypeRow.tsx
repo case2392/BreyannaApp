@@ -20,6 +20,8 @@ type ClassType = {
   color: string;
   active: boolean;
   requiresMatchingPlan: boolean;
+  // Gated automatically because a plan is dedicated to this class.
+  autoGated?: boolean;
   sessions: number;
 };
 
@@ -138,8 +140,17 @@ export function ClassTypeRow({ ct }: { ct: ClassType }) {
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{ct.name}</span>
           {ct.free && <span className="badge bg-sage-200 text-sage-700">Free</span>}
-          {ct.requiresMatchingPlan && (
-            <span className="badge bg-brand-100 text-brand-700">Own pack only</span>
+          {(ct.requiresMatchingPlan || ct.autoGated) && (
+            <span
+              className="badge bg-brand-100 text-brand-700"
+              title={
+                ct.requiresMatchingPlan
+                  ? "Only its own membership/pack can book this class."
+                  : "Automatic: a plan is dedicated to this class, so single-class passes and general packs can't book it."
+              }
+            >
+              Own pack only{!ct.requiresMatchingPlan ? " (auto)" : ""}
+            </span>
           )}
           {!ct.active && <span className="badge bg-ink-100 text-ink-500">Hidden</span>}
         </div>
