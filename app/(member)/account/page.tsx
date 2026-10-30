@@ -80,7 +80,7 @@ export default async function AccountPage() {
       </div>
 
       <div className="card mt-6 p-6">
-        <h2 className="mb-4 font-semibold">My membership</h2>
+        <h2 className="mb-4 font-semibold">My plan</h2>
         {activeMemberships.length === 0 ? (
           <div className="rounded-xl border border-dashed border-ink-200 p-4 text-sm text-ink-500">
             You don&apos;t have an active membership or pass.{" "}

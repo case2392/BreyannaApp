@@ -53,7 +53,7 @@ export default async function MembershipsPage({
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold">Memberships &amp; passes</h1>
+      <h1 className="mb-1 text-2xl font-bold">Pick your plan</h1>
       <p className="mb-6 text-sm text-ink-500">
         Your active plans and everything available at the studio.
       </p>

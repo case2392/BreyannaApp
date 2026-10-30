@@ -106,7 +106,7 @@ export default async function LandingPage() {
               Book your first class
             </Link>
             <a href="#membership" className="btn-secondary px-6 py-3 text-base">
-              View memberships
+              Pick your plan
             </a>
           </div>
           <p
@@ -327,7 +327,7 @@ export default async function LandingPage() {
             <p className="eyebrow">
               Join the community
             </p>
-            <h2 className="mt-3 text-4xl font-semibold">Memberships &amp; passes</h2>
+            <h2 className="mt-3 text-4xl font-semibold">Pick your plan</h2>
             <span className="rule mt-5" />
             <p className="mx-auto mt-5 max-w-xl text-ink-600">
               Whether you&apos;re here every day or dropping in, there&apos;s an

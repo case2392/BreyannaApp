@@ -41,7 +41,7 @@ export default async function MemberLayout({
           <nav className="hidden items-center gap-1 md:flex">
             <NavLink href="/schedule" label="Schedule" icon={<CalendarIcon className="h-4 w-4" />} />
             <NavLink href="/bookings" label="My Bookings" icon={<TicketIcon className="h-4 w-4" />} />
-            <NavLink href="/memberships" label="Memberships" icon={<CardIcon className="h-4 w-4" />} />
+            <NavLink href="/memberships" label="Plans" icon={<CardIcon className="h-4 w-4" />} />
             <NavLink href="/events" label="Events" icon={<SparklesIcon className="h-4 w-4" />} />
             <NavLink href="/account" label="Account" icon={<UserIcon className="h-4 w-4" />} />
           </nav>
