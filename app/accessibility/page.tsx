@@ -40,7 +40,7 @@ export default function AccessibilityPage() {
         >
           dwellstudio.lnk@gmail.com
         </a>{" "}
-        · 800 West Stockwell St, Lincoln, NE 68522 · Instagram{" "}
+        · Instagram{" "}
         <a
           href="https://instagram.com/dwellstudio.lnk"
           className="text-brand-600 hover:underline"

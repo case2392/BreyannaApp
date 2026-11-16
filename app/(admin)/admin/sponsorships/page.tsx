@@ -43,10 +43,11 @@ export default async function SponsorshipsPage() {
         </div>
       ) : (
         <div className="card overflow-x-auto">
-          <table className="w-full min-w-[28rem] text-sm">
+          <table className="w-full min-w-[36rem] text-sm">
             <thead className="bg-ink-50 text-left text-xs uppercase tracking-wide text-ink-500">
               <tr>
                 <th className="px-4 py-3">Sponsor</th>
+                <th className="px-4 py-3">Gift for</th>
                 <th className="px-4 py-3">Type</th>
                 <th className="px-4 py-3 text-right">Amount</th>
                 <th className="hidden px-4 py-3 text-right sm:table-cell">Date</th>
@@ -59,6 +60,29 @@ export default async function SponsorshipsPage() {
                     <div className="font-medium">{d.name || d.email || "Anonymous"}</div>
                     {d.name && d.email && (
                       <div className="text-xs text-ink-500">{d.email}</div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {d.giftFor === "RECIPIENT" ? (
+                      <>
+                        <div className="font-medium">
+                          {d.recipientFirstName} {d.recipientLastName}
+                        </div>
+                        {d.recipientPhone && (
+                          <a
+                            href={`tel:${d.recipientPhone}`}
+                            className="text-xs text-brand-600 hover:underline"
+                          >
+                            {d.recipientPhone}
+                          </a>
+                        )}
+                      </>
+                    ) : d.giftFor === "ANONYMOUS" ? (
+                      <span className="badge bg-clay-100 text-clay-500">
+                        Anonymous gift
+                      </span>
+                    ) : (
+                      <span className="text-xs text-ink-400">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">

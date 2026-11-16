@@ -47,6 +47,20 @@ function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
   );
 }
 
+// Who a Sponsor a Sister donation is for, from the checkout/subscription metadata.
+function donationGiftFields(meta: Record<string, string> | null | undefined) {
+  const giftFor =
+    meta?.giftFor === "RECIPIENT" || meta?.giftFor === "ANONYMOUS"
+      ? meta.giftFor
+      : null;
+  return {
+    giftFor,
+    recipientFirstName: giftFor === "RECIPIENT" ? meta?.recipientFirstName ?? null : null,
+    recipientLastName: giftFor === "RECIPIENT" ? meta?.recipientLastName ?? null : null,
+    recipientPhone: giftFor === "RECIPIENT" ? meta?.recipientPhone ?? null : null,
+  };
+}
+
 // The site URL for links in member emails.
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_BASE_URL || "https://www.dwellstudiolnk.com";
@@ -79,6 +93,10 @@ export async function POST(request: Request) {
 
         // Sponsor a Sister donation — record it, don't grant a membership.
         if (session.metadata?.kind === "donation") {
+          const gift = donationGiftFields(session.metadata);
+          const existingDonation = await prisma.donation.findUnique({
+            where: { stripeRef: session.id },
+          });
           await prisma.donation.upsert({
             where: { stripeRef: session.id },
             create: {
@@ -87,9 +105,28 @@ export async function POST(request: Request) {
               email: session.customer_details?.email ?? null,
               amountCents: session.amount_total ?? 0,
               recurring: session.mode === "subscription",
+              ...gift,
             },
             update: {},
           });
+          // Let the studio know — especially who to set up when a recipient
+          // was named. Only on the first delivery of this checkout.
+          if (!existingDonation) {
+            const donor =
+              session.customer_details?.name ||
+              session.customer_details?.email ||
+              "Someone";
+            const amount = money(session.amount_total ?? 0);
+            const freq = session.mode === "subscription" ? " monthly" : "";
+            await notifyStudio(
+              gift.giftFor === "RECIPIENT"
+                ? `Sponsor a Sister gift for ${gift.recipientFirstName} ${gift.recipientLastName}`
+                : "New Sponsor a Sister gift",
+              gift.giftFor === "RECIPIENT"
+                ? `${donor} gave ${amount}${freq} to sponsor ${gift.recipientFirstName} ${gift.recipientLastName} (phone: ${gift.recipientPhone}). Reach out to her and set up her membership.`
+                : `${donor} gave ${amount}${freq} as an anonymous sponsorship gift for the studio to assign.`
+            );
+          }
           break;
         }
 
@@ -193,6 +230,7 @@ export async function POST(request: Request) {
               email: invoice.customer_email ?? null,
               amountCents: invoice.amount_paid ?? 0,
               recurring: true,
+              ...donationGiftFields((invoice as any).subscription_details?.metadata),
             },
             update: {},
           });

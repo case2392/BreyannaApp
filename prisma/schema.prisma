@@ -302,6 +302,12 @@ model Donation {
   email       String?
   amountCents Int
   recurring   Boolean  @default(false)
+  // Who the gift is for: "RECIPIENT" (donor named someone) | "ANONYMOUS"
+  // (a general sponsorship the studio assigns). Null on older donations.
+  giftFor            String?
+  recipientFirstName String?
+  recipientLastName  String?
+  recipientPhone     String?
   // Stripe checkout session id (one-time / first charge) or invoice id (renewal)
   stripeRef   String?  @unique
   createdAt   DateTime @default(now())

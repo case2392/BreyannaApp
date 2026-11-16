@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { startDonation } from "@/app/actions/sponsor";
 
+type GiftChoice = "RECIPIENT" | "ANONYMOUS" | null;
+
 const PRESETS = [25, 50, 100, 150];
 
 export function DonateForm() {
@@ -11,13 +13,31 @@ export function DonateForm() {
   const [recurring, setRecurring] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [giftFor, setGiftFor] = useState<GiftChoice>(null);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
 
   const effective = custom ? parseFloat(custom) : amount;
 
   function donate() {
     setError(null);
+    if (!giftFor) {
+      setError("Please choose who this gift is for.");
+      return;
+    }
+    if (giftFor === "RECIPIENT" && (!firstName.trim() || !lastName.trim() || !phone.trim())) {
+      setError("Please enter her first name, last name, and phone number.");
+      return;
+    }
     start(async () => {
-      const res = await startDonation(effective, recurring);
+      const res = await startDonation(
+        effective,
+        recurring,
+        giftFor === "RECIPIENT"
+          ? { type: "RECIPIENT", firstName, lastName, phone }
+          : { type: "ANONYMOUS" }
+      );
       if (res.ok && res.url) window.location.href = res.url;
       else setError(res.error ?? "Something went wrong.");
     });
@@ -81,6 +101,87 @@ export function DonateForm() {
           />
         </div>
       </div>
+
+      {/* Who is this gift for? */}
+      <fieldset className="mt-5">
+        <legend className="label">Who is this gift for?</legend>
+        <div className="space-y-2">
+          {[
+            {
+              v: "RECIPIENT" as const,
+              label: "I have someone I\u2019d like to sponsor or gift this to",
+            },
+            { v: "ANONYMOUS" as const, label: "Anonymous sponsorship gift" },
+          ].map((o) => (
+            <label
+              key={o.v}
+              className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm transition ${
+                giftFor === o.v
+                  ? "border-brand-500 bg-brand-50"
+                  : "border-ink-200 hover:bg-ink-50"
+              }`}
+            >
+              <input
+                type="radio"
+                name="giftFor"
+                value={o.v}
+                checked={giftFor === o.v}
+                onChange={() => setGiftFor(o.v)}
+                className="mt-0.5"
+              />
+              <span className="font-medium text-ink-800">{o.label}</span>
+            </label>
+          ))}
+        </div>
+
+        {giftFor === "RECIPIENT" && (
+          <div className="mt-3 space-y-3 rounded-xl border border-ink-200 bg-ink-50 p-3">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="label" htmlFor="gift-first">First name</label>
+                <input
+                  id="gift-first"
+                  className="input"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="gift-last">Last name</label>
+                <input
+                  id="gift-last"
+                  className="input"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="label" htmlFor="gift-phone">Phone number</label>
+              <input
+                id="gift-phone"
+                type="tel"
+                inputMode="tel"
+                className="input"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="off"
+              />
+            </div>
+            <p className="text-xs text-ink-500">
+              We&apos;ll reach out to her to set up her membership.
+            </p>
+          </div>
+        )}
+        {giftFor === "ANONYMOUS" && (
+          <p className="mt-2 text-xs text-ink-500">
+            Your gift goes toward a sponsored membership for a woman the studio
+            chooses.
+          </p>
+        )}
+      </fieldset>
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
