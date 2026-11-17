@@ -244,6 +244,11 @@ export default async function LandingPage() {
                       <div className="min-w-0 flex-1">
                         <div className="truncate font-medium">{s.classType.name}</div>
                         <div className="truncate text-sm text-ink-500">{s.instructor.name}</div>
+                        {s.classType.description && (
+                          <p className="mt-0.5 line-clamp-2 text-xs leading-snug text-ink-600">
+                            {s.classType.description}
+                          </p>
+                        )}
                       </div>
                       <Link href="/login" className="btn-secondary shrink-0 text-xs">
                         Reserve

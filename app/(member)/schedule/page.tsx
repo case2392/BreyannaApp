@@ -189,6 +189,16 @@ function ClassCard({
         {s.classType.name}
       </div>
       <div className="truncate text-xs text-ink-500">{s.instructor.name}</div>
+      {s.classType.description && (
+        <p
+          className={`mt-1 text-xs leading-snug text-ink-600 ${
+            compact ? "line-clamp-3" : ""
+          }`}
+          title={s.classType.description}
+        >
+          {s.classType.description}
+        </p>
+      )}
 
       <div className="mt-1 flex items-center justify-between gap-2">
         <span
