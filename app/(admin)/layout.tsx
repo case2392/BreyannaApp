@@ -14,6 +14,7 @@ import {
   HeartIcon,
   TicketIcon,
   ChartIcon,
+  CardIcon,
 } from "@/components/Icons";
 
 export default async function AdminLayout({
@@ -37,6 +38,7 @@ export default async function AdminLayout({
       <NavLink href="/admin/popup" label="Popup" icon={<MegaphoneIcon className="h-4 w-4" />} />
       <NavLink href="/admin/messages" label="Messages" icon={<MegaphoneIcon className="h-4 w-4" />} />
       <NavLink href="/admin/sponsorships" label="Sponsor a Sister" icon={<HeartIcon className="h-4 w-4" />} />
+      <NavLink href="/admin/qr-gifts" label="QR Code Gift Recipients" icon={<CardIcon className="h-4 w-4" />} />
     </>
   );
 

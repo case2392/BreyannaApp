@@ -464,3 +464,31 @@ model Promo {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 }
+
+// A gift card code (e.g. from a swag bag) and, once redeemed on the private QR
+// page, who redeemed it. Each code works once.
+model GiftCode {
+  id         String    @id @default(cuid())
+  // Stored uppercase without spaces, e.g. "DWELL-7K3M".
+  code       String    @unique
+  // What the card offers, e.g. "Free class" or "Sauna session".
+  gift       String?
+  redeemedAt DateTime?
+  firstName  String?
+  lastName   String?
+  phone      String?
+  email      String?
+  // Staff follow-up: account created / gift added.
+  handled    Boolean   @default(false)
+  // Member account created for this recipient (if any).
+  memberId   String?
+  createdAt  DateTime  @default(now())
+
+  @@index([redeemedAt])
+}
+
+// Simple key/value settings (e.g. the private QR gift page's secret token).
+model AppSetting {
+  key   String @id
+  value String
+}

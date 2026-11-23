@@ -21,6 +21,8 @@ export function PromoPopup() {
   useEffect(() => {
     // Don't show inside the admin area.
     if (pathname && pathname.startsWith("/admin")) return;
+    // Keep the QR gift page focused on its form.
+    if (pathname && pathname.startsWith("/welcome")) return;
     let cancelled = false;
     fetch("/api/promo")
       .then((r) => r.json())
