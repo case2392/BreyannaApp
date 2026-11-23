@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { redeemGiftCode } from "@/app/actions/qrgifts";
+import { activeSocialLinks } from "@/lib/social";
 
 export function GiftRedeemForm({ token }: { token: string }) {
   const [firstName, setFirstName] = useState("");
@@ -51,12 +52,25 @@ export function GiftRedeemForm({ token }: { token: string }) {
           <Link href="/" className="btn-primary px-6">
             Explore Dwell Studio
           </Link>
-          <a
-            href="https://instagram.com/dwellstudio.lnk"
-            className="font-medium text-brand-600 hover:underline"
-          >
-            Follow along @dwellstudio.lnk
-          </a>
+        </div>
+        <div className="mt-6 border-t border-ink-100 pt-5">
+          <p className="text-sm text-ink-700">
+            Come connect with our community — follow along with Dwell on social
+            media!
+          </p>
+          <div className="mt-3 flex flex-wrap justify-center gap-2">
+            {activeSocialLinks().map((l) => (
+              <a
+                key={l.name}
+                href={l.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-secondary text-sm"
+              >
+                {l.name}
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     );
