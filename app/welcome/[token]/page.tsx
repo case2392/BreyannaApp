@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { DwellSeal } from "@/components/Brand";
 import { GiftRedeemForm } from "@/components/GiftRedeemForm";
 import { isValidGiftPageToken } from "@/lib/giftCodes";
 
@@ -25,8 +24,7 @@ export default async function QrGiftWelcomePage({
     >
       <div className="mx-auto w-full max-w-lg">
         <div className="mb-6 flex flex-col items-center text-center">
-          <DwellSeal size={96} />
-          <p className="eyebrow mt-6">A gift for you</p>
+          <p className="eyebrow">A gift for you</p>
           <h1 className="mt-2 text-4xl font-semibold">Welcome to Dwell</h1>
           <span className="rule mt-4" />
           <p className="mt-5 leading-relaxed text-ink-700">

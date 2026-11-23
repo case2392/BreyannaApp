@@ -473,6 +473,9 @@ model GiftCode {
   code       String    @unique
   // What the card offers, e.g. "Free class" or "Sauna session".
   gift       String?
+  // Kind of gift: SAUNA | CLASS | GUEST_PASS | MERCH_DISCOUNT |
+  // MEMBERSHIP_DISCOUNT | OTHER (null on codes added before types existed).
+  giftType   String?
   redeemedAt DateTime?
   firstName  String?
   lastName   String?

@@ -10,6 +10,7 @@ import {
   generateGiftCode,
   isValidGiftPageToken,
 } from "@/lib/giftCodes";
+import { buildGiftLabel, giftPhrase } from "@/lib/giftTypes";
 
 async function requireStaff() {
   const user = await getCurrentUser();
@@ -18,6 +19,15 @@ async function requireStaff() {
 }
 
 const emailish = (s: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(s);
+
+// The gift picked in the CRM form (type + amount/description).
+function pickedGift(formData: FormData) {
+  return buildGiftLabel(
+    String(formData.get("giftType") || ""),
+    String(formData.get("giftAmount") || ""),
+    String(formData.get("giftCustom") || "")
+  );
+}
 
 // Public: someone who scanned the QR code submits their info + card code.
 // Each code works once.
@@ -75,12 +85,12 @@ export async function redeemGiftCode(
       `.\nPhone: ${phone}\nEmail: ${email}\n\nSee CRM → QR Code Gift Recipients to set up their account and gift.`
   );
   revalidatePath("/admin/qr-gifts");
-  return { ok: true, gift: found.gift };
+  return { ok: true, gift: giftPhrase(found.giftType, found.gift) };
 }
 
 // Parse "CODE" or "CODE - gift" / "CODE, gift" lines. Only a comma or a dash
 // with spaces around it separates the gift, so codes like DWELL-7K3M stay whole.
-function parseCodeLines(text: string, defaultGift: string | null) {
+function parseCodeLines(text: string) {
   const out: { code: string; gift: string | null }[] = [];
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
@@ -88,7 +98,7 @@ function parseCodeLines(text: string, defaultGift: string | null) {
     const m = line.match(/^(.+?)(?:\s*,\s*|\s+[-–—]\s+)(.+)$/);
     const code = normalizeGiftCode(m ? m[1] : line);
     if (!code) continue;
-    const gift = ((m ? m[2] : "").trim() || defaultGift || "").slice(0, 120) || null;
+    const gift = (m ? m[2] : "").trim().slice(0, 120) || null;
     out.push({ code, gift });
   }
   return out;
@@ -97,9 +107,17 @@ function parseCodeLines(text: string, defaultGift: string | null) {
 // CRM: add codes you wrote on cards (one per line, optional " - gift").
 export async function addGiftCodes(_prev: unknown, formData: FormData) {
   await requireStaff();
-  const defaultGift = String(formData.get("gift") || "").trim() || null;
-  const rows = parseCodeLines(String(formData.get("codes") || ""), defaultGift);
-  if (rows.length === 0) return { error: "Enter at least one code." };
+  const picked = pickedGift(formData);
+  if ("error" in picked) return { error: picked.error };
+  const parsed = parseCodeLines(String(formData.get("codes") || ""));
+  if (parsed.length === 0) return { error: "Enter at least one code." };
+  // Every code in this batch gets the picked gift (a "CODE - text" line keeps
+  // its own text, as "Other").
+  const rows = parsed.map((r) =>
+    r.gift
+      ? { code: r.code, gift: r.gift, giftType: "OTHER" }
+      : { code: r.code, gift: picked.label, giftType: picked.type }
+  );
 
   const unique = Array.from(new Map(rows.map((r) => [r.code, r])).values());
   const existing = await prisma.giftCode.findMany({
@@ -124,7 +142,9 @@ export async function addGiftCodes(_prev: unknown, formData: FormData) {
 export async function generateGiftCodes(_prev: unknown, formData: FormData) {
   await requireStaff();
   const count = Math.min(200, Math.max(1, Number(formData.get("count")) || 0));
-  const gift = String(formData.get("gift") || "").trim().slice(0, 120) || null;
+  const picked = pickedGift(formData);
+  if ("error" in picked) return { error: picked.error };
+  const gift = picked.label;
 
   const codes = new Set<string>();
   while (codes.size < count) codes.add(generateGiftCode());
@@ -137,7 +157,7 @@ export async function generateGiftCodes(_prev: unknown, formData: FormData) {
   const taken = new Set(existing.map((e) => e.code));
   const fresh = list.filter((c) => !taken.has(c));
   await prisma.giftCode.createMany({
-    data: fresh.map((code) => ({ code, gift })),
+    data: fresh.map((code) => ({ code, gift, giftType: picked.type })),
   });
   revalidatePath("/admin/qr-gifts");
   return { ok: true, codes: fresh, gift };

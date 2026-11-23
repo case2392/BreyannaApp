@@ -39,3 +39,4 @@ export async function isValidGiftPageToken(token: string): Promise<boolean> {
   const row = await prisma.appSetting.findUnique({ where: { key: TOKEN_KEY } });
   return Boolean(row && row.value === token);
 }
+

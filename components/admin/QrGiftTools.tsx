@@ -11,6 +11,7 @@ import {
   setGiftHandled,
   createAccountFromGift,
 } from "@/app/actions/qrgifts";
+import { GIFT_TYPES } from "@/lib/giftTypes";
 
 function Submit({ label }: { label: string }) {
   const { pending } = useFormStatus();
@@ -50,6 +51,87 @@ export function CopyTextButton({
   );
 }
 
+// "What are these codes for?" — the gift type, plus a % or class count where
+// needed. Submits giftType / giftAmount / giftCustom.
+function GiftTypePicker({ idPrefix }: { idPrefix: string }) {
+  const [type, setType] = useState<string>("");
+  const def = GIFT_TYPES.find((t) => t.key === type);
+  return (
+    <div className="space-y-2">
+      <div>
+        <label className="label" htmlFor={`${idPrefix}-gift-type`}>
+          What are these codes for?
+        </label>
+        <select
+          id={`${idPrefix}-gift-type`}
+          name="giftType"
+          className="input"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          required
+        >
+          <option value="" disabled>
+            Choose one…
+          </option>
+          {GIFT_TYPES.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {def?.amount === "percent" && (
+        <div className="w-32">
+          <label className="label" htmlFor={`${idPrefix}-gift-amount`}>
+            Discount %
+          </label>
+          <input
+            id={`${idPrefix}-gift-amount`}
+            name="giftAmount"
+            type="number"
+            min={1}
+            max={100}
+            className="input"
+            placeholder="e.g. 20"
+            required
+          />
+        </div>
+      )}
+      {def?.amount === "count" && (
+        <div className="w-32">
+          <label className="label" htmlFor={`${idPrefix}-gift-amount`}>
+            How many classes
+          </label>
+          <input
+            id={`${idPrefix}-gift-amount`}
+            name="giftAmount"
+            type="number"
+            min={1}
+            max={50}
+            defaultValue={1}
+            className="input"
+            required
+          />
+        </div>
+      )}
+      {type === "OTHER" && (
+        <div>
+          <label className="label" htmlFor={`${idPrefix}-gift-custom`}>
+            Describe the gift
+          </label>
+          <input
+            id={`${idPrefix}-gift-custom`}
+            name="giftCustom"
+            className="input"
+            placeholder="e.g. Free Dwell tote bag"
+            required
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Add the codes you wrote on your cards.
 export function AddGiftCodesForm() {
   const ref = useRef<HTMLFormElement>(null);
@@ -71,20 +153,10 @@ export function AddGiftCodesForm() {
           id="qr-codes"
           name="codes"
           className="input min-h-[120px] font-mono text-sm"
-          placeholder={"One per line. Add what it's for after a dash:\nGRACE12 - Free class\nJOY48 - Sauna session\nHOPE7 - 20% off first month"}
+          placeholder={"One code per line, e.g.\nGRACE12\nJOY48\nHOPE7"}
         />
       </div>
-      <div>
-        <label className="label" htmlFor="qr-default-gift">
-          Gift for lines without one (optional)
-        </label>
-        <input
-          id="qr-default-gift"
-          name="gift"
-          className="input"
-          placeholder="e.g. Free class"
-        />
-      </div>
+      <GiftTypePicker idPrefix="add" />
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
       {state?.message && <p className="text-sm text-green-700">{state.message}</p>}
       <Submit label="Add codes" />
@@ -96,38 +168,27 @@ export function AddGiftCodesForm() {
 export function GenerateGiftCodesForm() {
   const [state, action] = useFormState(
     generateGiftCodes,
-    {} as { ok?: boolean; codes?: string[]; gift?: string | null }
+    {} as { ok?: boolean; error?: string; codes?: string[]; gift?: string | null }
   );
   return (
     <div className="space-y-3">
       <form action={action} className="space-y-3">
-        <div className="grid grid-cols-3 gap-3">
-          <div>
-            <label className="label" htmlFor="qr-count">
-              How many
-            </label>
-            <input
-              id="qr-count"
-              name="count"
-              type="number"
-              min={1}
-              max={200}
-              defaultValue={10}
-              className="input"
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="label" htmlFor="qr-gen-gift">
-              What these cards are for
-            </label>
-            <input
-              id="qr-gen-gift"
-              name="gift"
-              className="input"
-              placeholder="e.g. Free class"
-            />
-          </div>
+        <div className="w-32">
+          <label className="label" htmlFor="qr-count">
+            How many
+          </label>
+          <input
+            id="qr-count"
+            name="count"
+            type="number"
+            min={1}
+            max={200}
+            defaultValue={10}
+            className="input"
+          />
         </div>
+        <GiftTypePicker idPrefix="gen" />
+        {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
         <Submit label="Generate codes" />
       </form>
       {state?.codes && state.codes.length > 0 && (

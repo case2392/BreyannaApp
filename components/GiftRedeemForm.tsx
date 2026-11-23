@@ -44,13 +44,8 @@ export function GiftRedeemForm({ token }: { token: string }) {
         </h2>
         <p className="mt-3 leading-relaxed text-ink-700">
           We&apos;ve received your information and will be in touch soon to help
-          you redeem your gift
-          {done.gift ? (
-            <>
-              : <b>{done.gift}</b>
-            </>
-          ) : null}
-          . We can&apos;t wait to meet you!
+          you redeem your <b>{done.gift ?? "gift"}</b>. We can&apos;t wait to
+          meet you!
         </p>
         <div className="mt-6 flex flex-col items-center gap-2 text-sm">
           <Link href="/" className="btn-primary px-6">
