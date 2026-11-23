@@ -3,8 +3,7 @@
 export const SOCIAL_LINKS: { name: string; href: string | null }[] = [
   { name: "Instagram", href: "https://www.instagram.com/dwellstudio.lnk/" },
   { name: "TikTok", href: "https://www.tiktok.com/@dwellstudio.lnk" },
-  // Facebook page "Dwell Studio Lincoln" — paste its address here.
-  { name: "Facebook", href: null },
+  { name: "Facebook", href: "https://www.facebook.com/profile.php?id=61584536211827" },
 ];
 
 export const activeSocialLinks = () =>
