@@ -6,6 +6,7 @@ export type SaleDefaults = {
   salePrice: string; // dollars, "" = none
   saleStarts: string; // yyyy-mm-dd
   saleEnds: string; // yyyy-mm-dd (last day of the sale)
+  saleEndTime: string; // HH:MM on the last day ("23:59" = end of day)
   saleLockedIn: boolean;
   saleMonths: number;
 };
@@ -54,7 +55,7 @@ export function SaleFields({
       </label>
       {on && (
         <div className="mt-3 space-y-3">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="label" htmlFor={`${idPrefix}-sale-price`}>
                 Sale price ($)
@@ -95,10 +96,23 @@ export function SaleFields({
                 required
               />
             </div>
+            <div>
+              <label className="label" htmlFor={`${idPrefix}-sale-end-time`}>
+                Ends at
+              </label>
+              <input
+                id={`${idPrefix}-sale-end-time`}
+                name="saleEndTime"
+                type="time"
+                className="input px-2"
+                defaultValue={defaults?.saleEndTime ?? "23:59"}
+              />
+            </div>
           </div>
           <p className="text-xs text-ink-500">
-            Leave “Starts” blank to start right away. The sale runs through 11:59 PM
-            on the last day, then the regular price comes back on its own.
+            Leave “Starts” blank to start right away. The sale ends at the time
+            you pick on the last day (Central time), then the regular price comes
+            back on its own.
           </p>
           {monthly && (
             <fieldset>

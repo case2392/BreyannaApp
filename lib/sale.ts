@@ -58,23 +58,38 @@ export function savingsLabel(sale: ActiveSale): string {
 const dayKey = (d: Date) =>
   `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
 
-// "Sale ends tonight" / "Sale ends tomorrow" / "Sale ends Sunday, Nov 30".
+// A sale ending exactly at midnight runs through the whole day before.
+const endsAtMidnight = (d: Date) =>
+  d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
+
+// "11:29 PM" (sale times are wall-clock values in UTC fields).
+const clock = (d: Date) =>
+  d.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
+
+// "Sale ends tonight" / "Sale ends tomorrow at 11:29 PM" / "Sale ends
+// Sunday, Nov 30". The time is shown when the sale ends before midnight.
 export function saleEndsLabel(
   endsAt: Date | null,
   now: Date = studioNow()
 ): string | null {
   if (!endsAt) return null;
-  // A sale ending at midnight belongs to the day before.
-  const last = new Date(endsAt.getTime() - 1);
+  const allDay = endsAtMidnight(endsAt);
+  const last = allDay ? new Date(endsAt.getTime() - 1) : endsAt;
+  const at = allDay ? "" : ` at ${clock(endsAt)}`;
   const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  if (dayKey(last) === dayKey(now)) return "Sale ends tonight";
-  if (dayKey(last) === dayKey(tomorrow)) return "Sale ends tomorrow";
+  if (dayKey(last) === dayKey(now))
+    return allDay ? "Sale ends tonight" : `Sale ends today${at}`;
+  if (dayKey(last) === dayKey(tomorrow)) return `Sale ends tomorrow${at}`;
   return `Sale ends ${last.toLocaleDateString("en-US", {
     weekday: "long",
     month: "short",
     day: "numeric",
     timeZone: "UTC",
-  })}`;
+  })}${at}`;
 }
 
 // Admin status line for a saved sale.
@@ -118,10 +133,13 @@ export function parseSaleForm(
   const startRaw = String(formData.get("saleStarts") ?? "").trim();
   const endRaw = String(formData.get("saleEnds") ?? "").trim();
   if (!endRaw) return { error: "Pick the last day of the sale." };
-  const saleEndsAt = new Date(`${endRaw}T00:00:00Z`);
+  // End time on the last day; 11:59 PM (or blank) = through the end of the day.
+  const endTime = String(formData.get("saleEndTime") ?? "").trim() || "23:59";
+  if (!/^\d{2}:\d{2}$/.test(endTime))
+    return { error: "That sale end time isn't valid." };
+  const saleEndsAt = new Date(`${endRaw}T${endTime === "23:59" ? "00:00" : endTime}:00Z`);
   if (isNaN(saleEndsAt.getTime())) return { error: "That sale end date isn't valid." };
-  // Through the end of that day.
-  saleEndsAt.setUTCDate(saleEndsAt.getUTCDate() + 1);
+  if (endTime === "23:59") saleEndsAt.setUTCDate(saleEndsAt.getUTCDate() + 1);
 
   let saleStartsAt: Date | null = null;
   if (startRaw) {
@@ -137,7 +155,11 @@ export function parseSaleForm(
 // The end-date input shows the last day of the sale (saleEndsAt is midnight
 // after it).
 export const saleEndInputValue = (d: Date | null | undefined) =>
-  d ? dateInputValue(new Date(d.getTime() - 1)) : "";
+  d ? dateInputValue(endsAtMidnight(d) ? new Date(d.getTime() - 1) : d) : "";
+
+// The end-time input: 11:59 PM for an all-day sale, else the exact time.
+export const saleEndTimeInputValue = (d: Date | null | undefined) =>
+  !d || endsAtMidnight(d) ? "23:59" : d.toISOString().slice(11, 16);
 
 const shortDay = (d: Date) =>
   d.toLocaleDateString("en-US", {
@@ -156,11 +178,19 @@ export function saleSummary(
   const status = saleStatus(item, now);
   if (!status || item.salePriceCents == null) return null;
   const price = money(item.salePriceCents);
-  const last = item.saleEndsAt ? new Date(item.saleEndsAt.getTime() - 1) : null;
+  const ends = item.saleEndsAt ?? null;
+  const allDay = ends ? endsAtMidnight(ends) : true;
+  const last = ends ? (allDay ? new Date(ends.getTime() - 1) : ends) : null;
   if (status === "live")
     return {
       tone: "live",
-      text: `On sale ${price}${last ? ` · through ${shortDay(last)}` : ""}`,
+      text: `On sale ${price}${
+        last
+          ? allDay
+            ? ` · through ${shortDay(last)}`
+            : ` · until ${shortDay(last)}, ${clock(last)}`
+          : ""
+      }`,
     };
   if (status === "scheduled")
     return {
@@ -201,6 +231,7 @@ export function saleDefaults(
       item.salePriceCents != null ? (item.salePriceCents / 100).toFixed(2) : "",
     saleStarts: dateInputValue(item.saleStartsAt),
     saleEnds: saleEndInputValue(item.saleEndsAt),
+    saleEndTime: saleEndTimeInputValue(item.saleEndsAt),
     saleLockedIn: Boolean(item.saleLockedIn),
     saleMonths: item.saleMonths ?? 1,
   };
