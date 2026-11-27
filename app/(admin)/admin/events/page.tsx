@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { saleDefaults, saleSummary } from "@/lib/sale";
 import { money, dayLabel, timeLabel } from "@/lib/format";
 import { CreateEventForm, EventRow } from "@/components/admin/EventForms";
 
@@ -66,6 +67,8 @@ export default async function EventsPage() {
                     allowCredits: e.allowCredits,
                     creditCost: String(e.creditCost),
                     creditPlanIds: (e.creditPlanIds ?? "").split(",").filter(Boolean),
+                    sale: saleDefaults(e),
+                    saleSummary: saleSummary(e, money),
                     imageUrl: e.imageUrl,
                     registrationCount: e._count.registrations,
                     registrationClosed: e.registrationClosed,

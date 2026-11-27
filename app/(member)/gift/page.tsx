@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { dayLabel, timeLabel, money } from "@/lib/format";
 import { studioNow } from "@/lib/time";
+import { activeSale, priceNow } from "@/lib/sale";
 import { finalizeClassGift } from "@/app/actions/gift";
 import { GiftClassForm } from "@/components/GiftClassForm";
 
@@ -21,7 +22,7 @@ export default async function GiftPage({
   const horizon = new Date(now);
   horizon.setDate(horizon.getDate() + 21);
 
-  const [sessions, dropIn] = await Promise.all([
+  const [sessions, dropIns] = await Promise.all([
     prisma.classSession.findMany({
       where: {
         cancelled: false,
@@ -36,11 +37,14 @@ export default async function GiftPage({
       },
       take: 100,
     }),
-    prisma.membershipPlan.findFirst({
+    prisma.membershipPlan.findMany({
       where: { active: true, kind: "DROP_IN" },
       orderBy: { priceCents: "asc" },
     }),
   ]);
+  // Same pick as checkout: the cheapest single class right now (sale included).
+  const dropIn = dropIns.sort((a, b) => priceNow(a) - priceNow(b))[0];
+  const dropInSale = dropIn ? activeSale(dropIn) : null;
 
   const classes = sessions.map((s) => ({
     id: s.id,
@@ -48,7 +52,11 @@ export default async function GiftPage({
       s.classType.name
     } (${s.instructor.name})`,
   }));
-  const priceLabel = dropIn ? money(dropIn.priceCents) : "single-class rate";
+  const priceLabel = dropIn
+    ? dropInSale
+      ? `${money(dropInSale.saleCents)} sale (reg. ${money(dropIn.priceCents)})`
+      : money(dropIn.priceCents)
+    : "single-class rate";
 
   return (
     <div className="max-w-xl">

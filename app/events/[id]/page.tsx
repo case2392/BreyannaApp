@@ -10,6 +10,8 @@ import { MarketingFooter } from "@/components/MarketingFooter";
 import { EventTicketForm } from "@/components/EventTicketForm";
 import { EventBookWithCredits } from "@/components/EventBookWithCredits";
 import { CancelMyEventRegistration } from "@/components/CancelMyEventRegistration";
+import { PriceTag } from "@/components/PriceTag";
+import { activeSale, saleEndsLabel, savingsLabel } from "@/lib/sale";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +49,9 @@ export default async function EventDetailPage({
   const registered = Boolean(myReg);
 
   const status = eventRegStatus(event, event._count.registrations);
-  const priceLabel = event.priceCents === 0 ? "Free" : money(event.priceCents);
+  const sale = activeSale(event);
+  const priceLabel =
+    event.priceCents === 0 ? "Free" : money(sale?.saleCents ?? event.priceCents);
   // Show the ticket/registration form when there's a ticket to sell, or when the
   // event isn't credit-based (free/paid classic events).
   const showTicketForm = event.priceCents > 0 || !event.allowCredits;
@@ -140,10 +144,25 @@ export default async function EventDetailPage({
           <div className="md:sticky md:top-24 md:self-start">
             <div className="card p-6">
               <div className="text-center font-serif text-3xl font-semibold">
-                {event.allowCredits && event.priceCents === 0
-                  ? membershipLabel
-                  : priceLabel}
+                {event.allowCredits && event.priceCents === 0 ? (
+                  membershipLabel
+                ) : sale ? (
+                  <PriceTag
+                    fullCents={event.priceCents}
+                    saleCents={sale.saleCents}
+                    size="xl"
+                    className="text-3xl"
+                  />
+                ) : (
+                  priceLabel
+                )}
               </div>
+              {sale && (
+                <p className="mt-1 text-center text-xs font-semibold text-brand-700">
+                  {savingsLabel(sale)}
+                  {sale.endsAt ? ` · ${saleEndsLabel(sale.endsAt)}` : ""}
+                </p>
+              )}
               {event.allowCredits && (
                 <p className="mt-1 text-center text-xs text-ink-500">
                   {eligiblePlanNames.length > 0

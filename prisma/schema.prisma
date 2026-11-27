@@ -148,6 +148,15 @@ model MembershipPlan {
   durationDays Int     @default(30)
   // Guest passes this plan grants each month (reset on renewal). 0 = none.
   guestPassesPerMonth Int @default(0)
+  // Optional sale: shown as the sale price with the regular price crossed out,
+  // and charged at checkout, from saleStartsAt (blank = now) until saleEndsAt
+  // (studio wall-clock times). Null salePriceCents = no sale.
+  salePriceCents Int?
+  saleStartsAt   DateTime?
+  saleEndsAt     DateTime?
+  // Unlimited plans only: true = the sale price is locked in every month;
+  // false = sale price for the first month, then the regular price.
+  saleLockedIn   Boolean  @default(false)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 
@@ -376,6 +385,10 @@ model Event {
   location    String?
   // Ticket price in cents (0 = free).
   priceCents  Int       @default(0)
+  // Optional sale ticket price (see MembershipPlan.salePriceCents).
+  salePriceCents Int?
+  saleStartsAt   DateTime?
+  saleEndsAt     DateTime?
   // If true, members can register using their membership/credits (like a class),
   // spending creditCost credits (unlimited plans register free). A ticket price
   // can still be offered alongside for non-members.

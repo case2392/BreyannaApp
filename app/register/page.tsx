@@ -3,9 +3,17 @@ import { getCurrentUser } from "@/lib/auth";
 import { RegisterForm } from "@/components/AuthForms";
 import { DwellSeal } from "@/components/Brand";
 
-export default async function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: { next?: string };
+}) {
+  const next =
+    searchParams.next?.startsWith("/") && !searchParams.next.startsWith("//")
+      ? searchParams.next
+      : undefined;
   const user = await getCurrentUser();
-  if (user) redirect(user.role === "MEMBER" ? "/schedule" : "/admin");
+  if (user) redirect(next ?? (user.role === "MEMBER" ? "/schedule" : "/admin"));
 
   return (
     <main id="main-content" className="flex min-h-screen items-center justify-center bg-gradient-to-br from-brand-50 via-ink-50 to-sage-50 px-4 py-10">
@@ -22,7 +30,7 @@ export default async function RegisterPage() {
           <p className="mb-6 text-sm text-ink-500">
             It only takes a minute to get started.
           </p>
-          <RegisterForm />
+          <RegisterForm next={next} />
           <p className="mt-4 text-center text-xs text-ink-500">
             By creating an account, you agree to our{" "}
             <a href="/terms" className="text-brand-600 hover:underline">

@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { parseSaleForm } from "@/lib/sale";
+import { saveSaleBannerSettings } from "@/lib/saleBanner";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
@@ -405,9 +407,13 @@ export async function createPlan(_prev: unknown, formData: FormData) {
     | "DROP_IN";
   const price = Number(formData.get("price")) || 0;
   if (!name) return { error: "Name is required." };
+  const sale = parseSaleForm(formData, Math.round(price * 100));
+  if ("error" in sale) return { error: sale.error };
 
   const created = await prisma.membershipPlan.create({
     data: {
+      ...sale,
+      saleLockedIn: kind === "UNLIMITED" && formData.get("saleLockedIn") === "1",
       name,
       description: String(formData.get("description") || "").trim() || null,
       kind,
@@ -421,6 +427,7 @@ export async function createPlan(_prev: unknown, formData: FormData) {
   await syncPlanClassAccess(created.id, formData);
   revalidatePath("/admin/plans");
   revalidatePath("/memberships");
+  revalidatePath("/");
   return { ok: true };
 }
 
@@ -445,10 +452,14 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
     | "DROP_IN";
   const price = Number(formData.get("price")) || 0;
   if (!id || !name) return { error: "Name is required." };
+  const sale = parseSaleForm(formData, Math.round(price * 100));
+  if ("error" in sale) return { error: sale.error };
 
   await prisma.membershipPlan.update({
     where: { id },
     data: {
+      ...sale,
+      saleLockedIn: kind === "UNLIMITED" && formData.get("saleLockedIn") === "1",
       name,
       description: String(formData.get("description") || "").trim() || null,
       kind,
@@ -462,6 +473,7 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
   await syncPlanClassAccess(id, formData);
   revalidatePath("/admin/plans");
   revalidatePath("/memberships");
+  revalidatePath("/");
   return { ok: true };
 }
 
@@ -669,6 +681,8 @@ export async function createEvent(_prev: unknown, formData: FormData) {
   if (!name) return { error: "Event name is required." };
 
   const price = Number(formData.get("price")) || 0;
+  const sale = parseSaleForm(formData, Math.round(price * 100));
+  if ("error" in sale) return { error: sale.error };
   const startsAt = parseEventStart(
     String(formData.get("date") || ""),
     String(formData.get("time") || "")
@@ -690,6 +704,7 @@ export async function createEvent(_prev: unknown, formData: FormData) {
       description: String(formData.get("description") || "").trim() || null,
       location: String(formData.get("location") || "").trim() || null,
       priceCents: Math.round(price * 100),
+      ...sale,
       allowCredits,
       creditCost,
       creditPlanIds: allowCredits ? creditPlanIds : null,
@@ -710,6 +725,8 @@ export async function updateEvent(_prev: unknown, formData: FormData) {
   if (!id || !name) return { error: "Event name is required." };
 
   const price = Number(formData.get("price")) || 0;
+  const sale = parseSaleForm(formData, Math.round(price * 100));
+  if ("error" in sale) return { error: sale.error };
   const startsAt = parseEventStart(
     String(formData.get("date") || ""),
     String(formData.get("time") || "")
@@ -732,6 +749,7 @@ export async function updateEvent(_prev: unknown, formData: FormData) {
       description: String(formData.get("description") || "").trim() || null,
       location: String(formData.get("location") || "").trim() || null,
       priceCents: Math.round(price * 100),
+      ...sale,
       allowCredits,
       creditCost,
       creditPlanIds: allowCredits ? creditPlanIds : null,
@@ -947,5 +965,17 @@ export async function savePromo(_prev: unknown, formData: FormData) {
     await prisma.promo.create({ data: { imageUrl, linkUrl, active, endsAt } });
   }
   revalidatePath("/admin/popup");
+  return { ok: true };
+}
+
+// ---- Sale banner ----------------------------------------------------------
+
+export async function saveSaleBanner(_prev: unknown, formData: FormData) {
+  await requireStaff();
+  await saveSaleBannerSettings({
+    enabled: formData.get("enabled") === "on",
+    message: String(formData.get("message") || ""),
+  });
+  revalidatePath("/admin/plans");
   return { ok: true };
 }

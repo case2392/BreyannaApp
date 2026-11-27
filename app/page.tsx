@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
-import { money, dayLabel, timeLabel, groupBy, planInclusions } from "@/lib/format";
+import { dayLabel, timeLabel, groupBy } from "@/lib/format";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { Logo, DwellSeal } from "@/components/Brand";
 import { BrandImage } from "@/components/BrandImage";
 import { studioNow } from "@/lib/time";
+import { saleEndsLabel } from "@/lib/sale";
+import { PlanCard, groupPlans, soonestSaleEnd } from "@/components/PlanCard";
 
 export const dynamic = "force-dynamic";
 
@@ -37,12 +39,6 @@ const reflections = [
   "Do you ever have trouble thanking God for how He made you?",
 ];
 
-const kindLabel: Record<string, string> = {
-  UNLIMITED: "Unlimited",
-  PACK: "Class pack",
-  DROP_IN: "Drop-in",
-};
-
 export default async function LandingPage() {
   const user = await getCurrentUser();
   const authed = Boolean(user);
@@ -60,6 +56,7 @@ export default async function LandingPage() {
       include: { classType: true, instructor: true },
     }),
   ]);
+  const saleOn = soonestSaleEnd(plans, now);
   const upcomingByDay = groupBy(upcoming, (s) => s.startsAt.toDateString());
 
   return (
@@ -339,35 +336,40 @@ export default async function LandingPage() {
               option for you.
             </p>
           </div>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {plans.map((p) => {
-              return (
-                <div key={p.id} className="card card-interactive flex flex-col p-6">
-                  <span className="text-xs font-medium uppercase tracking-wide text-ink-400">
-                    {kindLabel[p.kind]}
-                  </span>
-                  <h3 className="mt-1 text-xl font-semibold">{p.name}</h3>
-                  {p.description && (
-                    <p className="mt-2 text-sm text-ink-500">{p.description}</p>
-                  )}
-                  <div className="mt-3">
-                    <span className="font-serif text-4xl font-semibold">{money(p.priceCents)}</span>
-                    {p.kind === "UNLIMITED" && <span className="text-sm text-ink-500">/month</span>}
-                  </div>
-                  <ul className="mt-4 space-y-1 text-sm text-ink-600">
-                    {planInclusions(p).map((item) => (
-                      <li key={item} className="flex gap-1.5">
-                        <span className="text-brand-500">✓</span>
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Link href="/register" className="btn-primary mt-6">
-                    Get started
-                  </Link>
+          {saleOn && (
+            <p className="mx-auto mt-6 max-w-xl rounded-full bg-clay-100 px-5 py-2 text-center text-sm font-medium text-ink-800">
+              🎉 Sale prices are live
+              {saleOn.endsAt ? ` · ${saleEndsLabel(saleOn.endsAt, now)}` : ""}
+            </p>
+          )}
+          <div className="mt-10 space-y-12">
+            {groupPlans(plans).map((g) => (
+              <div key={g.kind}>
+                <div className="mb-5 text-center">
+                  <h3 className="text-2xl font-semibold">{g.title}</h3>
+                  <p className="mt-1 text-sm text-ink-500">{g.blurb}</p>
                 </div>
-              );
-            })}
+                <div className="flex flex-wrap justify-center gap-5 pt-1">
+                  {g.plans.map((p) => (
+                    <div key={p.id} className="flex w-full sm:w-[calc(50%-0.625rem)] lg:w-[calc(25%-0.94rem)]">
+                      <PlanCard
+                        plan={p}
+                        now={now}
+                        size="large"
+                        action={
+                          <Link
+                            href={authed ? "/memberships" : "/register?next=/memberships"}
+                            className="btn-primary w-full"
+                          >
+                            {authed ? "Choose this plan" : "Get started"}
+                          </Link>
+                        }
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

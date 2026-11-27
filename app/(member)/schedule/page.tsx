@@ -17,6 +17,7 @@ import { BookButton } from "@/components/BookButton";
 import { GuestBookButton } from "@/components/GuestBookButton";
 import { availableGuestPasses } from "@/lib/booking";
 import { studioNow } from "@/lib/time";
+import { activeSale } from "@/lib/sale";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,9 @@ async function loadEvents(from: Date, to: Date) {
       startsAt: true,
       location: true,
       priceCents: true,
+      salePriceCents: true,
+      saleStartsAt: true,
+      saleEndsAt: true,
     },
   });
 }
@@ -66,7 +70,19 @@ function EventCard({ e }: { e: EventLite }) {
       )}
       <div className="mt-1 flex items-center justify-between">
         <span className="text-[11px] text-ink-500">
-          {e.priceCents === 0 ? "Free" : money(e.priceCents)}
+          {e.priceCents === 0 ? (
+            "Free"
+          ) : activeSale(e) ? (
+            <>
+              <span className="font-semibold text-brand-700">
+                {money(activeSale(e)!.saleCents)}
+              </span>{" "}
+              <s>{money(e.priceCents)}</s>
+              <span className="sr-only"> (sale)</span>
+            </>
+          ) : (
+            money(e.priceCents)
+          )}
         </span>
         <span className="text-[11px] font-medium text-brand-600">View →</span>
       </div>

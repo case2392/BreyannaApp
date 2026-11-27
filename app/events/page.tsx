@@ -6,6 +6,8 @@ import { eventRegStatus } from "@/lib/eventStatus";
 import { MarketingHeader } from "@/components/MarketingHeader";
 import { MarketingFooter } from "@/components/MarketingFooter";
 import { studioNow } from "@/lib/time";
+import { activeSale } from "@/lib/sale";
+import { PriceTag } from "@/components/PriceTag";
 
 export const dynamic = "force-dynamic";
 
@@ -92,11 +94,16 @@ export default async function EventsPage() {
                   )}
                   <div className="mt-auto flex items-center justify-between pt-4">
                     <span className="font-serif text-lg font-semibold">
-                      {e.allowCredits && e.priceCents === 0
-                        ? "Membership"
-                        : e.priceCents === 0
-                        ? "Free"
-                        : money(e.priceCents)}
+                      {e.allowCredits && e.priceCents === 0 ? (
+                        "Membership"
+                      ) : e.priceCents === 0 ? (
+                        "Free"
+                      ) : (
+                        <PriceTag
+                          fullCents={e.priceCents}
+                          saleCents={activeSale(e)?.saleCents}
+                        />
+                      )}
                     </span>
                     {(() => {
                       const status = eventRegStatus(e, e._count.registrations);

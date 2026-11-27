@@ -9,6 +9,8 @@ import { notifyStudio } from "@/lib/notify";
 import { money } from "@/lib/format";
 import { EVENT_SOURCES } from "@/lib/eventSources";
 import { eventEligiblePlanIds } from "@/lib/eventStatus";
+import { activeSale } from "@/lib/sale";
+import { salePricing } from "@/lib/saleCheckout";
 
 function siteOrigin(): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
@@ -77,7 +79,7 @@ export async function registerForEvent(eventId: string) {
       name: `${user.firstName} ${user.lastName}`,
       email: user.email,
       status: "REGISTERED",
-      amountCents: event.priceCents === 0 ? 0 : event.priceCents,
+      amountCents: event.priceCents === 0 ? 0 : activeSale(event)?.saleCents ?? event.priceCents,
       source: "Website",
       eventName: event.name,
     });
@@ -86,7 +88,12 @@ export async function registerForEvent(eventId: string) {
     return { ok: true, registered: true };
   }
 
-  // Paid event → Stripe checkout.
+  // Paid event → Stripe checkout (at the sale price while a sale is on).
+  const pricing = await salePricing({
+    fullCents: event.priceCents,
+    saleCents: activeSale(event)?.saleCents ?? null,
+  });
+  if (!pricing.ok) return { ok: false, error: pricing.error };
   const origin = siteOrigin();
   const session = await stripe!.checkout.sessions.create({
     mode: "payment",
@@ -96,7 +103,7 @@ export async function registerForEvent(eventId: string) {
         quantity: 1,
         price_data: {
           currency: "usd",
-          unit_amount: event.priceCents,
+          unit_amount: pricing.unitAmount,
           product_data: {
             name: event.name,
             description: event.description ?? undefined,
@@ -108,6 +115,7 @@ export async function registerForEvent(eventId: string) {
     payment_intent_data: {
       metadata: { kind: "event", eventId, userId: user.id },
     },
+    ...(pricing.discounts ? { discounts: pricing.discounts } : {}),
     success_url: `${origin}/events/${eventId}?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/events/${eventId}?status=cancel`,
   });
@@ -272,13 +280,20 @@ export async function buyEventTickets(eventId: string, rawAttendees: unknown) {
   }
 
   // Paid → stash the attendees in a pending order, then send to Stripe.
+  const ticketCents = activeSale(event)?.saleCents ?? event.priceCents;
+  const pricing = await salePricing({
+    fullCents: event.priceCents,
+    saleCents: ticketCents < event.priceCents ? ticketCents : null,
+    quantity: attendees.length,
+  });
+  if (!pricing.ok) return { ok: false as const, error: pricing.error };
   const order = await prisma.eventOrder.create({
     data: {
       eventId,
       buyerUserId: user.id,
       attendees: attendees as any,
       quantity: attendees.length,
-      amountCents: event.priceCents * attendees.length,
+      amountCents: ticketCents * attendees.length,
     },
   });
 
@@ -291,7 +306,7 @@ export async function buyEventTickets(eventId: string, rawAttendees: unknown) {
         quantity: attendees.length,
         price_data: {
           currency: "usd",
-          unit_amount: event.priceCents,
+          unit_amount: pricing.unitAmount,
           product_data: {
             name: event.name,
             description: event.description ?? undefined,
@@ -303,6 +318,7 @@ export async function buyEventTickets(eventId: string, rawAttendees: unknown) {
     payment_intent_data: {
       metadata: { kind: "event_order", orderId: order.id },
     },
+    ...(pricing.discounts ? { discounts: pricing.discounts } : {}),
     success_url: `${origin}/events/${eventId}?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/events/${eventId}?status=cancel`,
   });

@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
 import { PromoPopup } from "@/components/PromoPopup";
+import { SaleBanner } from "@/components/SaleBanner";
 
 // Brand display font — the real "Brown Sugar" (Muntab Art), a single-weight
 // display face. Reserved for the logo/wordmark and the big hero headlines.
@@ -61,6 +62,7 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
+        <SaleBanner />
         {children}
         <PromoPopup />
       </body>

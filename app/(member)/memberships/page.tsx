@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { money, shortDate, planInclusions } from "@/lib/format";
+import { shortDate } from "@/lib/format";
+import { studioNow } from "@/lib/time";
+import { saleEndsLabel } from "@/lib/sale";
+import { PlanCard, groupPlans, soonestSaleEnd } from "@/components/PlanCard";
 import { stripeEnabled } from "@/lib/stripe";
 import { finalizeCheckoutSession } from "@/lib/membership";
 import {
@@ -23,7 +26,7 @@ export default async function MembershipsPage({
   searchParams: { status?: string; session_id?: string };
 }) {
   const user = (await getCurrentUser())!;
-  const now = new Date();
+  const realNow = new Date();
   const payments = stripeEnabled();
 
   // If the member just returned from Stripe checkout, make sure their
@@ -34,7 +37,7 @@ export default async function MembershipsPage({
 
   const [mine, plans, pastDue] = await Promise.all([
     prisma.membership.findMany({
-      where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
+      where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: realNow } },
       include: { plan: true },
       orderBy: { expiresAt: "asc" },
     }),
@@ -49,6 +52,9 @@ export default async function MembershipsPage({
   ]);
 
   const hasSubscription = mine.some((m) => m.autoRenew);
+  // Sale comparisons use the studio's clock (sale dates are studio dates).
+  const now = studioNow();
+  const saleOn = soonestSaleEnd(plans, now);
   const activePlanIds = new Set(mine.map((m) => m.plan.id));
 
   return (
@@ -166,53 +172,47 @@ export default async function MembershipsPage({
       )}
 
       <section>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
+        <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-ink-500">
           Available plans
         </h2>
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-          {plans.map((p) => (
-            <div
-              key={p.id}
-              className="card card-interactive flex flex-col p-4 sm:p-5"
-            >
-              <span className="badge mb-2 self-start bg-brand-50 text-brand-700">
-                {kindLabel[p.kind]}
-              </span>
-              <div className="text-base font-bold leading-tight sm:text-lg">
-                {p.name}
+        {saleOn && (
+          <div className="mb-4 mt-3 rounded-xl border border-clay-300 bg-clay-100 px-4 py-3 text-sm text-ink-800">
+            <span className="font-semibold">🎉 Sale prices are live!</span>{" "}
+            {saleOn.endsAt ? `${saleEndsLabel(saleOn.endsAt, now)}. ` : ""}
+            The prices below already include your discount.
+          </div>
+        )}
+        <div className="space-y-8">
+          {groupPlans(plans).map((g) => (
+            <div key={g.kind}>
+              <div className="mb-3 mt-3">
+                <h3 className="text-lg font-semibold">{g.title}</h3>
+                <p className="text-xs text-ink-500 sm:text-sm">{g.blurb}</p>
               </div>
-              {p.description && (
-                <p className="mt-1 text-xs text-ink-500 sm:text-sm">
-                  {p.description}
-                </p>
-              )}
-              <div className="my-3 sm:my-4">
-                <span className="text-2xl font-bold sm:text-3xl">
-                  {money(p.priceCents)}
-                </span>
-                {p.kind === "UNLIMITED" && (
-                  <span className="text-xs text-ink-500 sm:text-sm">/month</span>
-                )}
-              </div>
-              <ul className="mb-4 space-y-1 text-xs text-ink-700 sm:mb-5 sm:text-sm">
-                {planInclusions(p).map((item) => (
-                  <li key={item} className="flex gap-1.5">
-                    <span className="text-brand-500">✓</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-auto">
-                {activePlanIds.has(p.id) ? (
-                  <button
-                    disabled
-                    className="w-full cursor-not-allowed rounded-full bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-500 sm:text-sm"
+              <div className="grid grid-cols-2 gap-3 pt-1 sm:gap-4 lg:grid-cols-3">
+                {g.plans.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`flex ${g.plans.length === 1 ? "col-span-2 sm:col-span-1" : ""}`}
                   >
-                    ✓ Active member
-                  </button>
-                ) : (
-                  <BuyButton planId={p.id} />
-                )}
+                  <PlanCard
+                    plan={p}
+                    now={now}
+                    action={
+                      activePlanIds.has(p.id) ? (
+                        <button
+                          disabled
+                          className="w-full cursor-not-allowed rounded-full bg-ink-100 px-3 py-2 text-xs font-semibold text-ink-500 sm:text-sm"
+                        >
+                          ✓ Active member
+                        </button>
+                      ) : (
+                        <BuyButton planId={p.id} />
+                      )
+                    }
+                  />
+                  </div>
+                ))}
               </div>
             </div>
           ))}

@@ -61,7 +61,7 @@ export function LoginForm({ next }: { next?: string }) {
       <SubmitButton label="Sign in" />
       <p className="text-center text-sm text-ink-500">
         New here?{" "}
-        <Link href="/register" className="font-semibold text-brand-600">
+        <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="font-semibold text-brand-600">
           Create an account
         </Link>
       </p>
@@ -150,12 +150,13 @@ export function ResetPasswordForm({ token }: { token: string }) {
   );
 }
 
-export function RegisterForm() {
+export function RegisterForm({ next }: { next?: string }) {
   const [state, action] = useFormState(register, { error: undefined } as {
     error?: string;
   });
   return (
     <form action={action} className="space-y-4">
+      {next && <input type="hidden" name="next" value={next} />}
       <ErrorBox message={state?.error} />
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -199,7 +200,7 @@ export function RegisterForm() {
       <SubmitButton label="Create account" />
       <p className="text-center text-sm text-ink-500">
         Already a member?{" "}
-        <Link href="/login" className="font-semibold text-brand-600">
+        <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-brand-600">
           Sign in
         </Link>
       </p>

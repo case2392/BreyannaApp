@@ -1,5 +1,6 @@
 "use client";
 
+import { SaleFields } from "@/components/admin/SaleFields";
 import { useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
@@ -241,6 +242,9 @@ export function CreatePlanForm({
               : "Free guest spots that come with the pass and stay until used, like class credits. 0 = none."}
           </p>
         </div>
+      </div>
+      <div className="mt-4">
+        <SaleFields idPrefix="new-plan" monthly={unlimited} />
       </div>
       <div className="mt-4">
         <ClassAccessChecklist classTypes={classTypes} />

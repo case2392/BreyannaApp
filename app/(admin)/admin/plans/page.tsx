@@ -1,11 +1,15 @@
 import { prisma } from "@/lib/db";
 import { CreatePlanForm } from "@/components/admin/CreateForms";
 import { PlanRow } from "@/components/admin/PlanRow";
+import { SaleBannerSettings } from "@/components/admin/SaleBannerSettings";
+import { money } from "@/lib/format";
+import { saleDefaults, saleSummary, activeSale } from "@/lib/sale";
+import { getSaleBannerSettings } from "@/lib/saleBanner";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlansPage() {
-  const [plans, classTypeRows] = await Promise.all([
+  const [plans, classTypeRows, bannerSettings, saleEvents] = await Promise.all([
     prisma.membershipPlan.findMany({
       orderBy: { priceCents: "asc" },
       include: {
@@ -20,7 +24,14 @@ export default async function PlansPage() {
       orderBy: [{ active: "desc" }, { name: "asc" }],
       select: { id: true, name: true, active: true, allowedPlanIds: true },
     }),
+    getSaleBannerSettings(),
+    prisma.event.findMany({
+      where: { active: true, salePriceCents: { not: null } },
+      select: { priceCents: true, salePriceCents: true, saleStartsAt: true, saleEndsAt: true },
+    }),
   ]);
+  const livePlanSales = plans.filter((p) => p.active && activeSale(p)).length;
+  const liveEventSales = saleEvents.filter((e) => activeSale(e)).length;
   const classTypes = classTypeRows
     .map((c) => ({
       id: c.id,
@@ -36,6 +47,14 @@ export default async function PlansPage() {
         Memberships, class packs and drop-ins members can buy. Edit prices and
         details, hide a plan from the member app, or remove it.
       </p>
+
+      <div className="mb-6">
+        <SaleBannerSettings
+          settings={bannerSettings}
+          livePlanSales={livePlanSales}
+          liveEventSales={liveEventSales}
+        />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-2 lg:col-span-2">
@@ -60,6 +79,8 @@ export default async function PlansPage() {
                 activeSales: p._count.memberships,
                 restrictedClass: p.restrictedClass,
                 guestPassesPerMonth: p.guestPassesPerMonth,
+                sale: saleDefaults(p),
+                saleSummary: saleSummary(p, money),
               }}
             />
           ))}

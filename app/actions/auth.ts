@@ -70,6 +70,8 @@ export async function register(_prev: unknown, formData: FormData) {
   await fireAutomation("welcome", user, {});
 
   setSessionCookie(user.id);
+  const next = String(formData.get("next") || "");
+  if (next.startsWith("/") && !next.startsWith("//")) redirect(next);
   redirect("/schedule");
 }
 

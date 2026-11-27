@@ -6,6 +6,8 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import { grantMembership } from "@/lib/membership";
+import { activeSale } from "@/lib/sale";
+import { salePricing } from "@/lib/saleCheckout";
 
 function siteOrigin(): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
@@ -54,9 +56,13 @@ export async function startCheckout(planId: string) {
   const plan = await prisma.membershipPlan.findUnique({ where: { id: planId } });
   if (!plan || !plan.active) return { ok: false, error: "Plan not available." };
 
+  const sale = activeSale(plan);
+
   // No Stripe configured → keep the demo behaviour (grant instantly).
   if (!stripeEnabled()) {
-    await grantMembership(user.id, plan);
+    await grantMembership(user.id, plan, {
+      pricePaidCents: sale?.saleCents ?? plan.priceCents,
+    });
     revalidatePath("/memberships");
     revalidatePath("/schedule");
     return { ok: true, granted: true };
@@ -65,6 +71,13 @@ export async function startCheckout(planId: string) {
   const customerId = await ensureCustomer(user);
   const origin = siteOrigin();
   const isSubscription = plan.kind === "UNLIMITED";
+  const pricing = await salePricing({
+    fullCents: plan.priceCents,
+    saleCents: sale?.saleCents ?? null,
+    subscription: isSubscription,
+    lockedIn: plan.saleLockedIn,
+  });
+  if (!pricing.ok) return { ok: false, error: pricing.error };
 
   const session = await stripe!.checkout.sessions.create({
     mode: isSubscription ? "subscription" : "payment",
@@ -74,7 +87,7 @@ export async function startCheckout(planId: string) {
         quantity: 1,
         price_data: {
           currency: "usd",
-          unit_amount: plan.priceCents,
+          unit_amount: pricing.unitAmount,
           product_data: { name: plan.name, description: plan.description ?? undefined },
           ...(isSubscription ? { recurring: { interval: "month" as const } } : {}),
         },
@@ -86,7 +99,9 @@ export async function startCheckout(planId: string) {
       : { payment_intent_data: { metadata: { userId: user.id, planId: plan.id } } }),
     success_url: `${origin}/memberships?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/memberships?status=cancel`,
-    allow_promotion_codes: true,
+    ...(pricing.discounts
+      ? { discounts: pricing.discounts }
+      : { allow_promotion_codes: pricing.allowPromotionCodes || undefined }),
   });
 
   return { ok: true, url: session.url };

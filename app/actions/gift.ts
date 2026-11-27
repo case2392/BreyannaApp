@@ -8,6 +8,8 @@ import { stripe, stripeEnabled } from "@/lib/stripe";
 import { notifyStudio } from "@/lib/notify";
 import { capacityLimited, dayLabel, timeLabel } from "@/lib/format";
 import { studioNow } from "@/lib/time";
+import { activeSale, priceNow } from "@/lib/sale";
+import { salePricing } from "@/lib/saleCheckout";
 
 function siteOrigin(): string {
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
@@ -72,16 +74,23 @@ export async function giftClassCheckout(
   if (!stripeEnabled() || !stripe)
     return { ok: false as const, error: "Payments aren't set up." };
 
-  // Price the gift at the studio's single-class (drop-in) rate.
-  const plan = await prisma.membershipPlan.findFirst({
+  // Price the gift at the studio's single-class (drop-in) rate — the sale
+  // price while a single-class sale is on.
+  const dropIns = await prisma.membershipPlan.findMany({
     where: { active: true, kind: "DROP_IN" },
     orderBy: { priceCents: "asc" },
   });
+  const plan = dropIns.sort((a, b) => priceNow(a) - priceNow(b))[0];
   if (!plan)
     return {
       ok: false as const,
       error: "Single-class gifting isn't set up yet — ask the studio.",
     };
+  const pricing = await salePricing({
+    fullCents: plan.priceCents,
+    saleCents: activeSale(plan)?.saleCents ?? null,
+  });
+  if (!pricing.ok) return { ok: false as const, error: pricing.error };
 
   const origin = siteOrigin();
   const cs = await stripe.checkout.sessions.create({
@@ -92,7 +101,7 @@ export async function giftClassCheckout(
         quantity: 1,
         price_data: {
           currency: "usd",
-          unit_amount: plan.priceCents,
+          unit_amount: pricing.unitAmount,
           product_data: {
             name: `Gift: ${session.classType.name}`,
             description: `${dayLabel(session.startsAt)} · ${timeLabel(
@@ -111,6 +120,7 @@ export async function giftClassCheckout(
       buyerUserId: user.id,
     },
     payment_intent_data: { metadata: { kind: "class_gift", sessionId } },
+    ...(pricing.discounts ? { discounts: pricing.discounts } : {}),
     success_url: `${origin}/gift?status=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/gift?status=cancel`,
   });

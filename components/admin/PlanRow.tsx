@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
 import { updatePlan, deletePlan, togglePlan } from "@/app/actions/admin";
 import { money } from "@/lib/format";
+import { SaleFields, type SaleDefaults } from "@/components/admin/SaleFields";
 import {
   ClassAccessChecklist,
   type ClassAccessOpt,
@@ -28,6 +29,9 @@ type Plan = {
   activeSales: number;
   restrictedClass: string | null;
   guestPassesPerMonth: number;
+  sale: SaleDefaults;
+  // e.g. "On sale: $99 through Sun, Nov 30" / "Sale scheduled…" / "Sale ended…"
+  saleSummary: { tone: "live" | "scheduled" | "ended"; text: string } | null;
 };
 
 function SaveBtn() {
@@ -148,6 +152,9 @@ export function PlanRow({
           </p>
         </div>
         <div className="mt-3">
+          <SaleFields idPrefix={`plan-${plan.id}`} defaults={plan.sale} monthly={unlimited} />
+        </div>
+        <div className="mt-3">
           <ClassAccessChecklist classTypes={classTypes} planId={plan.id} />
         </div>
         <div className="mt-3 flex gap-2">
@@ -167,6 +174,19 @@ export function PlanRow({
           <span className="truncate font-medium">{plan.name}</span>
           <span className="badge bg-ink-100 text-ink-600">{kindLabel[plan.kind]}</span>
         </div>
+        {plan.saleSummary && (
+          <div
+            className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+              plan.saleSummary.tone === "live"
+                ? "bg-clay-300 text-ink-900"
+                : plan.saleSummary.tone === "scheduled"
+                ? "bg-brand-50 text-brand-700"
+                : "bg-ink-100 text-ink-500"
+            }`}
+          >
+            {plan.saleSummary.text}
+          </div>
+        )}
         <div className="text-xs text-ink-500">
           {money(plan.priceCents)} ·{" "}
           {plan.kind === "UNLIMITED"

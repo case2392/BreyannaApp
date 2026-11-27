@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormState, useFormStatus } from "react-dom";
 import { createEvent, updateEvent, deleteEvent } from "@/app/actions/admin";
+import { SaleFields, type SaleDefaults } from "@/components/admin/SaleFields";
 
 // Downscale + re-encode an image in the browser to a small JPEG, so uploads are
 // fast and web-optimized regardless of the original photo's size.
@@ -176,6 +177,7 @@ export type PlanOpt = { id: string; name: string; kindLabel: string };
 
 function EventFields({
   defaults,
+  idPrefix,
   currentImage,
   onUploadingChange,
   plans = [],
@@ -191,7 +193,9 @@ function EventFields({
     allowCredits?: boolean;
     creditCost?: string;
     creditPlanIds?: string[];
+    sale?: SaleDefaults;
   };
+  idPrefix?: string;
   currentImage?: string | null;
   onUploadingChange?: (busy: boolean) => void;
   plans?: PlanOpt[];
@@ -253,6 +257,7 @@ function EventFields({
           Registration closes automatically when this many people have signed up.
         </p>
       </div>
+      <SaleFields idPrefix={idPrefix ?? "new-event"} defaults={defaults?.sale} />
       <div className="rounded-xl border border-ink-200 p-3">
         <label className="flex items-start gap-2">
           <input
@@ -371,6 +376,8 @@ type EventRowData = {
   allowCredits: boolean;
   creditCost: string;
   creditPlanIds: string[];
+  sale: SaleDefaults;
+  saleSummary: { tone: "live" | "scheduled" | "ended"; text: string } | null;
   imageUrl: string | null;
   registrationCount: number;
   registrationClosed: boolean;
@@ -427,7 +434,9 @@ export function EventRow({
             allowCredits: event.allowCredits,
             creditCost: event.creditCost,
             creditPlanIds: event.creditPlanIds,
+            sale: event.sale,
           }}
+          idPrefix={`event-${event.id}`}
         />
         <label className="mt-3 flex items-center gap-2">
           <input type="checkbox" name="active" defaultChecked={event.active} />
@@ -477,6 +486,19 @@ export function EventRow({
             {event.whenLabel}
             {event.location ? ` · ${event.location}` : ""} · {event.priceLabel}
           </div>
+          {event.saleSummary && (
+            <div
+              className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                event.saleSummary.tone === "live"
+                  ? "bg-clay-300 text-ink-900"
+                  : event.saleSummary.tone === "scheduled"
+                  ? "bg-brand-50 text-brand-700"
+                  : "bg-ink-100 text-ink-500"
+              }`}
+            >
+              {event.saleSummary.text}
+            </div>
+          )}
           {event.description && (
             <p className="mt-2 line-clamp-2 text-sm text-ink-600">
               {event.description}
