@@ -196,6 +196,9 @@ model Membership {
   startsAt        DateTime @default(now())
   expiresAt       DateTime
   pricePaidCents  Int      @default(0)
+  // This member's own monthly price (set by staff), when it differs from the
+  // plan's price. For Stripe subscriptions it's also what Stripe charges.
+  customPriceCents Int?
   // "PURCHASE" | "COMP" | "GIFT". Comps & gifts never expire — the studio
   // manages them manually (removes them when needed).
   source          String   @default("PURCHASE")

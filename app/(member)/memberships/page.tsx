@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { shortDate, planPerks } from "@/lib/format";
+import { shortDate, planPerks, money } from "@/lib/format";
 import { studioNow } from "@/lib/time";
 import { applySaunaIncludedDefaults } from "@/lib/saunaDefaults";
 import { saleEndsLabel } from "@/lib/sale";
@@ -114,6 +114,11 @@ export default async function MembershipsPage({
                   <div>
                     <div className="font-semibold">{m.plan.name}</div>
                     <div className="text-xs text-ink-500">{kindLabel[m.plan.kind]}</div>
+                    {m.plan.kind === "UNLIMITED" && m.customPriceCents != null && (
+                      <div className="text-xs font-medium text-brand-700">
+                        Your price: {money(m.customPriceCents)}/month
+                      </div>
+                    )}
                   </div>
                   <span className="badge bg-green-100 text-green-700">Active</span>
                 </div>

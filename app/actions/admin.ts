@@ -8,9 +8,10 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
 import { stripe, stripeEnabled } from "@/lib/stripe";
-import { capacityLimited, dayLabel, timeLabel } from "@/lib/format";
+import { capacityLimited, dayLabel, timeLabel, money } from "@/lib/format";
 import { bookClass, cancelGuestBooking, staffCancelBooking } from "@/lib/booking";
 import { fireAutomation } from "@/lib/automations";
+import { sendEmail } from "@/lib/messaging";
 
 async function requireStaff() {
   const user = await getCurrentUser();
@@ -1022,3 +1023,106 @@ export async function saveSaleBanner(_prev: unknown, formData: FormData) {
   revalidatePath("/admin/plans");
   return { ok: true };
 }
+
+// ---- A member's own price ---------------------------------------------------
+
+// Change what one member pays for one of their memberships.
+//  - Stripe subscription: updates the subscription so Stripe charges the new
+//    monthly price from their next payment (no mid-month charge or credit).
+//    Optionally removes any sale discount so they pay exactly this amount.
+//  - Monthly membership not billed online: saved for the studio's records.
+//  - Pack / single (one-time): corrects the amount paid.
+// `price` null = back to the plan's regular price.
+export async function setMembershipPrice(input: {
+  membershipId: string;
+  price: number | null;
+  removeDiscount?: boolean;
+  notify?: boolean;
+}): Promise<{ ok: true; message: string } | { ok: false; error: string }> {
+  await requireStaff();
+  const m = await prisma.membership.findUnique({
+    where: { id: input.membershipId },
+    include: { plan: true, user: true },
+  });
+  if (!m) return { ok: false, error: "Membership not found." };
+
+  const cents = input.price == null ? null : Math.round(input.price * 100);
+  if (cents != null && (!Number.isFinite(cents) || cents < 0))
+    return { ok: false, error: "Enter a price of $0 or more." };
+
+  const monthly = m.plan.kind === "UNLIMITED";
+  const subId = m.stripeSubscriptionId;
+
+  // One-time purchase: just correct the record.
+  if (!monthly) {
+    if (cents == null) return { ok: false, error: "Enter the amount they paid." };
+    await prisma.membership.update({ where: { id: m.id }, data: { pricePaidCents: cents } });
+    revalidatePath(`/admin/members/${m.userId}`);
+    return { ok: true, message: `Amount paid updated to ${money(cents)}.` };
+  }
+
+  const newCents = cents ?? m.plan.priceCents;
+  if (subId && stripe) {
+    if (newCents < 50)
+      return {
+        ok: false,
+        error:
+          "Stripe can't bill less than $0.50 a month. To make it free, remove this membership and grant a complimentary one instead.",
+      };
+    try {
+      const sub = await stripe.subscriptions.retrieve(subId);
+      if (sub.status === "canceled")
+        return { ok: false, error: "This subscription was cancelled in Stripe." };
+      const item = sub.items.data[0];
+      if (!item) return { ok: false, error: "Couldn't find the subscription's price in Stripe." };
+      const product =
+        typeof item.price.product === "string" ? item.price.product : item.price.product.id;
+      await stripe.subscriptions.update(subId, {
+        items: [
+          {
+            id: item.id,
+            price_data: {
+              currency: "usd",
+              product,
+              unit_amount: newCents,
+              recurring: { interval: "month" },
+            },
+          },
+        ],
+        // Starts with their next payment — no surprise charge or credit today.
+        proration_behavior: "none",
+        ...(input.removeDiscount ? { discounts: "" as const } : {}),
+      });
+    } catch (e: any) {
+      return { ok: false, error: `Stripe couldn't update the price: ${e?.message ?? "unknown error"}` };
+    }
+  }
+
+  await prisma.membership.update({
+    where: { id: m.id },
+    data: { customPriceCents: cents == null || cents === m.plan.priceCents ? null : cents },
+  });
+
+  if (input.notify && m.user.email) {
+    await sendEmail(
+      m.user.email,
+      "Your Dwell Studio membership price",
+      `Hi ${m.user.firstName},\n\nJust a note that your ${m.plan.name} membership is now ${money(newCents)} a month` +
+        (subId ? `, starting with your next payment on ${shortDateStr(m.expiresAt)}` : "") +
+        `.\n\nThank you for being part of Dwell — we're so grateful for you!\n\nDwell Studio`
+    ).catch(() => {});
+  }
+
+  revalidatePath(`/admin/members/${m.userId}`);
+  revalidatePath("/memberships");
+  revalidatePath("/account");
+  return {
+    ok: true,
+    message: subId
+      ? `Updated in Stripe — ${money(newCents)}/month from their next payment.`
+      : `Saved — ${money(newCents)}/month (this membership isn't billed online).`,
+  };
+}
+
+const shortDateStr = (d: Date) =>
+  d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });

@@ -1,3 +1,4 @@
+import { MembershipPriceEditor } from "@/components/admin/MembershipPriceEditor";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -193,8 +194,10 @@ export default async function MemberDetailPage({
                 ? m.source === "GIFT"
                   ? "Gift"
                   : "Complimentary"
-                : m.stripeSubscriptionId
-                ? `${money(m.plan.priceCents)}/mo`
+                : m.plan.kind === "UNLIMITED" && (m.stripeSubscriptionId || m.customPriceCents != null)
+                ? `${money(m.customPriceCents ?? m.plan.priceCents)}/mo${
+                    m.customPriceCents != null ? ` (custom · regular ${money(m.plan.priceCents)})` : ""
+                  }`
                 : `paid ${money(m.pricePaidCents)}`;
               return (
                 <div key={m.id} className="card p-4">
@@ -220,7 +223,20 @@ export default async function MemberDetailPage({
                     </div>
                   )}
                   {m.status === "ACTIVE" && (
-                    <div className="mt-2 flex justify-end">
+                    <div className="mt-2 flex items-start justify-between gap-3">
+                      <MembershipPriceEditor
+                        membershipId={m.id}
+                        kind={m.plan.kind === "UNLIMITED" ? "MONTHLY" : "ONE_TIME"}
+                        billedOnline={Boolean(m.stripeSubscriptionId)}
+                        regularCents={m.plan.priceCents}
+                        currentCents={
+                          m.plan.kind === "UNLIMITED"
+                            ? m.customPriceCents ?? m.plan.priceCents
+                            : m.pricePaidCents
+                        }
+                        custom={m.customPriceCents != null}
+                        nextPayment={m.autoRenew ? shortDate(m.expiresAt) : null}
+                      />
                       <RemoveMembershipButton membershipId={m.id} />
                     </div>
                   )}
