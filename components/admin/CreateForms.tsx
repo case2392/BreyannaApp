@@ -1,6 +1,7 @@
 "use client";
 
 import { SaleFields } from "@/components/admin/SaleFields";
+import { PlanCategoryPicker, kindOptions } from "@/components/admin/PlanCategoryPicker";
 import { useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
@@ -161,12 +162,15 @@ export function CreatePlanForm({
 }) {
   const ref = useRef<HTMLFormElement>(null);
   const [kind, setKind] = useState("PACK");
+  const [category, setCategory] = useState("CLASS");
+  const sauna = category === "SAUNA";
   const [state, action] = useFormState(
     async (prev: unknown, fd: FormData) => {
       const res = await createPlan(prev, fd);
       if (res?.ok) {
         ref.current?.reset();
         setKind("PACK");
+        setCategory("CLASS");
       }
       return res;
     },
@@ -179,9 +183,21 @@ export function CreatePlanForm({
       <h3 className="mb-4 font-semibold">New plan</h3>
       <Err msg={state?.error} />
       <div className="space-y-3">
+        <PlanCategoryPicker
+          value={category}
+          onChange={(v) => {
+            setCategory(v);
+            if (v === "SAUNA" && kind === "PACK") setKind("DROP_IN");
+          }}
+        />
         <div>
           <label className="label">Name</label>
-          <input name="name" className="input" placeholder="e.g. 10-Class Pack" required />
+          <input
+            name="name"
+            className="input"
+            placeholder={sauna ? "e.g. Sauna 5-Session Pack" : "e.g. 10-Class Pack"}
+            required
+          />
         </div>
         <div>
           <label className="label">Description</label>
@@ -196,9 +212,11 @@ export function CreatePlanForm({
               value={kind}
               onChange={(e) => setKind(e.target.value)}
             >
-              <option value="PACK">Class pack</option>
-              <option value="UNLIMITED">Unlimited (monthly)</option>
-              <option value="DROP_IN">Drop-in</option>
+              {kindOptions(category).map((o) => (
+                <option key={o.v} value={o.v}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -207,16 +225,24 @@ export function CreatePlanForm({
           </div>
           {!unlimited && (
             <div>
-              <label className="label">Credits</label>
-              <input name="credits" type="number" className="input" defaultValue={10} />
+              <label className="label">{sauna ? "Sessions" : "Credits"}</label>
+              <input
+                key={`${category}-${kind}`}
+                name="credits"
+                type="number"
+                className="input"
+                defaultValue={kind === "DROP_IN" ? 1 : sauna ? 5 : 10}
+              />
             </div>
           )}
         </div>
         <p className="text-xs text-ink-400">
           {unlimited
             ? "Renews automatically each month on the day the member signs up."
-            : "Credits never expire — they count down as classes are booked."}
+            : `Never expire — they count down as ${sauna ? "sauna sessions" : "classes"} are booked.`}
         </p>
+        {!sauna && (
+        <>
         <div>
           <label className="label">Only for classes containing (optional)</label>
           <input name="restrictedClass" className="input" placeholder="e.g. Mommy" />
@@ -242,13 +268,17 @@ export function CreatePlanForm({
               : "Free guest spots that come with the pass and stay until used, like class credits. 0 = none."}
           </p>
         </div>
+        </>
+        )}
       </div>
       <div className="mt-4">
         <SaleFields idPrefix="new-plan" monthly={unlimited} />
       </div>
-      <div className="mt-4">
-        <ClassAccessChecklist classTypes={classTypes} />
-      </div>
+      {!sauna && (
+        <div className="mt-4">
+          <ClassAccessChecklist classTypes={classTypes} />
+        </div>
+      )}
       <div className="mt-4">
         <Submit label="Add plan" />
       </div>

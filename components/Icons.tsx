@@ -93,3 +93,11 @@ export const SparklesIcon = ({ className = base }: P) => (
     <path d="M18.5 13.5l.9 2.1 2.1.9-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.9.9-2.1Z" strokeLinejoin="round" />
   </svg>
 );
+
+// Steam rising — the infrared sauna.
+export const SteamIcon = ({ className = base }: P) => (
+  <svg aria-hidden="true" focusable="false" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path d="M8 3c-1.5 1.5-1.5 3 0 4.5S9.5 10.5 8 12M12 3c-1.5 1.5-1.5 3 0 4.5S13.5 10.5 12 12M16 3c-1.5 1.5-1.5 3 0 4.5S17.5 10.5 16 12" strokeLinecap="round" />
+    <path d="M4 16h16M5 16v4h14v-4" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);

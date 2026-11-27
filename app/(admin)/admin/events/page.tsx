@@ -12,6 +12,7 @@ export default async function EventsPage() {
       include: { _count: { select: { registrations: true } } },
     }),
     prisma.membershipPlan.findMany({
+      where: { category: "CLASS" },
       orderBy: [{ active: "desc" }, { kind: "asc" }, { name: "asc" }],
       select: { id: true, name: true, kind: true, active: true },
     }),

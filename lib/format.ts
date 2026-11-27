@@ -20,7 +20,17 @@ export function planInclusions(plan: {
   credits: number;
   guestPassesPerMonth: number;
   restrictedClass: string | null;
+  category?: string;
 }): string[] {
+  if (plan.category === "SAUNA") {
+    return [
+      plan.kind === "UNLIMITED"
+        ? "Unlimited sauna sessions"
+        : `${plan.credits} sauna session${plan.credits === 1 ? "" : "s"}`,
+      "Private — the sauna is all yours",
+      plan.kind === "UNLIMITED" ? "Auto-renews monthly" : "Sessions never expire",
+    ];
+  }
   const items: string[] = [];
   items.push(
     plan.kind === "UNLIMITED"

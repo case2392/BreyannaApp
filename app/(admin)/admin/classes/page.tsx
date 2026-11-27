@@ -19,6 +19,7 @@ export default async function ClassesPage() {
       include: { _count: { select: { sessions: true } } },
     }),
     prisma.membershipPlan.findMany({
+      where: { category: "CLASS" },
       orderBy: [{ active: "desc" }, { kind: "asc" }, { name: "asc" }],
       select: { id: true, name: true, kind: true, active: true, restrictedClass: true },
     }),

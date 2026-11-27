@@ -77,11 +77,13 @@ export type ClassAccess = {
 function membershipCoversClass(
   membership: {
     planId: string;
-    plan: { restrictedClass: string | null; kind: string };
+    plan: { restrictedClass: string | null; kind: string; category?: string };
     grandfathered: boolean;
   },
   access: ClassAccess
 ): boolean {
+  // Sauna plans only ever book the sauna.
+  if (membership.plan.category === "SAUNA") return false;
   // 1) Staff picked exactly which plans can book this class — that's final.
   if (access.allowedPlanIds) {
     return access.allowedPlanIds.includes(membership.planId);

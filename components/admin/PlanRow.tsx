@@ -6,6 +6,7 @@ import { useFormState, useFormStatus } from "react-dom";
 import { updatePlan, deletePlan, togglePlan } from "@/app/actions/admin";
 import { money } from "@/lib/format";
 import { SaleFields, type SaleDefaults } from "@/components/admin/SaleFields";
+import { PlanCategoryPicker, kindOptions } from "@/components/admin/PlanCategoryPicker";
 import {
   ClassAccessChecklist,
   type ClassAccessOpt,
@@ -22,6 +23,7 @@ type Plan = {
   name: string;
   description: string | null;
   kind: string;
+  category: string;
   credits: number;
   priceCents: number;
   durationDays: number;
@@ -52,6 +54,8 @@ export function PlanRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [kind, setKind] = useState(plan.kind);
+  const [category, setCategory] = useState(plan.category);
+  const sauna = category === "SAUNA";
   const [pending, start] = useTransition();
   const router = useRouter();
   const [state, action] = useFormState(
@@ -87,6 +91,9 @@ export function PlanRow({
         {state?.error && (
           <p className="mb-2 rounded bg-red-50 px-2 py-1 text-xs text-red-700">{state.error}</p>
         )}
+        <div className="mb-3">
+          <PlanCategoryPicker value={category} onChange={setCategory} />
+        </div>
         <div className="grid gap-2 sm:grid-cols-2">
           <div className="sm:col-span-2">
             <label className="label">Name</label>
@@ -104,9 +111,11 @@ export function PlanRow({
               onChange={(e) => setKind(e.target.value)}
               className="input"
             >
-              <option value="UNLIMITED">Unlimited (monthly)</option>
-              <option value="PACK">Class pack</option>
-              <option value="DROP_IN">Drop-in</option>
+              {kindOptions(category).map((o) => (
+                <option key={o.v} value={o.v}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
           <div>
@@ -115,7 +124,7 @@ export function PlanRow({
           </div>
           {!unlimited && (
             <div className="sm:col-span-2">
-              <label className="label">Credits</label>
+              <label className="label">{sauna ? "Sessions" : "Credits"}</label>
               <input name="credits" type="number" defaultValue={plan.credits} className="input" />
             </div>
           )}
@@ -125,6 +134,8 @@ export function PlanRow({
             ? "Renews automatically each month on the member's sign-up date."
             : "Credits never expire."}
         </p>
+        {!sauna && (
+        <>
         <div className="mt-3">
           <label className="label">Only for classes containing (optional)</label>
           <input
@@ -151,12 +162,16 @@ export function PlanRow({
               : "Comes with the pass and stays until used, like class credits."}
           </p>
         </div>
+        </>
+        )}
         <div className="mt-3">
           <SaleFields idPrefix={`plan-${plan.id}`} defaults={plan.sale} monthly={unlimited} />
         </div>
-        <div className="mt-3">
-          <ClassAccessChecklist classTypes={classTypes} planId={plan.id} />
-        </div>
+        {!sauna && (
+          <div className="mt-3">
+            <ClassAccessChecklist classTypes={classTypes} planId={plan.id} />
+          </div>
+        )}
         <div className="mt-3 flex gap-2">
           <SaveBtn />
           <button type="button" onClick={() => setEditing(false)} className="btn-ghost text-xs">
@@ -172,7 +187,14 @@ export function PlanRow({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{plan.name}</span>
-          <span className="badge bg-ink-100 text-ink-600">{kindLabel[plan.kind]}</span>
+          {plan.category === "SAUNA" && (
+            <span className="badge bg-clay-100 text-ink-700">Sauna</span>
+          )}
+          <span className="badge bg-ink-100 text-ink-600">
+            {plan.category === "SAUNA"
+              ? { UNLIMITED: "Unlimited", PACK: "Session pack", DROP_IN: "Single session" }[plan.kind]
+              : kindLabel[plan.kind]}
+          </span>
         </div>
         {plan.saleSummary && (
           <div
@@ -191,7 +213,7 @@ export function PlanRow({
           {money(plan.priceCents)} ·{" "}
           {plan.kind === "UNLIMITED"
             ? "renews monthly"
-            : `${plan.credits} credits · never expires`}
+            : `${plan.credits} ${plan.category === "SAUNA" ? "session" : "credit"}${plan.credits === 1 ? "" : "s"} · never expires`}
           {plan.restrictedClass ? ` · ${plan.restrictedClass} classes only` : ""}
           {plan.guestPassesPerMonth > 0
             ? ` · ${plan.guestPassesPerMonth} guest pass${

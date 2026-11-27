@@ -186,7 +186,9 @@ export default async function MemberDetailPage({
                   ? comp
                     ? "Unlimited · never expires"
                     : `Unlimited · ${m.autoRenew ? "renews" : "expires"} ${shortDate(m.expiresAt)}`
-                  : `${m.creditsRemaining} credits left · no expiry`;
+                  : `${m.creditsRemaining} ${
+                      m.plan.category === "SAUNA" ? "sauna sessions" : "credits"
+                    } left · no expiry`;
               const cost = comp
                 ? m.source === "GIFT"
                   ? "Gift"

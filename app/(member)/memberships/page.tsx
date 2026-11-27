@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { shortDate } from "@/lib/format";
@@ -122,7 +123,7 @@ export default async function MembershipsPage({
                       <div className="text-2xl font-bold text-brand-600">
                         {m.creditsRemaining}
                         <span className="ml-1 text-sm font-normal text-ink-500">
-                          credits left
+                          {m.plan.category === "SAUNA" ? "sauna sessions left" : "credits left"}
                         </span>
                       </div>
                     )}
@@ -187,7 +188,17 @@ export default async function MembershipsPage({
             <div key={g.kind}>
               <div className="mb-3 mt-3">
                 <h3 className="text-lg font-semibold">{g.title}</h3>
-                <p className="text-xs text-ink-500 sm:text-sm">{g.blurb}</p>
+                <p className="text-xs text-ink-500 sm:text-sm">
+                  {g.blurb}
+                  {g.kind === "SAUNA" && (
+                    <>
+                      {" "}
+                      <Link href="/sauna" className="font-medium text-brand-600">
+                        See times &amp; book →
+                      </Link>
+                    </>
+                  )}
+                </p>
               </div>
               <div className="grid grid-cols-2 gap-3 pt-1 sm:gap-4 lg:grid-cols-3">
                 {g.plans.map((p) => (
@@ -207,7 +218,10 @@ export default async function MembershipsPage({
                           ✓ Active member
                         </button>
                       ) : (
-                        <BuyButton planId={p.id} />
+                        <BuyButton
+                          planId={p.id}
+                          returnTo={p.category === "SAUNA" ? "/sauna" : undefined}
+                        />
                       )
                     }
                   />

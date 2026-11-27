@@ -20,6 +20,7 @@ export type SeedSummary = {
 // be safe to run from a serverless function (batched writes), and always starts
 // from a clean slate so re-running gives a predictable result.
 export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
+  await prisma.saunaBooking.deleteMany();
   await prisma.messageLog.deleteMany();
   await prisma.campaign.deleteMany();
   await prisma.booking.deleteMany();
@@ -92,6 +93,10 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
     data: [
       { name: "4-Class Pack", description: "4 credits, use within 45 days.", kind: "PACK", credits: 4, priceCents: 6000, durationDays: 45 },
       { name: "Single Class", description: "One drop-in class.", kind: "DROP_IN", credits: 1, priceCents: 1800, durationDays: 14 },
+      // Infrared sauna plans (book on the Sauna page).
+      { name: "Sauna Session", description: "One private infrared sauna session.", category: "SAUNA", kind: "DROP_IN", credits: 1, priceCents: 2500, durationDays: 30 },
+      { name: "Sauna 5-Pack", description: "Five private sauna sessions.", category: "SAUNA", kind: "PACK", credits: 5, priceCents: 10000, durationDays: 90 },
+      { name: "Sauna Unlimited", description: "Unlimited sauna sessions, billed monthly.", category: "SAUNA", kind: "UNLIMITED", credits: 0, priceCents: 9900, durationDays: 30 },
     ],
   });
 
@@ -194,6 +199,7 @@ export async function seedDatabase(prisma: PrismaClient): Promise<SeedSummary> {
 // plans, instructors, rooms) and any staff/owner accounts. Ensures an owner
 // login exists so the studio can sign in.
 export async function cleanStudio(prisma: PrismaClient): Promise<{ ownerEmail: string; ownerCreated: boolean }> {
+  await prisma.saunaBooking.deleteMany();
   await prisma.booking.deleteMany();
   await prisma.membership.deleteMany();
   await prisma.messageLog.deleteMany();

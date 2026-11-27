@@ -25,7 +25,7 @@ export default async function AccountPage() {
     prisma.membership.findMany({
       where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
       include: {
-        plan: { select: { name: true, kind: true, guestPassesPerMonth: true } },
+        plan: { select: { name: true, kind: true, category: true, guestPassesPerMonth: true } },
       },
       orderBy: { expiresAt: "asc" },
     }),
@@ -109,6 +109,7 @@ export default async function AccountPage() {
                   <div className="min-w-0">
                     <div className="font-semibold">{m.plan.name}</div>
                     <div className="text-xs text-ink-500">
+                      {m.plan.category === "SAUNA" ? "Sauna · " : ""}
                       {kindLabel[m.plan.kind] ?? m.plan.kind} · {validity}
                     </div>
                   </div>
@@ -125,7 +126,9 @@ export default async function AccountPage() {
                         <span className="text-2xl font-bold leading-none text-brand-600">
                           {m.creditsRemaining}
                         </span>{" "}
-                        <span className="text-xs text-ink-500">credits left</span>
+                        <span className="text-xs text-ink-500">
+                          {m.plan.category === "SAUNA" ? "sauna sessions left" : "credits left"}
+                        </span>
                       </div>
                     )}
                   </div>

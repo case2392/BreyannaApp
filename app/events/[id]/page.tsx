@@ -75,7 +75,7 @@ export default async function EventDetailPage({
             expiresAt: { gt: new Date() },
             ...(eligiblePlanIds
               ? { planId: { in: eligiblePlanIds } }
-              : { plan: { kind: { not: "DROP_IN" } } }),
+              : { plan: { kind: { not: "DROP_IN" }, category: "CLASS" } }),
           },
         })) > 0
       : false;

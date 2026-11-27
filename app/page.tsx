@@ -358,7 +358,15 @@ export default async function LandingPage() {
                         size="large"
                         action={
                           <Link
-                            href={authed ? "/memberships" : "/register?next=/memberships"}
+                            href={
+                              p.category === "SAUNA"
+                                ? authed
+                                  ? "/sauna"
+                                  : "/register?next=/sauna"
+                                : authed
+                                ? "/memberships"
+                                : "/register?next=/memberships"
+                            }
                             className="btn-primary w-full"
                           >
                             {authed ? "Choose this plan" : "Get started"}

@@ -49,7 +49,13 @@ async function ensureCustomer(user: {
   return customer.id;
 }
 
-export async function startCheckout(planId: string) {
+export async function startCheckout(planId: string, returnTo?: string) {
+  // Only same-site paths we know about (e.g. back to the sauna booking).
+  const back =
+    returnTo && /^\/(sauna|memberships)(\?[\w=&%.:+-]*)?$/.test(returnTo)
+      ? returnTo
+      : "/memberships";
+  const join = back.includes("?") ? "&" : "?";
   const user = await getCurrentUser();
   if (!user) return { ok: false, error: "Please sign in." };
 
@@ -65,6 +71,7 @@ export async function startCheckout(planId: string) {
     });
     revalidatePath("/memberships");
     revalidatePath("/schedule");
+    revalidatePath("/sauna");
     return { ok: true, granted: true };
   }
 
@@ -98,8 +105,8 @@ export async function startCheckout(planId: string) {
     ...(isSubscription
       ? { subscription_data: { metadata: { userId: user.id, planId: plan.id } } }
       : { payment_intent_data: { metadata: { userId: user.id, planId: plan.id } } }),
-    success_url: `${origin}/memberships?status=success&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/memberships?status=cancel`,
+    success_url: `${origin}${back}${join}status=success&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}${back}${join}status=cancel`,
     ...(pricing.discounts
       ? { discounts: pricing.discounts }
       : { allow_promotion_codes: pricing.allowPromotionCodes || undefined }),

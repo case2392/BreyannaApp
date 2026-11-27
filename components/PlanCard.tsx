@@ -8,6 +8,7 @@ export type PlanCardPlan = {
   name: string;
   description: string | null;
   kind: string;
+  category?: string;
   credits: number;
   priceCents: number;
   guestPassesPerMonth: number;
@@ -38,11 +39,34 @@ export const PLAN_GROUPS = [
   },
 ] as const;
 
-export function groupPlans<T extends { kind: string }>(plans: T[]) {
-  return PLAN_GROUPS.map((g) => ({
+// Class plans by type, then the sauna (its own group).
+export function groupPlans<T extends { kind: string; category?: string }>(
+  plans: T[],
+  opts: { includeSauna?: boolean } = { includeSauna: true }
+) {
+  const isSauna = (p: T) => p.category === "SAUNA";
+  const groups: {
+    kind: string;
+    title: string;
+    blurb: string;
+    plans: T[];
+  }[] = PLAN_GROUPS.map((g) => ({
     ...g,
-    plans: plans.filter((p) => p.kind === g.kind),
-  })).filter((g) => g.plans.length > 0);
+    plans: plans.filter((p) => !isSauna(p) && p.kind === g.kind),
+  }));
+  if (opts.includeSauna !== false) {
+    // Unlimited first, then packs, then single sessions.
+    const order: Record<string, number> = { UNLIMITED: 0, PACK: 1, DROP_IN: 2 };
+    groups.push({
+      kind: "SAUNA",
+      title: "Infrared sauna",
+      blurb: "Private sessions in our full-spectrum infrared sauna.",
+      plans: plans
+        .filter(isSauna)
+        .sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9)),
+    });
+  }
+  return groups.filter((g) => g.plans.length > 0);
 }
 
 // The soonest-ending live sale among these, for a "Sale ends …" notice.
@@ -116,7 +140,7 @@ export function PlanCard({
         )}
         {perClass != null && (
           <p className="mt-1 text-xs text-ink-500">
-            {money(perClass)} per class
+            {money(perClass)} per {plan.category === "SAUNA" ? "session" : "class"}
           </p>
         )}
         {sale?.endsAt && (

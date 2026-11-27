@@ -501,7 +501,8 @@ export async function bookEventWithCredits(eventId: string) {
 
   const now = new Date();
   const allMemberships = await prisma.membership.findMany({
-    where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
+    // Sauna plans never cover events.
+    where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now }, plan: { category: "CLASS" } },
     include: { plan: true },
     orderBy: { expiresAt: "asc" },
   });

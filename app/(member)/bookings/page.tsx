@@ -4,6 +4,9 @@ import { getCurrentUser } from "@/lib/auth";
 import { dayLabel, timeLabel } from "@/lib/format";
 import { BookButton } from "@/components/BookButton";
 import { studioNow } from "@/lib/time";
+import { getSaunaSettings } from "@/lib/sauna";
+import { rangeLabel } from "@/lib/saunaShared";
+import { SaunaCancelButton } from "@/components/SaunaCancelButton";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +14,7 @@ export default async function BookingsPage() {
   const user = (await getCurrentUser())!;
   const now = studioNow();
 
-  const [bookings, eventRegs] = await Promise.all([
+  const [bookings, eventRegs, saunaBookings, saunaSettings] = await Promise.all([
     prisma.booking.findMany({
       where: { userId: user.id, status: { not: "CANCELLED" } },
       include: {
@@ -22,6 +25,12 @@ export default async function BookingsPage() {
       where: { userId: user.id },
       include: { event: true },
     }),
+    prisma.saunaBooking.findMany({
+      where: { userId: user.id, status: { not: "CANCELLED" } },
+      orderBy: { startsAt: "desc" },
+      take: 50,
+    }),
+    getSaunaSettings(),
   ]);
 
   type Item =
@@ -31,7 +40,8 @@ export default async function BookingsPage() {
         id: string;
         date: Date | null;
         reg: (typeof eventRegs)[number];
-      };
+      }
+    | { kind: "sauna"; id: string; date: Date; sauna: (typeof saunaBookings)[number] };
 
   const items: Item[] = [
     ...bookings.map((b) => ({
@@ -45,6 +55,13 @@ export default async function BookingsPage() {
       id: r.id,
       date: r.event.startsAt,
       reg: r,
+    })),
+    ...saunaBookings.map((b) => ({
+      kind: "sauna" as const,
+      id: b.id,
+      // A sauna session stays "upcoming" until it ends.
+      date: b.status === "BOOKED" ? b.endsAt : b.startsAt,
+      sauna: b,
     })),
   ];
 
@@ -116,11 +133,37 @@ export default async function BookingsPage() {
     );
   }
 
+  function SaunaUpcoming({ b }: { b: (typeof saunaBookings)[number] }) {
+    const late =
+      b.startsAt.getTime() - now.getTime() < saunaSettings.cancelHours * 3600e3;
+    const started = b.startsAt.getTime() <= now.getTime();
+    return (
+      <div className="card flex items-center gap-4 p-4">
+        <div className="hidden h-12 w-1.5 rounded-full bg-brand-300 sm:block" />
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold">
+            {saunaSettings.name}{" "}
+            <span className="badge ml-1 bg-brand-50 text-brand-700">Sauna</span>
+          </div>
+          <div className="text-sm text-ink-500">
+            {dayLabel(b.startsAt)} · {rangeLabel(b.startsAt, b.endsAt)}
+            {b.people > 1 ? ` · ${b.people} people` : ""}
+          </div>
+        </div>
+        {started ? (
+          <span className="badge bg-green-100 text-green-700">Now</span>
+        ) : (
+          <SaunaCancelButton id={b.id} late={late} usesSession={b.creditsUsed > 0} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold">My bookings</h1>
       <p className="mb-6 text-sm text-ink-500">
-        Your upcoming and past classes and events.
+        Your upcoming and past classes, events and sauna sessions.
       </p>
 
       <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-500">
@@ -139,6 +182,8 @@ export default async function BookingsPage() {
           {upcoming.map((i) =>
             i.kind === "class" ? (
               <ClassUpcoming key={`c${i.id}`} b={i.booking} />
+            ) : i.kind === "sauna" ? (
+              <SaunaUpcoming key={`s${i.id}`} b={i.sauna} />
             ) : (
               <EventUpcoming key={`e${i.id}`} r={i.reg} />
             )
@@ -164,7 +209,12 @@ export default async function BookingsPage() {
                 <div className="font-medium">
                   {i.kind === "class"
                     ? i.booking.session.classType.name
+                    : i.kind === "sauna"
+                    ? saunaSettings.name
                     : i.reg.event.name}
+                  {i.kind === "sauna" && (
+                    <span className="badge ml-2 bg-brand-50 text-brand-700">Sauna</span>
+                  )}
                   {i.kind === "event" && (
                     <span className="badge ml-2 bg-clay-200 text-clay-500">
                       Event
@@ -172,14 +222,18 @@ export default async function BookingsPage() {
                   )}
                 </div>
                 <div className="text-xs text-ink-500">
-                  {i.date ? `${dayLabel(i.date)} · ${timeLabel(i.date)}` : ""}
+                  {i.kind === "sauna"
+                    ? `${dayLabel(i.sauna.startsAt)} · ${timeLabel(i.sauna.startsAt)}`
+                    : i.date
+                    ? `${dayLabel(i.date)} · ${timeLabel(i.date)}`
+                    : ""}
                 </div>
               </div>
               <span className="badge bg-ink-100 text-ink-700">
-                {i.kind === "class"
-                  ? i.booking.status === "ATTENDED"
+                {i.kind === "class" || i.kind === "sauna"
+                  ? (i.kind === "class" ? i.booking.status : i.sauna.status) === "ATTENDED"
                     ? "Attended"
-                    : i.booking.status === "NO_SHOW"
+                    : (i.kind === "class" ? i.booking.status : i.sauna.status) === "NO_SHOW"
                     ? "No-show"
                     : "Completed"
                   : "Registered"}

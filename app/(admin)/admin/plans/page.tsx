@@ -72,6 +72,7 @@ export default async function PlansPage() {
                 name: p.name,
                 description: p.description,
                 kind: p.kind,
+                category: p.category,
                 credits: p.credits,
                 priceCents: p.priceCents,
                 durationDays: p.durationDays,

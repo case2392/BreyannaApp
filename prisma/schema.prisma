@@ -40,6 +40,9 @@ model User {
   memberships Membership[]
   eventRegistrations EventRegistration[]
   guestBookings GuestBooking[]
+  saunaBookings SaunaBooking[]
+  // When the member agreed to the sauna safety guidelines (asked once).
+  saunaWaiverAt DateTime?
   // Classes this user teaches (when they are an instructor)
   instructor  Instructor?
 }
@@ -136,6 +139,9 @@ model MembershipPlan {
   id          String   @id @default(cuid())
   name        String
   description String?
+  // What the plan is for: "CLASS" (classes & events) | "SAUNA" (infrared sauna
+  // sessions). Each only ever books its own kind.
+  category    String   @default("CLASS")
   kind        String
   // For PACK / DROP_IN: number of credits granted. Ignored for UNLIMITED.
   credits     Int      @default(0)
@@ -202,6 +208,7 @@ model Membership {
 
   bookings Booking[]
   guestBookings GuestBooking[]
+  saunaBookings SaunaBooking[]
 }
 
 // A guest a member brought to a class using a guest pass.
@@ -255,6 +262,47 @@ model Booking {
   // A member can only hold one active booking per session
   @@unique([userId, sessionId])
   @@index([sessionId])
+}
+
+// ----------------------------------------------------------------------------
+// Infrared sauna — private time-slot bookings (settings live in AppSetting
+// "sauna"). Times are naive studio wall-clock values, like class times.
+// ----------------------------------------------------------------------------
+
+// status: "BOOKED" | "CANCELLED" | "ATTENDED" | "NO_SHOW"
+model SaunaBooking {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  startsAt     DateTime
+  endsAt       DateTime
+  // People in the session (the member + guests).
+  people       Int      @default(1)
+  guestNames   String?
+  // The sauna membership used, and how many sessions it was charged (refunded
+  // on a timely cancel).
+  membershipId String?
+  membership   Membership? @relation(fields: [membershipId], references: [id])
+  creditsUsed  Int      @default(0)
+  status       String   @default("BOOKED")
+  // "MEMBER" | "STAFF"
+  bookedBy     String   @default("MEMBER")
+  createdAt    DateTime @default(now())
+  cancelledAt  DateTime?
+
+  @@index([startsAt])
+  @@index([userId])
+}
+
+// Time the sauna is unavailable (maintenance, private event, holiday…).
+model SaunaBlock {
+  id       String   @id @default(cuid())
+  startsAt DateTime
+  endsAt   DateTime
+  reason   String?
+  createdAt DateTime @default(now())
+
+  @@index([startsAt])
 }
 
 // ----------------------------------------------------------------------------

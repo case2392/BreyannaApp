@@ -11,7 +11,9 @@ import {
   UserIcon,
   GridIcon,
   SparklesIcon,
+  SteamIcon,
 } from "@/components/Icons";
+import { getSaunaSettings } from "@/lib/sauna";
 
 export default async function MemberLayout({
   children,
@@ -32,6 +34,9 @@ export default async function MemberLayout({
     data: { lastSeenAt: new Date() },
   });
 
+  // The Sauna tab appears once sauna booking is turned on (staff always see it).
+  const sauna = (await getSaunaSettings()).enabled || isStaff(user.role);
+
   return (
     <div className="min-h-screen bg-ink-50">
       {/* Top bar */}
@@ -41,6 +46,9 @@ export default async function MemberLayout({
           <nav className="hidden items-center gap-1 md:flex">
             <NavLink href="/schedule" label="Schedule" icon={<CalendarIcon className="h-4 w-4" />} />
             <NavLink href="/bookings" label="My Bookings" icon={<TicketIcon className="h-4 w-4" />} />
+            {sauna && (
+              <NavLink href="/sauna" label="Sauna" icon={<SteamIcon className="h-4 w-4" />} />
+            )}
             <NavLink href="/memberships" label="Plans" icon={<CardIcon className="h-4 w-4" />} />
             <NavLink href="/events" label="Events" icon={<SparklesIcon className="h-4 w-4" />} />
             <NavLink href="/account" label="Account" icon={<UserIcon className="h-4 w-4" />} />
@@ -65,6 +73,7 @@ export default async function MemberLayout({
       <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-ink-200 bg-white md:hidden">
         <BottomNavLink href="/schedule" label="Schedule" icon={<CalendarIcon />} />
         <BottomNavLink href="/bookings" label="Bookings" icon={<TicketIcon />} />
+        {sauna && <BottomNavLink href="/sauna" label="Sauna" icon={<SteamIcon />} />}
         <BottomNavLink href="/memberships" label="Plans" icon={<CardIcon />} />
         <BottomNavLink href="/events" label="Events" icon={<SparklesIcon />} />
         <BottomNavLink href="/account" label="Account" icon={<UserIcon />} />

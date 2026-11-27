@@ -38,7 +38,7 @@ export default async function GiftPage({
       take: 100,
     }),
     prisma.membershipPlan.findMany({
-      where: { active: true, kind: "DROP_IN" },
+      where: { active: true, kind: "DROP_IN", category: "CLASS" },
       orderBy: { priceCents: "asc" },
     }),
   ]);

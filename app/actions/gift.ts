@@ -77,7 +77,7 @@ export async function giftClassCheckout(
   // Price the gift at the studio's single-class (drop-in) rate — the sale
   // price while a single-class sale is on.
   const dropIns = await prisma.membershipPlan.findMany({
-    where: { active: true, kind: "DROP_IN" },
+    where: { active: true, kind: "DROP_IN", category: "CLASS" },
     orderBy: { priceCents: "asc" },
   });
   const plan = dropIns.sort((a, b) => priceNow(a) - priceNow(b))[0];

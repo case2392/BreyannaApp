@@ -8,7 +8,21 @@ import {
   cancelMembership,
 } from "@/app/actions/checkout";
 
-export function BuyButton({ planId }: { planId: string }) {
+// returnTo: where to come back after paying (e.g. "/sauna?slot=…" to finish a
+// sauna booking). Defaults to the plans page.
+export function BuyButton({
+  planId,
+  returnTo,
+  label = "Get this plan",
+  className = "btn-primary w-full",
+  onGranted,
+}: {
+  planId: string;
+  returnTo?: string;
+  label?: string;
+  className?: string;
+  onGranted?: () => void;
+}) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -16,7 +30,7 @@ export function BuyButton({ planId }: { planId: string }) {
   function buy() {
     setError(null);
     startTransition(async () => {
-      const res = await startCheckout(planId);
+      const res = await startCheckout(planId, returnTo);
       if (!res.ok) {
         setError(res.error ?? "Something went wrong.");
         return;
@@ -26,6 +40,7 @@ export function BuyButton({ planId }: { planId: string }) {
         window.location.href = res.url;
       } else {
         // Instant-grant fallback (Stripe not configured yet).
+        onGranted?.();
         router.refresh();
       }
     });
@@ -33,8 +48,8 @@ export function BuyButton({ planId }: { planId: string }) {
 
   return (
     <div>
-      <button onClick={buy} disabled={pending} className="btn-primary w-full">
-        {pending ? "One moment…" : "Get this plan"}
+      <button onClick={buy} disabled={pending} className={className}>
+        {pending ? "One moment…" : label}
       </button>
       {error && <p className="mt-2 text-xs text-red-600">{error}</p>}
     </div>

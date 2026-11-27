@@ -410,9 +410,11 @@ export async function createPlan(_prev: unknown, formData: FormData) {
   const sale = parseSaleForm(formData, Math.round(price * 100));
   if ("error" in sale) return { error: sale.error };
 
+  const category = formData.get("category") === "SAUNA" ? "SAUNA" : "CLASS";
   const created = await prisma.membershipPlan.create({
     data: {
       ...sale,
+      category,
       ...(kind === "UNLIMITED"
         ? parseSaleDuration(formData)
         : { saleLockedIn: false, saleMonths: 1 }),
@@ -422,13 +424,18 @@ export async function createPlan(_prev: unknown, formData: FormData) {
       credits: kind === "UNLIMITED" ? 0 : Number(formData.get("credits")) || 0,
       priceCents: Math.round(price * 100),
       durationDays: Number(formData.get("durationDays")) || 30,
-      guestPassesPerMonth: Number(formData.get("guestPasses")) || 0,
-      restrictedClass: String(formData.get("restrictedClass") || "").trim() || null,
+      guestPassesPerMonth:
+        category === "SAUNA" ? 0 : Number(formData.get("guestPasses")) || 0,
+      restrictedClass:
+        category === "SAUNA"
+          ? null
+          : String(formData.get("restrictedClass") || "").trim() || null,
     },
   });
-  await syncPlanClassAccess(created.id, formData);
+  if (category === "CLASS") await syncPlanClassAccess(created.id, formData);
   revalidatePath("/admin/plans");
   revalidatePath("/memberships");
+  revalidatePath("/sauna");
   revalidatePath("/");
   return { ok: true };
 }
@@ -457,10 +464,12 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
   const sale = parseSaleForm(formData, Math.round(price * 100));
   if ("error" in sale) return { error: sale.error };
 
+  const category = formData.get("category") === "SAUNA" ? "SAUNA" : "CLASS";
   await prisma.membershipPlan.update({
     where: { id },
     data: {
       ...sale,
+      category,
       ...(kind === "UNLIMITED"
         ? parseSaleDuration(formData)
         : { saleLockedIn: false, saleMonths: 1 }),
@@ -470,13 +479,18 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
       credits: kind === "UNLIMITED" ? 0 : Number(formData.get("credits")) || 0,
       priceCents: Math.round(price * 100),
       durationDays: Number(formData.get("durationDays")) || 30,
-      guestPassesPerMonth: Number(formData.get("guestPasses")) || 0,
-      restrictedClass: String(formData.get("restrictedClass") || "").trim() || null,
+      guestPassesPerMonth:
+        category === "SAUNA" ? 0 : Number(formData.get("guestPasses")) || 0,
+      restrictedClass:
+        category === "SAUNA"
+          ? null
+          : String(formData.get("restrictedClass") || "").trim() || null,
     },
   });
-  await syncPlanClassAccess(id, formData);
+  if (category === "CLASS") await syncPlanClassAccess(id, formData);
   revalidatePath("/admin/plans");
   revalidatePath("/memberships");
+  revalidatePath("/sauna");
   revalidatePath("/");
   return { ok: true };
 }
