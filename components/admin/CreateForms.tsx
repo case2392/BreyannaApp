@@ -4,6 +4,7 @@ import { SaleFields } from "@/components/admin/SaleFields";
 import {
   PlanCategoryPicker,
   SaunaIncludedField,
+  BonusClassesField,
   kindOptions,
 } from "@/components/admin/PlanCategoryPicker";
 import { useRef, useState } from "react";
@@ -161,8 +162,10 @@ export function CreateRoomForm() {
 
 export function CreatePlanForm({
   classTypes = [],
+  bonusClassTypes = [],
 }: {
   classTypes?: ClassAccessOpt[];
+  bonusClassTypes?: { id: string; name: string }[];
 }) {
   const ref = useRef<HTMLFormElement>(null);
   const [kind, setKind] = useState("PACK");
@@ -281,6 +284,11 @@ export function CreatePlanForm({
       {!sauna && (
         <div className="mt-4">
           <SaunaIncludedField />
+        </div>
+      )}
+      {!sauna && bonusClassTypes.length > 0 && (
+        <div className="mt-4">
+          <BonusClassesField classTypes={bonusClassTypes} />
         </div>
       )}
       {!sauna && (

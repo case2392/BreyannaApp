@@ -157,6 +157,52 @@ async function findUsableMembership(
   );
 }
 
+// ---- Monthly bonus classes ---------------------------------------------------
+// A plan can include N classes a month from classes it can't normally book
+// (e.g. Mommy & Me Unlimited: 1 adult class a month). Counted per calendar
+// month of the class; cancelling frees it up again.
+
+type Tx = Pick<typeof prisma, "booking" | "membership">;
+
+export async function bonusUsedInMonth(membershipId: string, d: Date, db: Tx = prisma) {
+  const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+  return db.booking.count({
+    where: {
+      bonusMembershipId: membershipId,
+      status: { in: ["BOOKED", "WAITLISTED", "ATTENDED", "NO_SHOW"] },
+      session: { startsAt: { gte: start, lt: end } },
+    },
+  });
+}
+
+// The member's memberships with a bonus that can be used on this class type,
+// and whether one still has a bonus left for the class's month.
+export async function findBonusMembership(
+  userId: string,
+  classTypeId: string,
+  startsAt: Date
+) {
+  const list = await prisma.membership.findMany({
+    where: {
+      userId,
+      status: "ACTIVE",
+      expiresAt: { gt: new Date() },
+      plan: { category: "CLASS", bonusClassesPerMonth: { gt: 0 } },
+    },
+    include: { plan: true },
+    orderBy: { expiresAt: "asc" },
+  });
+  const eligible = list.filter((m) =>
+    (parsePlanIds(m.plan.bonusClassTypeIds) ?? []).includes(classTypeId)
+  );
+  for (const m of eligible) {
+    if ((await bonusUsedInMonth(m.id, startsAt)) < m.plan.bonusClassesPerMonth)
+      return { membership: m, usedUp: null };
+  }
+  return { membership: null, usedUp: eligible[0] ?? null };
+}
+
 // Book a member into a class (or waitlist them if it is full).
 // Staff booking on a member's behalf can pass opts.staff to book even when
 // registration is closed, and opts.comp to add them without requiring/using credits.
@@ -190,10 +236,29 @@ export async function bookClass(
 
   // Free community classes (or a staff comp) need no membership or credits.
   let membership: MembershipWithPlan | null = null;
+  let bonus: MembershipWithPlan | null = null;
   if (!isFree && !opts?.comp) {
     const access = await classAccess(session.classType);
     membership = await findUsableMembership(userId, creditCost, access);
+    // Not covered? Their plan may include a monthly bonus class for this one.
+    let bonusUsedUp: MembershipWithPlan | null = null;
     if (!membership) {
+      const b = await findBonusMembership(userId, session.classTypeId, session.startsAt);
+      bonus = b.membership;
+      bonusUsedUp = b.usedUp;
+    }
+    if (!membership && !bonus && bonusUsedUp) {
+      const n = bonusUsedUp.plan.bonusClassesPerMonth;
+      const month = session.startsAt.toLocaleDateString("en-US", {
+        month: "long",
+        timeZone: "UTC",
+      });
+      return {
+        ok: false,
+        error: `You've used your ${n === 1 ? "" : `${n} `}bonus class${n === 1 ? "" : "es"} for ${month} with your ${bonusUsedUp.plan.name}. Buy a single class to book this one.`,
+      };
+    }
+    if (!membership && !bonus) {
       // If they have an active membership that just doesn't cover this class
       // style, give a clearer message than "you need a membership".
       const activeCount = await prisma.membership.count({
@@ -233,14 +298,20 @@ export async function bookClass(
     membership !== null &&
     membership.plan.kind !== "UNLIMITED";
   const membershipId = chargeCredit && membership ? membership.id : null;
+  const bonusMembershipId = bonus?.id ?? null;
 
+  try {
   await prisma.$transaction(async (tx) => {
+    // Re-check the monthly bonus inside the transaction (double taps).
+    if (bonus && (await bonusUsedInMonth(bonus.id, session.startsAt, tx)) >= bonus.plan.bonusClassesPerMonth)
+      throw new Error("BONUS_USED");
     if (existing) {
       await tx.booking.update({
         where: { id: existing.id },
         data: {
           status,
           membershipId,
+          bonusMembershipId,
           createdAt: new Date(),
         },
       });
@@ -251,6 +322,7 @@ export async function bookClass(
           sessionId,
           status,
           membershipId,
+          bonusMembershipId,
         },
       });
     }
@@ -261,6 +333,11 @@ export async function bookClass(
       });
     }
   });
+  } catch (e: any) {
+    if (e?.message === "BONUS_USED")
+      return { ok: false, error: "You've already used your bonus class for that month." };
+    throw e;
+  }
 
   return { ok: true, status };
 }
@@ -366,7 +443,14 @@ async function cancelBookingRecord(
           (m) => m.plan.kind !== "UNLIMITED" && m.creditsRemaining >= cost
         );
         const chosen = unlimited ?? pack;
-        if (chosen) {
+        if (next.bonusMembershipId) {
+          // Waiting on their monthly bonus class — no credit to charge.
+          await tx.booking.update({
+            where: { id: next.id },
+            data: { status: "BOOKED" },
+          });
+          promotedUserId = next.userId;
+        } else if (chosen) {
           const charge = chosen.plan.kind !== "UNLIMITED";
           await tx.booking.update({
             where: { id: next.id },

@@ -9,6 +9,7 @@ import { SaleFields, type SaleDefaults } from "@/components/admin/SaleFields";
 import {
   PlanCategoryPicker,
   SaunaIncludedField,
+  BonusClassesField,
   kindOptions,
 } from "@/components/admin/PlanCategoryPicker";
 import {
@@ -29,6 +30,8 @@ type Plan = {
   kind: string;
   category: string;
   saunaPerMonth: number;
+  bonusClassesPerMonth: number;
+  bonusClassTypeIds: string[];
   credits: number;
   priceCents: number;
   durationDays: number;
@@ -53,9 +56,11 @@ function SaveBtn() {
 export function PlanRow({
   plan,
   classTypes = [],
+  bonusClassTypes = [],
 }: {
   plan: Plan;
   classTypes?: ClassAccessOpt[];
+  bonusClassTypes?: { id: string; name: string }[];
 }) {
   const [editing, setEditing] = useState(false);
   const [kind, setKind] = useState(plan.kind);
@@ -177,6 +182,15 @@ export function PlanRow({
             <SaunaIncludedField defaultPerMonth={plan.saunaPerMonth} />
           </div>
         )}
+        {!sauna && bonusClassTypes.length > 0 && (
+          <div className="mt-3">
+            <BonusClassesField
+              classTypes={bonusClassTypes}
+              defaultPerMonth={plan.bonusClassesPerMonth}
+              defaultIds={plan.bonusClassTypeIds}
+            />
+          </div>
+        )}
         {!sauna && (
           <div className="mt-3">
             <ClassAccessChecklist classTypes={classTypes} planId={plan.id} />
@@ -225,6 +239,9 @@ export function PlanRow({
             ? "renews monthly"
             : `${plan.credits} ${plan.category === "SAUNA" ? "session" : "credit"}${plan.credits === 1 ? "" : "s"} · never expires`}
           {plan.restrictedClass ? ` · ${plan.restrictedClass} classes only` : ""}
+          {plan.bonusClassesPerMonth > 0
+            ? ` · +${plan.bonusClassesPerMonth} bonus class${plan.bonusClassesPerMonth === 1 ? "" : "es"}/mo`
+            : ""}
           {plan.saunaPerMonth < 0
             ? " · unlimited sauna"
             : plan.saunaPerMonth > 0

@@ -51,11 +51,25 @@ export function planInclusions(plan: {
   }
   const r = plan.restrictedClass?.trim();
   if (r) items.push(`For ${r} classes only`);
-  const sauna = plan.saunaPerMonth ?? 0;
-  if (sauna < 0) items.push("Unlimited infrared sauna");
-  else if (sauna > 0)
-    items.push(`${sauna} infrared sauna session${sauna === 1 ? "" : "s"} a month`);
   return items;
+}
+
+// Extras a class membership includes — shown highlighted on plan cards and on
+// a member's own plan, so they stand out when skimming.
+export function planPerks(plan: {
+  category?: string;
+  saunaPerMonth?: number;
+  bonusClassesPerMonth?: number;
+}): string[] {
+  if (plan.category === "SAUNA") return [];
+  const perks: string[] = [];
+  const bonus = plan.bonusClassesPerMonth ?? 0;
+  if (bonus > 0) perks.push(`Plus ${bonus} adult class${bonus === 1 ? "" : "es"} a month`);
+  const sauna = plan.saunaPerMonth ?? 0;
+  if (sauna < 0) perks.push("Unlimited infrared sauna");
+  else if (sauna > 0)
+    perks.push(`${sauna} infrared sauna session${sauna === 1 ? "" : "s"} a month`);
+  return perks;
 }
 
 export function dayLabel(d: Date): string {

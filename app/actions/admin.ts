@@ -407,6 +407,18 @@ function saunaIncluded(formData: FormData): number {
   return 0;
 }
 
+// Class plans: monthly bonus classes (e.g. 1 adult class for Mommy & Me).
+function bonusClasses(formData: FormData, category: string) {
+  const n = Math.round(Number(formData.get("bonusClassesPerMonth")) || 0);
+  const ids = formData
+    .getAll("bonusClassTypeIds")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+  if (category === "SAUNA" || n <= 0 || ids.length === 0)
+    return { bonusClassesPerMonth: 0, bonusClassTypeIds: null };
+  return { bonusClassesPerMonth: Math.min(30, n), bonusClassTypeIds: ids.join(",") };
+}
+
 export async function createPlan(_prev: unknown, formData: FormData) {
   await requireStaff();
   const name = String(formData.get("name") || "").trim();
@@ -436,6 +448,7 @@ export async function createPlan(_prev: unknown, formData: FormData) {
       guestPassesPerMonth:
         category === "SAUNA" ? 0 : Number(formData.get("guestPasses")) || 0,
       saunaPerMonth: category === "SAUNA" ? 0 : saunaIncluded(formData),
+      ...bonusClasses(formData, category),
       restrictedClass:
         category === "SAUNA"
           ? null
@@ -492,6 +505,7 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
       guestPassesPerMonth:
         category === "SAUNA" ? 0 : Number(formData.get("guestPasses")) || 0,
       saunaPerMonth: category === "SAUNA" ? 0 : saunaIncluded(formData),
+      ...bonusClasses(formData, category),
       restrictedClass:
         category === "SAUNA"
           ? null

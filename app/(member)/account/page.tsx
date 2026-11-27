@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { shortDate } from "@/lib/format";
+import { shortDate, planPerks } from "@/lib/format";
 import { availableGuestPasses } from "@/lib/booking";
 import { EditProfileForm, ChangePasswordForm } from "@/components/account/AccountForms";
 
@@ -25,7 +25,16 @@ export default async function AccountPage() {
     prisma.membership.findMany({
       where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
       include: {
-        plan: { select: { name: true, kind: true, category: true, guestPassesPerMonth: true } },
+        plan: {
+          select: {
+            name: true,
+            kind: true,
+            category: true,
+            guestPassesPerMonth: true,
+            saunaPerMonth: true,
+            bonusClassesPerMonth: true,
+          },
+        },
       },
       orderBy: { expiresAt: "asc" },
     }),
@@ -112,6 +121,11 @@ export default async function AccountPage() {
                       {m.plan.category === "SAUNA" ? "Sauna · " : ""}
                       {kindLabel[m.plan.kind] ?? m.plan.kind} · {validity}
                     </div>
+                    {planPerks(m.plan).map((perk) => (
+                      <div key={perk} className="text-xs font-semibold text-brand-700">
+                        ✦ {perk}
+                      </div>
+                    ))}
                   </div>
                   <div className="shrink-0 text-right">
                     {m.plan.kind === "UNLIMITED" ? (

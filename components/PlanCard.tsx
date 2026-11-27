@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { money, planInclusions } from "@/lib/format";
+import { money, planInclusions, planPerks } from "@/lib/format";
 import { activeSale, saleEndsLabel, savingsLabel } from "@/lib/sale";
 import { PriceTag, displayMoney } from "@/components/PriceTag";
 
@@ -10,6 +10,7 @@ export type PlanCardPlan = {
   kind: string;
   category?: string;
   saunaPerMonth?: number;
+  bonusClassesPerMonth?: number;
   credits: number;
   priceCents: number;
   guestPassesPerMonth: number;
@@ -163,6 +164,12 @@ export function PlanCard({
               ✓
             </span>
             <span>{item}</span>
+          </li>
+        ))}
+        {planPerks(plan).map((perk) => (
+          <li key={perk} className="flex gap-1.5 font-semibold text-brand-700">
+            <span aria-hidden="true">✦</span>
+            <span>{perk}</span>
           </li>
         ))}
       </ul>

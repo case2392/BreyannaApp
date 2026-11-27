@@ -15,7 +15,7 @@ import {
 } from "@/lib/format";
 import { BookButton } from "@/components/BookButton";
 import { GuestBookButton } from "@/components/GuestBookButton";
-import { availableGuestPasses } from "@/lib/booking";
+import { availableGuestPasses, bonusUsedInMonth } from "@/lib/booking";
 import { studioNow } from "@/lib/time";
 import { activeSale } from "@/lib/sale";
 
@@ -295,13 +295,39 @@ export default async function SchedulePage({
   const [activeMemberships, pastDueCount] = await Promise.all([
     prisma.membership.findMany({
       where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: now } },
-      include: { plan: { select: { guestPassesPerMonth: true } } },
+      include: {
+        plan: {
+          select: {
+            guestPassesPerMonth: true,
+            name: true,
+            category: true,
+            bonusClassesPerMonth: true,
+            bonusClassTypeIds: true,
+          },
+        },
+      },
     }),
     prisma.membership.count({
       where: { userId: user.id, status: "PAST_DUE" },
     }),
   ]);
   const guestPasses = availableGuestPasses(activeMemberships);
+
+  // Monthly bonus classes (e.g. Mommy & Me Unlimited: 1 adult class a month).
+  const bonusPlan = activeMemberships.find(
+    (m) => m.plan.category === "CLASS" && m.plan.bonusClassesPerMonth > 0 && m.plan.bonusClassTypeIds
+  );
+  const bonusLeft = bonusPlan
+    ? Math.max(0, bonusPlan.plan.bonusClassesPerMonth - (await bonusUsedInMonth(bonusPlan.id, now)))
+    : 0;
+  const bonusTypes = bonusPlan
+    ? await prisma.classType.findMany({
+        where: { id: { in: (bonusPlan.plan.bonusClassTypeIds ?? "").split(",") }, active: true },
+        select: { name: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
+  const monthName = now.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
 
   return (
     <div>
@@ -335,6 +361,28 @@ export default async function SchedulePage({
             Choose a plan
           </Link>{" "}
           to start booking classes.
+        </div>
+      )}
+
+      {bonusPlan && bonusTypes.length > 0 && (
+        <div className="mb-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-ink-700">
+          🤍 Your {bonusPlan.plan.name} includes{" "}
+          <b>
+            {bonusPlan.plan.bonusClassesPerMonth} adult class
+            {bonusPlan.plan.bonusClassesPerMonth === 1 ? "" : "es"} a month
+          </b>{" "}
+          — a little time just for you.{" "}
+          {bonusLeft > 0 ? (
+            <>
+              You have <b>{bonusLeft} left</b> for {monthName} — just book{" "}
+              {bonusTypes.length <= 3
+                ? `any ${bonusTypes.map((t) => t.name).join(", ")} class`
+                : "any adult class"}{" "}
+              below.
+            </>
+          ) : (
+            <>You&apos;ve used it for {monthName} — it renews next month.</>
+          )}
         </div>
       )}
 

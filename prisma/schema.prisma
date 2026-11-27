@@ -157,6 +157,11 @@ model MembershipPlan {
   // Class plans only: infrared sauna sessions included each calendar month.
   // 0 = none, -1 = unlimited.
   saunaPerMonth Int @default(0)
+  // Class plans only: bonus classes each calendar month from classes this plan
+  // can't normally book (e.g. Mommy & Me Unlimited: 1 adult class a month).
+  // bonusClassTypeIds = comma-separated class type ids the bonus can be used on.
+  bonusClassesPerMonth Int @default(0)
+  bonusClassTypeIds    String?
   // Optional sale: shown as the sale price with the regular price crossed out,
   // and charged at checkout, from saleStartsAt (blank = now) until saleEndsAt
   // (studio wall-clock times). Null salePriceCents = no sale.
@@ -257,6 +262,9 @@ model Booking {
   // Which membership paid for this booking (credit refunded on cancel)
   membershipId String?
   membership   Membership? @relation(fields: [membershipId], references: [id])
+  // Set when this booking used a plan's monthly bonus class (the membership
+  // id). Cancelling frees it up again.
+  bonusMembershipId String?
   // Why staff removed this member from the roster (optional note).
   cancelReason String?
   // Position used to order the waitlist

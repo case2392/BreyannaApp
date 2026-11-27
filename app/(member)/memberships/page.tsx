@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { shortDate } from "@/lib/format";
+import { shortDate, planPerks } from "@/lib/format";
 import { studioNow } from "@/lib/time";
 import { applySaunaIncludedDefaults } from "@/lib/saunaDefaults";
 import { saleEndsLabel } from "@/lib/sale";
@@ -117,6 +117,21 @@ export default async function MembershipsPage({
                   </div>
                   <span className="badge bg-green-100 text-green-700">Active</span>
                 </div>
+                {planPerks(m.plan).length > 0 && (
+                  <ul className="mt-2 space-y-0.5 text-xs font-semibold text-brand-700">
+                    {planPerks(m.plan).map((perk) => (
+                      <li key={perk}>
+                        ✦ {perk}{" "}
+                        <Link
+                          href={/sauna/i.test(perk) ? "/sauna" : "/schedule"}
+                          className="font-medium text-brand-600 underline-offset-2 hover:underline"
+                        >
+                          {/sauna/i.test(perk) ? "Book →" : "See classes →"}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 <div className="mt-4 flex items-end justify-between">
                   <div>
                     {m.plan.kind === "UNLIMITED" ? (

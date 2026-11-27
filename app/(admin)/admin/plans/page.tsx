@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function PlansPage() {
   await applySaunaIncludedDefaults();
-  const [plans, classTypeRows, bannerSettings, saleEvents] = await Promise.all([
+  const [plans, classTypeRows, bannerSettings, saleEvents, allClassTypes] = await Promise.all([
     prisma.membershipPlan.findMany({
       orderBy: { priceCents: "asc" },
       include: {
@@ -30,6 +30,12 @@ export default async function PlansPage() {
     prisma.event.findMany({
       where: { active: true, salePriceCents: { not: null } },
       select: { priceCents: true, salePriceCents: true, saleStartsAt: true, saleEndsAt: true },
+    }),
+    // For "Bonus classes": every bookable (non-free) class type.
+    prisma.classType.findMany({
+      where: { active: true, free: false },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
     }),
   ]);
   const livePlanSales = plans.filter((p) => p.active && activeSale(p)).length;
@@ -69,6 +75,7 @@ export default async function PlansPage() {
             <PlanRow
               key={p.id}
               classTypes={classTypes}
+              bonusClassTypes={allClassTypes}
               plan={{
                 id: p.id,
                 name: p.name,
@@ -76,6 +83,8 @@ export default async function PlansPage() {
                 kind: p.kind,
                 category: p.category,
                 saunaPerMonth: p.saunaPerMonth,
+                bonusClassesPerMonth: p.bonusClassesPerMonth,
+                bonusClassTypeIds: (p.bonusClassTypeIds ?? "").split(",").filter(Boolean),
                 credits: p.credits,
                 priceCents: p.priceCents,
                 durationDays: p.durationDays,
@@ -98,7 +107,7 @@ export default async function PlansPage() {
         </div>
 
         <div>
-          <CreatePlanForm classTypes={classTypes} />
+          <CreatePlanForm classTypes={classTypes} bonusClassTypes={allClassTypes} />
         </div>
       </div>
     </div>
