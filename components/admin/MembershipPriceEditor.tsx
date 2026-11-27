@@ -64,7 +64,7 @@ export function MembershipPriceEditor({
           }}
           className="text-xs font-medium text-brand-600 hover:underline"
         >
-          {monthly ? "Change price" : "Edit amount paid"}
+          {monthly ? "Edit price" : "Edit amount paid"}
         </button>
       ) : (
         <div className="rounded-xl border border-ink-200 bg-ink-50 p-3">
@@ -86,7 +86,8 @@ export function MembershipPriceEditor({
           </div>
           {monthly && (
             <p className="mt-1.5 text-xs text-ink-500">
-              Regular price ${(regularCents / 100).toFixed(2)}/month.{" "}
+              They keep this price every month until you change it or they cancel.
+              The plan&apos;s current price is ${(regularCents / 100).toFixed(2)}/month.{" "}
               {billedOnline
                 ? `Stripe will charge the new price starting with their next payment${
                     nextPayment ? ` (${nextPayment})` : ""
@@ -133,7 +134,7 @@ export function MembershipPriceEditor({
                 onClick={() => save(true)}
                 className="btn-secondary text-xs"
               >
-                Back to regular price
+                Use current plan price (${(regularCents / 100).toFixed(2)})
               </button>
             )}
             <button type="button" onClick={() => setOpen(false)} className="btn-ghost text-xs">

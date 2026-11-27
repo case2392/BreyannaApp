@@ -1,3 +1,4 @@
+import { stripeMonthlyRate } from "@/lib/stripeRate";
 import { MembershipPriceEditor } from "@/components/admin/MembershipPriceEditor";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -62,6 +63,22 @@ export default async function MemberDetailPage({
   ]);
 
   if (!member || member.role !== "MEMBER") notFound();
+
+  // Older subscriptions (from before rates were recorded): read the amount
+  // Stripe actually charges them and save it, so their real price shows here.
+  for (const m of member.memberships) {
+    if (
+      m.stripeSubscriptionId &&
+      m.customPriceCents == null &&
+      (m.status === "ACTIVE" || m.status === "PAST_DUE")
+    ) {
+      const rate = await stripeMonthlyRate(m.stripeSubscriptionId);
+      if (rate != null) {
+        await prisma.membership.update({ where: { id: m.id }, data: { customPriceCents: rate } });
+        m.customPriceCents = rate;
+      }
+    }
+  }
 
   const now = new Date();
   const activeMems = member.memberships.filter(
@@ -196,7 +213,9 @@ export default async function MemberDetailPage({
                   : "Complimentary"
                 : m.plan.kind === "UNLIMITED" && (m.stripeSubscriptionId || m.customPriceCents != null)
                 ? `${money(m.customPriceCents ?? m.plan.priceCents)}/mo${
-                    m.customPriceCents != null ? ` (custom · regular ${money(m.plan.priceCents)})` : ""
+                    m.customPriceCents != null && m.customPriceCents !== m.plan.priceCents
+                      ? ` (plan price is now ${money(m.plan.priceCents)})`
+                      : ""
                   }`
                 : `paid ${money(m.pricePaidCents)}`;
               return (
@@ -234,7 +253,9 @@ export default async function MemberDetailPage({
                             ? m.customPriceCents ?? m.plan.priceCents
                             : m.pricePaidCents
                         }
-                        custom={m.customPriceCents != null}
+                        custom={
+                          m.customPriceCents != null && m.customPriceCents !== m.plan.priceCents
+                        }
                         nextPayment={m.autoRenew ? shortDate(m.expiresAt) : null}
                       />
                       <RemoveMembershipButton membershipId={m.id} />

@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff, hashPassword } from "@/lib/auth";
 import { grantMembership } from "@/lib/membership";
 import { stripe, stripeEnabled } from "@/lib/stripe";
+import { stripeMonthlyRate } from "@/lib/stripeRate";
 import { capacityLimited, dayLabel, timeLabel, money } from "@/lib/format";
 import { bookClass, cancelGuestBooking, staffCancelBooking } from "@/lib/booking";
 import { fireAutomation } from "@/lib/automations";
@@ -887,12 +888,14 @@ export async function syncSubscriptionsFromStripe() {
         const end =
           (sub as any).current_period_end ??
           (sub as any).items?.data?.[0]?.current_period_end;
+        const rate = await stripeMonthlyRate(m.stripeSubscriptionId!);
         await prisma.membership.update({
           where: { id: m.id },
           data: {
             status: "ACTIVE",
             autoRenew: !sub.cancel_at_period_end,
             ...(end ? { expiresAt: new Date(end * 1000) } : {}),
+            ...(rate != null ? { customPriceCents: rate } : {}),
           },
         });
       } else {
@@ -1032,7 +1035,7 @@ export async function saveSaleBanner(_prev: unknown, formData: FormData) {
 //    Optionally removes any sale discount so they pay exactly this amount.
 //  - Monthly membership not billed online: saved for the studio's records.
 //  - Pack / single (one-time): corrects the amount paid.
-// `price` null = back to the plan's regular price.
+// `price` null = the plan's current price.
 export async function setMembershipPrice(input: {
   membershipId: string;
   price: number | null;
@@ -1100,7 +1103,7 @@ export async function setMembershipPrice(input: {
 
   await prisma.membership.update({
     where: { id: m.id },
-    data: { customPriceCents: cents == null || cents === m.plan.priceCents ? null : cents },
+    data: { customPriceCents: newCents },
   });
 
   if (input.notify && m.user.email) {

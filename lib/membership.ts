@@ -2,6 +2,7 @@ import { prisma } from "./db";
 import { stripe } from "./stripe";
 import { notifyStudio } from "./notify";
 import { money } from "./format";
+import { stripeMonthlyRate } from "./stripeRate";
 import type { MembershipPlan } from "@prisma/client";
 
 // Grant (or extend) a membership for a user. Shared by the instant-grant
@@ -57,6 +58,14 @@ export async function grantMembership(
   }
 
   const pricePaidCents = opts.pricePaidCents ?? plan.priceCents;
+  // Their monthly rate, locked in at purchase (what Stripe will keep
+  // charging). Plan price changes later never affect it.
+  const monthlyRate =
+    plan.kind !== "UNLIMITED" || comp
+      ? null
+      : opts.stripeSubscriptionId
+      ? (await stripeMonthlyRate(opts.stripeSubscriptionId)) ?? plan.priceCents
+      : pricePaidCents;
   const membership = await prisma.membership.create({
     data: {
       userId,
@@ -65,6 +74,7 @@ export async function grantMembership(
       creditsRemaining: plan.kind === "UNLIMITED" ? 0 : plan.credits,
       expiresAt,
       pricePaidCents,
+      customPriceCents: monthlyRate,
       source,
       giftedByUserId: opts.giftedByUserId ?? null,
       autoRenew: isSubscription,
