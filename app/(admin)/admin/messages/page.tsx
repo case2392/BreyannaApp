@@ -4,13 +4,15 @@ import { AUDIENCES, audienceMemberIds, audienceLabel } from "@/lib/audiences";
 import { emailConfigured, smsConfigured } from "@/lib/messaging";
 import { shortDate, timeLabel } from "@/lib/format";
 import { ComposeCampaign } from "@/components/admin/ComposeCampaign";
-import { TestEmailButton } from "@/components/admin/TestEmailButton";
+import { DeliveryCheckPanel } from "@/components/admin/DeliveryCheckPanel";
+import { getCurrentUser } from "@/lib/auth";
 import { BoltIcon } from "@/components/Icons";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 export default async function MessagesPage() {
+  const staff = await getCurrentUser();
   const [audienceMembers, campaigns, members] = await Promise.all([
     audienceMemberIds(),
     prisma.campaign.findMany({ orderBy: { createdAt: "desc" }, take: 25 }),
@@ -44,12 +46,13 @@ export default async function MessagesPage() {
           </p>
         </div>
         <div className="flex items-start gap-2">
-          <TestEmailButton />
           <Link href="/admin/automations" className="btn-secondary text-sm">
             <BoltIcon className="h-4 w-4" /> Automations
           </Link>
         </div>
       </div>
+
+      <DeliveryCheckPanel staffPhone={staff?.phone ?? null} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Compose */}

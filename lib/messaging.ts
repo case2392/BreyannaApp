@@ -1,3 +1,5 @@
+import { toE164 } from "./phone";
+
 // Email + SMS delivery. Works in "simulation" mode when no provider keys are
 // configured (so the CRM is fully usable immediately), and sends for real once
 // RESEND_API_KEY / TWILIO_* are set in the environment.
@@ -9,7 +11,8 @@ export type SendResult = {
 };
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM || "Dwell Studio <onboarding@resend.dev>";
+export const RESEND_DEFAULT_FROM = "Dwell Studio <onboarding@resend.dev>";
+const RESEND_FROM = process.env.RESEND_FROM || RESEND_DEFAULT_FROM;
 // Optional: where member replies should go (e.g. the studio's Gmail).
 const RESEND_REPLY_TO = process.env.RESEND_REPLY_TO;
 
@@ -22,6 +25,17 @@ export function emailConfigured(): boolean {
 }
 export function smsConfigured(): boolean {
   return Boolean(TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM);
+}
+
+// "Resend 403: You can only send testing emails to your own email address".
+async function resendError(res: Response): Promise<string> {
+  const detail = await res.text();
+  let msg = detail;
+  try {
+    const j = JSON.parse(detail);
+    if (j?.message) msg = String(j.message);
+  } catch {}
+  return `Resend ${res.status}: ${msg.slice(0, 200)}`;
 }
 
 export async function sendEmail(
@@ -48,8 +62,7 @@ export async function sendEmail(
       }),
     });
     if (!res.ok) {
-      const detail = await res.text();
-      return { ok: false, simulated: false, error: `Resend ${res.status}: ${detail.slice(0, 140)}` };
+      return { ok: false, simulated: false, error: await resendError(res) };
     }
     return { ok: true, simulated: false };
   } catch (e: any) {
@@ -85,8 +98,7 @@ export async function sendEmailBatch(
       ),
     });
     if (!res.ok) {
-      const detail = await res.text();
-      return { ok: false, simulated: false, error: `Resend ${res.status}: ${detail.slice(0, 180)}` };
+      return { ok: false, simulated: false, error: await resendError(res) };
     }
     return { ok: true, simulated: false };
   } catch (e: any) {
@@ -97,10 +109,15 @@ export async function sendEmailBatch(
 export async function sendSms(to: string, body: string): Promise<SendResult> {
   if (!to) return { ok: false, simulated: false, error: "No phone number." };
   if (!smsConfigured()) return { ok: true, simulated: true };
+  // Twilio needs +14025551234 — members type numbers all sorts of ways.
+  const number = toE164(to);
+  if (!number)
+    return { ok: false, simulated: false, error: `Not a valid phone number: ${to}` };
+  const from = toE164(TWILIO_FROM!) ?? TWILIO_FROM!;
 
   try {
     const auth = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString("base64");
-    const form = new URLSearchParams({ To: to, From: TWILIO_FROM!, Body: body });
+    const form = new URLSearchParams({ To: number, From: from, Body: body });
     const res = await fetch(
       `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
       {
@@ -114,7 +131,13 @@ export async function sendSms(to: string, body: string): Promise<SendResult> {
     );
     if (!res.ok) {
       const detail = await res.text();
-      return { ok: false, simulated: false, error: `Twilio ${res.status}: ${detail.slice(0, 140)}` };
+      // Twilio errors are JSON: { code: 21608, message: "..." }.
+      let msg = detail.slice(0, 160);
+      try {
+        const j = JSON.parse(detail);
+        if (j?.code || j?.message) msg = `${j.code ?? ""} ${j.message ?? ""}`.trim();
+      } catch {}
+      return { ok: false, simulated: false, error: `Twilio ${res.status}: ${msg.slice(0, 200)}` };
     }
     return { ok: true, simulated: false };
   } catch (e: any) {

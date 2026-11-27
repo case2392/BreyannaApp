@@ -4,20 +4,9 @@ import { prisma } from "@/lib/db";
 import { shortDate, timeLabel } from "@/lib/format";
 import { audienceLabel } from "@/lib/audiences";
 import { CopyEmailsButton } from "@/components/admin/CopyEmailsButton";
+import { deliveryHint } from "@/lib/deliveryHints";
 
 export const dynamic = "force-dynamic";
-
-// Turn a raw provider error into a short plain-language hint.
-function errorHint(error: string | null): string | null {
-  if (!error) return null;
-  if (/\b429\b|rate limit|too many/i.test(error))
-    return "Sending too fast (provider rate limit). The new batch sender should fix this — try resending.";
-  if (/\b403\b|testing emails|not verified|verify a domain/i.test(error))
-    return "The sending domain isn't verified yet, so the provider only allows sending to your own address. Verify your domain in Resend.";
-  if (/\b422\b|invalid|not a valid/i.test(error))
-    return "The email address looks invalid.";
-  return null;
-}
 
 export default async function CampaignResultsPage({
   params,
@@ -75,8 +64,9 @@ export default async function CampaignResultsPage({
 
       {campaign.simulated && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          This was sent in simulation mode (no email provider key configured), so
-          nothing was actually delivered.
+          Nothing in this campaign was actually delivered — that channel
+          wasn&apos;t connected when it was sent, so it only ran in simulation mode.
+          See “Email &amp; text setup” on the Messages page.
         </div>
       )}
 
@@ -89,12 +79,12 @@ export default async function CampaignResultsPage({
             </h2>
             <CopyEmailsButton
               emails={failed.map((f) => f.to)}
-              label="Copy failed emails"
+              label={campaign.channel === "EMAIL" ? "Copy failed emails" : "Copy failed numbers"}
             />
           </div>
           <div className="space-y-4">
             {[...byError.entries()].map(([error, group]) => {
-              const hint = errorHint(error);
+              const hint = deliveryHint(error);
               return (
                 <div key={error}>
                   <div className="text-sm font-medium">
@@ -124,7 +114,7 @@ export default async function CampaignResultsPage({
           {delivered.length > 0 && (
             <CopyEmailsButton
               emails={delivered.map((d) => d.to)}
-              label="Copy delivered emails"
+              label={campaign.channel === "EMAIL" ? "Copy delivered emails" : "Copy delivered numbers"}
             />
           )}
         </div>

@@ -37,11 +37,15 @@ export default async function AutomationsPage() {
 
       {(!emailReady || !smsReady) && (
         <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Demo mode — {!emailReady && "email"}
-          {!emailReady && !smsReady && " and "}
-          {!smsReady && "SMS"} delivery isn&apos;t configured yet, so enabled
-          automations are logged but not actually sent. Add the provider keys to
-          go live.
+          <b>
+            {!emailReady && "Email"}
+            {!emailReady && !smsReady && " and "}
+            {!smsReady && "Texting"} isn&apos;t connected yet
+          </b>
+          , so automations set to {!emailReady && !smsReady ? "email or text" : !emailReady ? "email" : "text"}{" "}
+          are skipped — nobody receives them. Choose{" "}
+          {!smsReady && emailReady ? "Email" : "a connected channel"} for now, or
+          see “Email &amp; text setup” on the Messages page to connect it.
         </div>
       )}
 

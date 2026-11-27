@@ -13,10 +13,10 @@ type Member = {
   phone: string | null;
 };
 
-function SendButton({ channel }: { channel: string }) {
+function SendButton({ channel, disabled }: { channel: string; disabled?: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" className="btn-primary" disabled={pending}>
+    <button type="submit" className="btn-primary" disabled={pending || disabled}>
       {pending ? "Sending…" : channel === "EMAIL" ? "Send email" : "Send text"}
     </button>
   );
@@ -118,10 +118,12 @@ export function ComposeCampaign({
       </div>
 
       {!providerReady && (
-        <p className="mb-4 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Demo mode — no {channel === "EMAIL" ? "email" : "SMS"} provider key is
-          set, so messages are logged but not actually delivered. Add{" "}
-          {channel === "EMAIL" ? "a Resend" : "Twilio"} key to send for real.
+        <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+          <b>{channel === "EMAIL" ? "Email" : "Texting"} isn&apos;t connected yet</b>,
+          so {channel === "EMAIL" ? "emails" : "texts"} can&apos;t be sent from here —
+          see “Email &amp; text setup” above.
+          {channel === "SMS" &&
+            " Until then, use Members → Copy phone numbers to text from your phone."}
         </p>
       )}
 
@@ -269,7 +271,7 @@ export function ComposeCampaign({
       </div>
 
       <div className="mt-4">
-        <SendButton channel={channel} />
+        <SendButton channel={channel} disabled={!providerReady} />
       </div>
     </form>
   );

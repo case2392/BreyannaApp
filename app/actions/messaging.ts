@@ -4,7 +4,14 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getCurrentUser, isStaff } from "@/lib/auth";
 import { resolveAudience } from "@/lib/audiences";
-import { sendEmail, sendSms, sendEmailBatch } from "@/lib/messaging";
+import {
+  sendEmail,
+  sendSms,
+  sendEmailBatch,
+  emailConfigured,
+  smsConfigured,
+} from "@/lib/messaging";
+import { toE164, formatPhone } from "@/lib/phone";
 import {
   AUTOMATIONS,
   TRIGGER_KEYS,
@@ -35,6 +42,17 @@ export async function sendCampaign(_prev: unknown, formData: FormData) {
   const body = String(formData.get("body") || "").trim();
 
   if (!body) return { error: "Please write a message." };
+  // Don't pretend to send: if the channel isn't connected nothing would arrive.
+  if (channel === "SMS" && !smsConfigured())
+    return {
+      error:
+        "Texting isn't connected yet, so this text wouldn't reach anyone. See “Email & text setup” at the top of this page — or use Members → Copy phone numbers to text from your phone.",
+    };
+  if (channel === "EMAIL" && !emailConfigured())
+    return {
+      error:
+        "Email isn't connected yet, so this wouldn't reach anyone. See “Email & text setup” at the top of this page.",
+    };
   if (channel === "EMAIL" && !subject)
     return { error: "Please add a subject line for emails." };
 
@@ -211,6 +229,20 @@ export async function sendTestEmail() {
     replyToConfigured: Boolean(process.env.RESEND_REPLY_TO),
     ...result,
   };
+}
+
+// Send a test text to a number the staff member chooses.
+export async function sendTestText(phone: string) {
+  await requireStaff();
+  if (!smsConfigured())
+    return { ok: false, error: "Texting isn't connected yet." };
+  const to = toE164(phone);
+  if (!to) return { ok: false, error: `Not a valid phone number: ${phone}` };
+  const r = await sendSms(
+    to,
+    "Dwell Studio test text ✅ If you got this, texting from your CRM works."
+  );
+  return r.ok ? { ok: true, to: formatPhone(to) } : { ok: false, error: r.error };
 }
 
 // Update an existing automation (built-in default or a custom one), keyed by

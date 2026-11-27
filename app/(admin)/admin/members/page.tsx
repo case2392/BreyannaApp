@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { shortDate, timeAgo } from "@/lib/format";
 import { AddMemberForm } from "@/components/admin/MemberTools";
-import { CopyEmailsButton } from "@/components/admin/CopyEmailsButton";
+import { ContactExport } from "@/components/admin/ContactExport";
 
 export const dynamic = "force-dynamic";
 
@@ -32,9 +32,13 @@ export default async function MembersPage() {
           <h1 className="text-2xl font-bold">Members</h1>
           <p className="text-sm text-ink-500">{members.length} members</p>
         </div>
-        <CopyEmailsButton
-          emails={members.map((m) => m.email)}
-          label="Copy all member emails"
+        <ContactExport
+          contacts={members.map((m) => ({
+            firstName: m.firstName,
+            lastName: m.lastName,
+            email: m.email,
+            phone: m.phone,
+          }))}
         />
       </div>
 
