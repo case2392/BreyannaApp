@@ -8,10 +8,13 @@ import { stripe } from "./stripe";
 // so the Stripe dashboard doesn't fill up with one coupon per purchase).
 async function saleCoupon(
   amountOffCents: number,
-  duration: "once" | "forever"
+  duration: "once" | "forever" | "repeating",
+  months = 1
 ): Promise<string | null> {
   if (!stripe || amountOffCents <= 0) return null;
-  const id = `dwell-sale-${amountOffCents}-${duration}`;
+  const id = `dwell-sale-${amountOffCents}-${
+    duration === "repeating" ? `${months}mo` : duration
+  }`;
   try {
     const c = await stripe.coupons.retrieve(id);
     if (c.valid) return c.id;
@@ -24,6 +27,7 @@ async function saleCoupon(
       amount_off: amountOffCents,
       currency: "usd",
       duration,
+      ...(duration === "repeating" ? { duration_in_months: months } : {}),
       name: "Sale price",
     });
     return c.id;
@@ -42,13 +46,14 @@ async function saleCoupon(
 // discount (Stripe allows one or the other, so no promo codes on top of a sale).
 //
 // Subscriptions: `lockedIn` keeps the discount on every renewal; otherwise it
-// applies to the first month only.
+// applies to the first `months` months (default 1).
 export async function salePricing(opts: {
   fullCents: number;
   saleCents: number | null;
   quantity?: number;
   subscription?: boolean;
   lockedIn?: boolean;
+  months?: number;
 }): Promise<
   | {
       ok: true;
@@ -62,9 +67,17 @@ export async function salePricing(opts: {
   if (opts.saleCents == null || opts.saleCents >= opts.fullCents)
     return { ok: true, unitAmount: opts.fullCents, allowPromotionCodes: true };
 
+  const months = opts.months ?? 1;
   const coupon = await saleCoupon(
     (opts.fullCents - opts.saleCents) * qty,
-    opts.subscription && opts.lockedIn ? "forever" : "once"
+    !opts.subscription
+      ? "once"
+      : opts.lockedIn
+      ? "forever"
+      : months > 1
+      ? "repeating"
+      : "once",
+    months
   );
   if (coupon)
     return {
@@ -75,8 +88,8 @@ export async function salePricing(opts: {
     };
 
   // Couldn't set up the discount. One-time purchases (and locked-in
-  // memberships) can simply be charged the sale price; a first-month-only
-  // sale can't, or every month would be discounted.
+  // memberships) can simply be charged the sale price; a sale for a set number
+  // of months can't, or every month would be discounted.
   if (opts.subscription && !opts.lockedIn)
     return {
       ok: false,

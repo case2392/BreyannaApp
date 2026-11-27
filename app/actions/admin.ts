@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { parseSaleForm } from "@/lib/sale";
+import { parseSaleForm, parseSaleDuration } from "@/lib/sale";
 import { saveSaleBannerSettings } from "@/lib/saleBanner";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/db";
@@ -413,7 +413,9 @@ export async function createPlan(_prev: unknown, formData: FormData) {
   const created = await prisma.membershipPlan.create({
     data: {
       ...sale,
-      saleLockedIn: kind === "UNLIMITED" && formData.get("saleLockedIn") === "1",
+      ...(kind === "UNLIMITED"
+        ? parseSaleDuration(formData)
+        : { saleLockedIn: false, saleMonths: 1 }),
       name,
       description: String(formData.get("description") || "").trim() || null,
       kind,
@@ -459,7 +461,9 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
     where: { id },
     data: {
       ...sale,
-      saleLockedIn: kind === "UNLIMITED" && formData.get("saleLockedIn") === "1",
+      ...(kind === "UNLIMITED"
+        ? parseSaleDuration(formData)
+        : { saleLockedIn: false, saleMonths: 1 }),
       name,
       description: String(formData.get("description") || "").trim() || null,
       kind,

@@ -76,6 +76,7 @@ export async function startCheckout(planId: string) {
     saleCents: sale?.saleCents ?? null,
     subscription: isSubscription,
     lockedIn: plan.saleLockedIn,
+    months: plan.saleMonths,
   });
   if (!pricing.ok) return { ok: false, error: pricing.error };
 

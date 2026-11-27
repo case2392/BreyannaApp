@@ -173,13 +173,35 @@ export function saleSummary(
   };
 }
 
+// How long a monthly membership keeps its sale price.
+export const SALE_MONTH_OPTIONS = [1, 3, 6, 12] as const;
+
+export function parseSaleDuration(formData: FormData) {
+  const v = String(formData.get("saleDuration") ?? "1");
+  if (v === "forever") return { saleLockedIn: true, saleMonths: 1 };
+  const n = Number(v);
+  return {
+    saleLockedIn: false,
+    saleMonths: (SALE_MONTH_OPTIONS as readonly number[]).includes(n) ? n : 1,
+  };
+}
+
+// CRM shorthand: "first month" / "first 3 months" / "locked in".
+export function saleDurationLabel(lockedIn: boolean, months: number) {
+  if (lockedIn) return "locked in";
+  return months > 1 ? `first ${months} months` : "first month";
+}
+
 // Form defaults for the CRM's sale fields.
-export function saleDefaults(item: SaleFields & { saleLockedIn?: boolean }) {
+export function saleDefaults(
+  item: SaleFields & { saleLockedIn?: boolean; saleMonths?: number }
+) {
   return {
     salePrice:
       item.salePriceCents != null ? (item.salePriceCents / 100).toFixed(2) : "",
     saleStarts: dateInputValue(item.saleStartsAt),
     saleEnds: saleEndInputValue(item.saleEndsAt),
     saleLockedIn: Boolean(item.saleLockedIn),
+    saleMonths: item.saleMonths ?? 1,
   };
 }

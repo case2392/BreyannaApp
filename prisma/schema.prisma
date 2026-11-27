@@ -155,8 +155,10 @@ model MembershipPlan {
   saleStartsAt   DateTime?
   saleEndsAt     DateTime?
   // Unlimited plans only: true = the sale price is locked in every month;
-  // false = sale price for the first month, then the regular price.
+  // false = the sale price lasts saleMonths months (1, 3, 6 or 12), then the
+  // regular price.
   saleLockedIn   Boolean  @default(false)
+  saleMonths     Int      @default(1)
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 

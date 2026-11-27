@@ -3,7 +3,7 @@ import { CreatePlanForm } from "@/components/admin/CreateForms";
 import { PlanRow } from "@/components/admin/PlanRow";
 import { SaleBannerSettings } from "@/components/admin/SaleBannerSettings";
 import { money } from "@/lib/format";
-import { saleDefaults, saleSummary, activeSale } from "@/lib/sale";
+import { saleDefaults, saleSummary, activeSale, saleDurationLabel } from "@/lib/sale";
 import { getSaleBannerSettings } from "@/lib/saleBanner";
 
 export const dynamic = "force-dynamic";
@@ -80,7 +80,14 @@ export default async function PlansPage() {
                 restrictedClass: p.restrictedClass,
                 guestPassesPerMonth: p.guestPassesPerMonth,
                 sale: saleDefaults(p),
-                saleSummary: saleSummary(p, money),
+                saleSummary: (() => {
+                  const sum = saleSummary(p, money);
+                  if (!sum || p.kind !== "UNLIMITED") return sum;
+                  return {
+                    ...sum,
+                    text: `${sum.text} · ${saleDurationLabel(p.saleLockedIn, p.saleMonths)}`,
+                  };
+                })(),
               }}
             />
           ))}

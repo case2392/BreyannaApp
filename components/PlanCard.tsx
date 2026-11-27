@@ -16,6 +16,7 @@ export type PlanCardPlan = {
   saleStartsAt: Date | null;
   saleEndsAt: Date | null;
   saleLockedIn: boolean;
+  saleMonths: number;
 };
 
 // Plans are shown in three groups so the differences are obvious at a glance.
@@ -108,7 +109,9 @@ export function PlanCard({
           <p className="mt-1 text-xs font-medium text-brand-700">
             {plan.saleLockedIn
               ? "Sale price locked in every month"
-              : `First month, then ${displayMoney(plan.priceCents)}/month`}
+              : `${
+                  plan.saleMonths > 1 ? `First ${plan.saleMonths} months` : "First month"
+                }, then ${displayMoney(plan.priceCents)}/month`}
           </p>
         )}
         {perClass != null && (
