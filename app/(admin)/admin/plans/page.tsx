@@ -5,10 +5,12 @@ import { SaleBannerSettings } from "@/components/admin/SaleBannerSettings";
 import { money } from "@/lib/format";
 import { saleDefaults, saleSummary, activeSale, saleDurationLabel } from "@/lib/sale";
 import { getSaleBannerSettings } from "@/lib/saleBanner";
+import { applySaunaIncludedDefaults } from "@/lib/saunaDefaults";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlansPage() {
+  await applySaunaIncludedDefaults();
   const [plans, classTypeRows, bannerSettings, saleEvents] = await Promise.all([
     prisma.membershipPlan.findMany({
       orderBy: { priceCents: "asc" },
@@ -73,6 +75,7 @@ export default async function PlansPage() {
                 description: p.description,
                 kind: p.kind,
                 category: p.category,
+                saunaPerMonth: p.saunaPerMonth,
                 credits: p.credits,
                 priceCents: p.priceCents,
                 durationDays: p.durationDays,

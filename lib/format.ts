@@ -21,6 +21,7 @@ export function planInclusions(plan: {
   guestPassesPerMonth: number;
   restrictedClass: string | null;
   category?: string;
+  saunaPerMonth?: number;
 }): string[] {
   if (plan.category === "SAUNA") {
     return [
@@ -50,6 +51,10 @@ export function planInclusions(plan: {
   }
   const r = plan.restrictedClass?.trim();
   if (r) items.push(`For ${r} classes only`);
+  const sauna = plan.saunaPerMonth ?? 0;
+  if (sauna < 0) items.push("Unlimited infrared sauna");
+  else if (sauna > 0)
+    items.push(`${sauna} infrared sauna session${sauna === 1 ? "" : "s"} a month`);
   return items;
 }
 

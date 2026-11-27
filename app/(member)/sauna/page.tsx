@@ -7,6 +7,8 @@ import { activeSale } from "@/lib/sale";
 import { studioNow } from "@/lib/time";
 import {
   getSaunaSettings,
+  includedLeftByMonth,
+  monthKey,
   saunaAvailability,
   saunaMemberships,
   upcomingSaunaBookings,
@@ -56,6 +58,21 @@ export default async function SaunaPage({
     prisma.user.findUnique({ where: { id: user.id }, select: { saunaWaiverAt: true } }),
   ]);
 
+  // Included monthly sessions left (the booking window can span two months).
+  const months = Array.from(
+    new Map(
+      availability.map(({ day }) => {
+        const d = new Date(`${day}T00:00:00Z`);
+        return [monthKey(d), d] as const;
+      })
+    ).values()
+  );
+  if (months.length === 0) months.push(now);
+  const leftByMonth = await includedLeftByMonth(access.included, months);
+  const monthName = (k: string) =>
+    new Date(`${k}-01T00:00:00Z`).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
+  const thisMonth = monthKey(now);
+
   const today = dayKey(now);
   const tomorrow = dayKey(new Date(now.getTime() + 24 * 3600e3));
   const days: SaunaDay[] = availability.map(({ day, slots }) => {
@@ -96,7 +113,8 @@ export default async function SaunaPage({
     });
 
   const MIN = 60 * 1000;
-  const hasAccess = Boolean(access.unlimited) || access.credits > 0;
+  const hasAccess =
+    Boolean(access.unlimited) || access.credits > 0 || access.included.length > 0;
 
   return (
     <div>
@@ -129,11 +147,37 @@ export default async function SaunaPage({
               {access.unlimited && (
                 <p className="text-lg font-semibold text-brand-700">
                   ∞ {access.unlimited.plan.name}
+                  {access.unlimited.plan.category !== "SAUNA" && (
+                    <span className="block text-xs font-normal text-ink-500">
+                      Unlimited sauna is included with your membership
+                    </span>
+                  )}
                 </p>
               )}
+              {!access.unlimited &&
+                access.included.map((m) => {
+                  const left = leftByMonth[m.id]?.[thisMonth] ?? m.plan.saunaPerMonth;
+                  return (
+                    <p key={m.id} className="text-lg font-semibold text-brand-700">
+                      {left} of {m.plan.saunaPerMonth} left in {monthName(thisMonth)}
+                      <span className="block text-xs font-normal text-ink-500">
+                        {m.plan.saunaPerMonth} sauna session
+                        {m.plan.saunaPerMonth === 1 ? "" : "s"} a month included with your{" "}
+                        {m.plan.name}
+                      </span>
+                    </p>
+                  );
+                })}
               {access.credits > 0 && (
-                <p className={access.unlimited ? "text-sm text-ink-600" : "text-lg font-semibold text-brand-700"}>
-                  {access.credits} session{access.credits === 1 ? "" : "s"} left
+                <p
+                  className={
+                    access.unlimited || access.included.length > 0
+                      ? "text-sm text-ink-600"
+                      : "text-lg font-semibold text-brand-700"
+                  }
+                >
+                  {access.credits} sauna session{access.credits === 1 ? "" : "s"} left
+                  {access.unlimited || access.included.length > 0 ? " in your pack" : ""}
                 </p>
               )}
             </div>
@@ -172,7 +216,11 @@ export default async function SaunaPage({
                     {started ? (
                       <span className="badge bg-green-100 text-green-700">Now</span>
                     ) : (
-                      <SaunaCancelButton id={b.id} late={late} usesSession={b.creditsUsed > 0} />
+                      <SaunaCancelButton
+                        id={b.id}
+                        late={late}
+                        usesSession={b.creditsUsed > 0 || b.usedIncluded}
+                      />
                     )}
                   </li>
                 );
@@ -187,6 +235,11 @@ export default async function SaunaPage({
         access={{
           unlimitedName: access.unlimited?.plan.name ?? null,
           credits: access.credits,
+          included: access.included.map((m) => ({
+            name: m.plan.name,
+            perMonth: m.plan.saunaPerMonth,
+            leftByMonth: leftByMonth[m.id] ?? {},
+          })),
         }}
         plans={planOptions}
         needsGuidelines={!me?.saunaWaiverAt}

@@ -3,6 +3,9 @@ import { prisma } from "@/lib/db";
 import { fireAutomation } from "@/lib/automations";
 import { dayLabel, timeLabel } from "@/lib/format";
 import { studioNow } from "@/lib/time";
+import { ensureAutomations } from "@/lib/automations";
+import { getSaunaSettings } from "@/lib/sauna";
+import { dayLabelLong, clockLabel } from "@/lib/saunaShared";
 
 // Sends "class reminder" automations for classes happening tomorrow.
 // Intended to be called once a day by Vercel Cron (see vercel.json).
@@ -61,5 +64,30 @@ export async function GET(request: Request) {
     processed++;
   }
 
-  return NextResponse.json({ ok: true, remindersProcessed: processed });
+  // Sauna sessions tomorrow (once each).
+  await ensureAutomations();
+  const sauna = await getSaunaSettings();
+  const saunaBookings = await prisma.saunaBooking.findMany({
+    where: { status: "BOOKED", reminderSentAt: null, startsAt: { gte: start, lt: end } },
+    include: { user: true },
+  });
+  let saunaProcessed = 0;
+  for (const b of saunaBookings) {
+    await fireAutomation("sauna_reminder", b.user, {
+      saunaName: sauna.name,
+      date: dayLabelLong(b.startsAt),
+      time: clockLabel(b.startsAt),
+    });
+    await prisma.saunaBooking.update({
+      where: { id: b.id },
+      data: { reminderSentAt: new Date() },
+    });
+    saunaProcessed++;
+  }
+
+  return NextResponse.json({
+    ok: true,
+    remindersProcessed: processed,
+    saunaRemindersProcessed: saunaProcessed,
+  });
 }

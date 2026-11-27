@@ -1,7 +1,11 @@
 "use client";
 
 import { SaleFields } from "@/components/admin/SaleFields";
-import { PlanCategoryPicker, kindOptions } from "@/components/admin/PlanCategoryPicker";
+import {
+  PlanCategoryPicker,
+  SaunaIncludedField,
+  kindOptions,
+} from "@/components/admin/PlanCategoryPicker";
 import { useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
@@ -274,6 +278,11 @@ export function CreatePlanForm({
       <div className="mt-4">
         <SaleFields idPrefix="new-plan" monthly={unlimited} />
       </div>
+      {!sauna && (
+        <div className="mt-4">
+          <SaunaIncludedField />
+        </div>
+      )}
       {!sauna && (
         <div className="mt-4">
           <ClassAccessChecklist classTypes={classTypes} />

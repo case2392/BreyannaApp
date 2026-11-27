@@ -398,6 +398,15 @@ async function syncPlanClassAccess(planId: string, formData: FormData) {
   revalidatePath("/admin/classes");
 }
 
+// Class plans: sauna sessions included per month (-1 = unlimited).
+function saunaIncluded(formData: FormData): number {
+  const mode = String(formData.get("saunaIncluded") || "NONE");
+  if (mode === "UNLIMITED") return -1;
+  if (mode === "LIMITED")
+    return Math.min(60, Math.max(1, Math.round(Number(formData.get("saunaPerMonth")) || 1)));
+  return 0;
+}
+
 export async function createPlan(_prev: unknown, formData: FormData) {
   await requireStaff();
   const name = String(formData.get("name") || "").trim();
@@ -426,6 +435,7 @@ export async function createPlan(_prev: unknown, formData: FormData) {
       durationDays: Number(formData.get("durationDays")) || 30,
       guestPassesPerMonth:
         category === "SAUNA" ? 0 : Number(formData.get("guestPasses")) || 0,
+      saunaPerMonth: category === "SAUNA" ? 0 : saunaIncluded(formData),
       restrictedClass:
         category === "SAUNA"
           ? null
@@ -481,6 +491,7 @@ export async function updatePlan(_prev: unknown, formData: FormData) {
       durationDays: Number(formData.get("durationDays")) || 30,
       guestPassesPerMonth:
         category === "SAUNA" ? 0 : Number(formData.get("guestPasses")) || 0,
+      saunaPerMonth: category === "SAUNA" ? 0 : saunaIncluded(formData),
       restrictedClass:
         category === "SAUNA"
           ? null

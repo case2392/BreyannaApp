@@ -7,6 +7,7 @@ import { prisma } from "./db";
 import { studioNow } from "./time";
 import { notifyStudio } from "./notify";
 import { sendEmail } from "./messaging";
+import { applySaunaIncludedDefaults } from "./saunaDefaults";
 import {
   type Busy,
   type SaunaSettings,
@@ -39,23 +40,75 @@ export async function saveSaunaSettings(s: SaunaSettings) {
   });
 }
 
-// The member's active sauna plans, best first: Unlimited, then packs that run
-// out soonest.
+// Calendar month of a wall-clock date: "2026-11", and its start/end.
+export const monthKey = (d: Date) => d.toISOString().slice(0, 7);
+function monthRange(d: Date) {
+  const start = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1));
+  const end = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
+  return { start, end };
+}
+
+// Included sauna sessions a membership has used in the month of `d`. Late
+// cancels still count; on-time cancels give the session back.
+type Db = Pick<typeof prisma, "saunaBooking">;
+export async function includedUsedInMonth(membershipId: string, d: Date, db: Db = prisma) {
+  const { start, end } = monthRange(d);
+  return db.saunaBooking.count({
+    where: {
+      membershipId,
+      usedIncluded: true,
+      startsAt: { gte: start, lt: end },
+      OR: [{ status: { in: ["BOOKED", "ATTENDED", "NO_SHOW"] } }, { lateCancel: true }],
+    },
+  });
+}
+
+// Everything that lets a member use the sauna, best first:
+//  - unlimited: a sauna Unlimited plan, or a class membership with unlimited
+//    sauna included (e.g. Dwell Collective)
+//  - included: class memberships with N sauna sessions a month (e.g. Pioneer)
+//  - packs: sauna single sessions / packs (credits)
 export async function saunaMemberships(userId: string) {
+  await applySaunaIncludedDefaults();
   const list = await prisma.membership.findMany({
     where: {
       userId,
       status: "ACTIVE",
       expiresAt: { gt: new Date() },
-      plan: { category: "SAUNA" },
+      OR: [{ plan: { category: "SAUNA" } }, { plan: { saunaPerMonth: { not: 0 } } }],
     },
     include: { plan: true },
     orderBy: { expiresAt: "asc" },
   });
-  const unlimited = list.find((m) => m.plan.kind === "UNLIMITED") ?? null;
-  const packs = list.filter((m) => m.plan.kind !== "UNLIMITED" && m.creditsRemaining > 0);
+  const sauna = list.filter((m) => m.plan.category === "SAUNA");
+  const classPlans = list.filter((m) => m.plan.category !== "SAUNA");
+  const unlimited =
+    sauna.find((m) => m.plan.kind === "UNLIMITED") ??
+    classPlans.find((m) => m.plan.saunaPerMonth < 0) ??
+    null;
+  const included = classPlans
+    .filter((m) => m.plan.saunaPerMonth > 0)
+    .sort((a, b) => b.plan.saunaPerMonth - a.plan.saunaPerMonth);
+  const packs = sauna.filter((m) => m.plan.kind !== "UNLIMITED" && m.creditsRemaining > 0);
   const credits = packs.reduce((n, m) => n + m.creditsRemaining, 0);
-  return { unlimited, packs, credits };
+  return { unlimited, included, packs, credits };
+}
+
+// Included sessions left per membership for each month — for the booking
+// screen (it can span two months).
+export async function includedLeftByMonth(
+  included: { id: string; plan: { saunaPerMonth: number } }[],
+  months: Date[]
+) {
+  const out: Record<string, Record<string, number>> = {};
+  for (const m of included) {
+    out[m.id] = {};
+    for (const d of months) {
+      const used = await includedUsedInMonth(m.id, d);
+      out[m.id][monthKey(d)] = Math.max(0, m.plan.saunaPerMonth - used);
+    }
+  }
+  return out;
 }
 
 // Everything that makes the sauna unavailable between two times.
@@ -171,34 +224,52 @@ export async function bookSauna(
       };
   }
 
-  // What pays for it.
+  // What pays for it. The member is covered by an unlimited plan, else one of
+  // their included monthly sessions, else a sauna pack; each guest uses a
+  // sauna session from a pack.
   let membershipId: string | null = null;
+  let packId: string | null = null;
   let creditsUsed = 0;
+  let usedIncluded = false;
+  let includedLimit = 0;
   if (!input.comp) {
-    const { unlimited, packs } = await saunaMemberships(user.id);
-    const need = unlimited ? people - 1 : people;
+    const { unlimited, included, packs } = await saunaMemberships(user.id);
+    let cover: string | null = unlimited?.id ?? null;
+    let usedUp: (typeof included)[number] | null = null;
+    if (!cover) {
+      for (const m of included) {
+        const used = await includedUsedInMonth(m.id, start);
+        if (used < m.plan.saunaPerMonth) {
+          cover = m.id;
+          usedIncluded = true;
+          includedLimit = m.plan.saunaPerMonth;
+          break;
+        }
+        usedUp = usedUp ?? m;
+      }
+    }
+    const need = cover ? people - 1 : people;
     if (need > 0) {
       const pack = packs.find((m) => m.creditsRemaining >= need);
       if (!pack) {
-        if (!unlimited && packs.length === 0)
-          return {
-            ok: false,
-            needPlan: true,
-            error: "You'll need a sauna session, pack or membership to book.",
-          };
+        const month = start.toLocaleDateString("en-US", { month: "long", timeZone: "UTC" });
         return {
           ok: false,
           needPlan: true,
-          error: unlimited
-            ? `Your Unlimited covers you — each guest needs a sauna session (${need} needed).`
-            : `This needs ${need} sauna session${need === 1 ? "" : "s"} and you don't have enough left.`,
+          error: cover
+            ? `You're covered — each guest needs a sauna session (${need} needed).`
+            : usedUp
+            ? `You've used your ${usedUp.plan.saunaPerMonth} included sauna session${usedUp.plan.saunaPerMonth === 1 ? "" : "s"} for ${month} with your ${usedUp.plan.name}. Add a session or pack to book more.`
+            : packs.length > 0
+            ? `This needs ${need} sauna session${need === 1 ? "" : "s"} and you don't have enough left.`
+            : "You'll need a sauna session, pack or membership to book.",
         };
       }
-      membershipId = pack.id;
       creditsUsed = need;
-    } else {
-      membershipId = unlimited!.id;
+      if (cover) packId = pack.id;
+      else cover = pack.id;
     }
+    membershipId = cover;
   }
 
   const end = new Date(start.getTime() + s.sessionMinutes * MIN);
@@ -217,9 +288,14 @@ export async function bookSauna(
           select: { id: true },
         });
         if (clash) throw new Error("TAKEN");
-        if (membershipId && creditsUsed > 0) {
+        // Re-check the monthly allowance (two bookings at once).
+        if (usedIncluded && membershipId) {
+          const used = await includedUsedInMonth(membershipId, start, tx);
+          if (used >= includedLimit) throw new Error("NO_INCLUDED");
+        }
+        if (creditsUsed > 0) {
           const charged = await tx.membership.updateMany({
-            where: { id: membershipId, creditsRemaining: { gte: creditsUsed } },
+            where: { id: packId ?? membershipId!, creditsRemaining: { gte: creditsUsed } },
             data: { creditsRemaining: { decrement: creditsUsed } },
           });
           if (charged.count === 0) throw new Error("NO_CREDITS");
@@ -232,7 +308,9 @@ export async function bookSauna(
             people,
             guestNames: input.guestNames?.trim().slice(0, 200) || null,
             membershipId,
+            packId,
             creditsUsed,
+            usedIncluded,
             bookedBy: input.staff ? "STAFF" : "MEMBER",
           },
         });
@@ -265,6 +343,12 @@ export async function bookSauna(
   } catch (e: any) {
     if (e?.message === "NO_CREDITS")
       return { ok: false, needPlan: true, error: "You don't have enough sauna sessions left." };
+    if (e?.message === "NO_INCLUDED")
+      return {
+        ok: false,
+        needPlan: true,
+        error: "You've used your included sauna sessions for this month.",
+      };
     if (
       e?.message === "TAKEN" ||
       (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2034")
@@ -295,16 +379,22 @@ export async function cancelSauna(
   await prisma.$transaction(async (tx) => {
     const updated = await tx.saunaBooking.updateMany({
       where: { id: b.id, status: "BOOKED" },
-      data: { status: "CANCELLED", cancelledAt: new Date() },
+      // A late cancel still counts against an included monthly session.
+      data: {
+        status: "CANCELLED",
+        cancelledAt: new Date(),
+        lateCancel: !refund && b.usedIncluded,
+      },
     });
-    if (updated.count > 0 && refund && b.membershipId && b.creditsUsed > 0) {
+    const packId = b.packId ?? b.membershipId;
+    if (updated.count > 0 && refund && packId && b.creditsUsed > 0) {
       await tx.membership.update({
-        where: { id: b.membershipId },
+        where: { id: packId },
         data: { creditsRemaining: { increment: b.creditsUsed } },
       });
     }
   });
-  return { ok: true, refunded: refund && b.creditsUsed > 0 };
+  return { ok: true, refunded: refund && (b.creditsUsed > 0 || b.usedIncluded) };
 }
 
 // Upcoming sauna sessions for a member.

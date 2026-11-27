@@ -6,7 +6,11 @@ import { useFormState, useFormStatus } from "react-dom";
 import { updatePlan, deletePlan, togglePlan } from "@/app/actions/admin";
 import { money } from "@/lib/format";
 import { SaleFields, type SaleDefaults } from "@/components/admin/SaleFields";
-import { PlanCategoryPicker, kindOptions } from "@/components/admin/PlanCategoryPicker";
+import {
+  PlanCategoryPicker,
+  SaunaIncludedField,
+  kindOptions,
+} from "@/components/admin/PlanCategoryPicker";
 import {
   ClassAccessChecklist,
   type ClassAccessOpt,
@@ -24,6 +28,7 @@ type Plan = {
   description: string | null;
   kind: string;
   category: string;
+  saunaPerMonth: number;
   credits: number;
   priceCents: number;
   durationDays: number;
@@ -169,6 +174,11 @@ export function PlanRow({
         </div>
         {!sauna && (
           <div className="mt-3">
+            <SaunaIncludedField defaultPerMonth={plan.saunaPerMonth} />
+          </div>
+        )}
+        {!sauna && (
+          <div className="mt-3">
             <ClassAccessChecklist classTypes={classTypes} planId={plan.id} />
           </div>
         )}
@@ -215,6 +225,11 @@ export function PlanRow({
             ? "renews monthly"
             : `${plan.credits} ${plan.category === "SAUNA" ? "session" : "credit"}${plan.credits === 1 ? "" : "s"} · never expires`}
           {plan.restrictedClass ? ` · ${plan.restrictedClass} classes only` : ""}
+          {plan.saunaPerMonth < 0
+            ? " · unlimited sauna"
+            : plan.saunaPerMonth > 0
+            ? ` · ${plan.saunaPerMonth} sauna/mo`
+            : ""}
           {plan.guestPassesPerMonth > 0
             ? ` · ${plan.guestPassesPerMonth} guest pass${
                 plan.guestPassesPerMonth === 1 ? "" : "es"

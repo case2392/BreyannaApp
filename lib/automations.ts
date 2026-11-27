@@ -6,7 +6,8 @@ export type AutomationKey =
   | "welcome"
   | "booking_confirmation"
   | "waitlist_promotion"
-  | "class_reminder";
+  | "class_reminder"
+  | "sauna_reminder";
 
 type Def = {
   key: AutomationKey;
@@ -19,6 +20,8 @@ type Def = {
   // Whether this event happens in the context of a class, so it can have
   // class-type-specific versions.
   supportsClassType: boolean;
+  // Created switched on (others start off until the studio enables them).
+  defaultEnabled?: boolean;
 };
 
 // The available automation triggers and their default copy. Each trigger has a
@@ -70,6 +73,19 @@ export const AUTOMATIONS: Def[] = [
     vars: ["firstName", "className", "date", "time"],
     supportsClassType: true,
   },
+  {
+    key: "sauna_reminder",
+    label: "Sauna reminder",
+    description:
+      "Sent the day before a member's infrared sauna session (requires the daily reminder job).",
+    defaultChannel: "EMAIL",
+    defaultSubject: "Your sauna session tomorrow 🧖‍♀️",
+    defaultTemplate:
+      "Hi {{firstName}}, a reminder that your {{saunaName}} session is tomorrow, {{date}}, at {{time}}. Drink plenty of water today, and plan to arrive about 5 minutes early. Need to cancel? You can do it from your account. See you soon!",
+    vars: ["firstName", "saunaName", "date", "time"],
+    supportsClassType: false,
+    defaultEnabled: true,
+  },
 ];
 
 export const TRIGGER_KEYS = AUTOMATIONS.map((a) => a.key) as string[];
@@ -91,7 +107,7 @@ export async function ensureAutomations() {
         key: a.key,
         trigger: a.key,
         channel: a.defaultChannel,
-        enabled: false,
+        enabled: a.defaultEnabled ?? false,
         subject: a.defaultSubject,
         template: a.defaultTemplate,
       },

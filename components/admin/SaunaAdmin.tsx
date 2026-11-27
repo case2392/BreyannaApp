@@ -217,7 +217,13 @@ export function SaunaStaffBookForm({
   days,
   maxPeople,
 }: {
-  members: { id: string; name: string; credits: number; unlimited: boolean }[];
+  members: {
+    id: string;
+    name: string;
+    credits: number;
+    unlimited: boolean;
+    included: string | null;
+  }[];
   days: AdminSlotDay[];
   maxPeople: number;
 }) {
@@ -256,11 +262,16 @@ export function SaunaStaffBookForm({
           {members.map((x) => (
             <option key={x.id} value={x.id}>
               {x.name}
-              {x.unlimited ? " · Unlimited" : x.credits > 0 ? ` · ${x.credits} left` : ""}
+              {x.unlimited
+                ? " · Unlimited"
+                : [x.included, x.credits > 0 ? `${x.credits} left` : null]
+                    .filter(Boolean)
+                    .map((t) => ` · ${t}`)
+                    .join("")}
             </option>
           ))}
         </select>
-        {m && !m.unlimited && m.credits === 0 && (
+        {m && !m.unlimited && !m.included && m.credits === 0 && (
           <p className="mt-1 text-xs text-amber-700">
             No sauna sessions on their account — tick “Complimentary” or add a plan
             to their profile first.

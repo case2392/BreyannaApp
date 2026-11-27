@@ -9,6 +9,7 @@ export type PlanCardPlan = {
   description: string | null;
   kind: string;
   category?: string;
+  saunaPerMonth?: number;
   credits: number;
   priceCents: number;
   guestPassesPerMonth: number;

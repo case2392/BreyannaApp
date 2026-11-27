@@ -153,7 +153,11 @@ export default async function BookingsPage() {
         {started ? (
           <span className="badge bg-green-100 text-green-700">Now</span>
         ) : (
-          <SaunaCancelButton id={b.id} late={late} usesSession={b.creditsUsed > 0} />
+          <SaunaCancelButton
+            id={b.id}
+            late={late}
+            usesSession={b.creditsUsed > 0 || b.usedIncluded}
+          />
         )}
       </div>
     );

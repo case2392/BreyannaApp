@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { shortDate } from "@/lib/format";
 import { studioNow } from "@/lib/time";
+import { applySaunaIncludedDefaults } from "@/lib/saunaDefaults";
 import { saleEndsLabel } from "@/lib/sale";
 import { PlanCard, groupPlans, soonestSaleEnd } from "@/components/PlanCard";
 import { stripeEnabled } from "@/lib/stripe";
@@ -36,6 +37,7 @@ export default async function MembershipsPage({
     await finalizeCheckoutSession(user.id, searchParams.session_id);
   }
 
+  await applySaunaIncludedDefaults();
   const [mine, plans, pastDue] = await Promise.all([
     prisma.membership.findMany({
       where: { userId: user.id, status: "ACTIVE", expiresAt: { gt: realNow } },

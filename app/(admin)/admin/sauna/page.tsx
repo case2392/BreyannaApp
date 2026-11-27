@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { studioNow } from "@/lib/time";
 import { getSaunaSettings, saunaAvailability } from "@/lib/sauna";
+import { applySaunaIncludedDefaults } from "@/lib/saunaDefaults";
 import { bookableDays, clockLabel, dayKey, dayLabelLong, rangeLabel } from "@/lib/saunaShared";
 import {
   DeleteBlockButton,
@@ -14,6 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function AdminSaunaPage() {
+  await applySaunaIncludedDefaults();
   const s = await getSaunaSettings();
   const now = studioNow();
   const todayStart = new Date(`${dayKey(now)}T00:00:00Z`);
@@ -47,9 +49,13 @@ export default async function AdminSaunaPage() {
         where: {
           status: "ACTIVE",
           expiresAt: { gt: new Date() },
-          plan: { category: "SAUNA" },
+          OR: [{ plan: { category: "SAUNA" } }, { plan: { saunaPerMonth: { not: 0 } } }],
         },
-        select: { userId: true, creditsRemaining: true, plan: { select: { kind: true } } },
+        select: {
+          userId: true,
+          creditsRemaining: true,
+          plan: { select: { kind: true, category: true, saunaPerMonth: true, name: true } },
+        },
       }),
       saunaAvailability(s, undefined, {
         ignoreNotice: true,
@@ -57,11 +63,17 @@ export default async function AdminSaunaPage() {
       }),
     ]);
 
-  const credits = new Map<string, { credits: number; unlimited: boolean }>();
+  const credits = new Map<
+    string,
+    { credits: number; unlimited: boolean; included: string | null }
+  >();
   for (const m of saunaMemberships) {
-    const c = credits.get(m.userId) ?? { credits: 0, unlimited: false };
-    if (m.plan.kind === "UNLIMITED") c.unlimited = true;
-    else c.credits += m.creditsRemaining;
+    const c = credits.get(m.userId) ?? { credits: 0, unlimited: false, included: null };
+    if (m.plan.category === "SAUNA") {
+      if (m.plan.kind === "UNLIMITED") c.unlimited = true;
+      else c.credits += m.creditsRemaining;
+    } else if (m.plan.saunaPerMonth < 0) c.unlimited = true;
+    else if (m.plan.saunaPerMonth > 0) c.included = `${m.plan.name} ${m.plan.saunaPerMonth}/mo`;
     credits.set(m.userId, c);
   }
 
@@ -95,7 +107,11 @@ export default async function AdminSaunaPage() {
           <span className="block text-xs text-ink-500">
             {b.people > 1 ? `${b.people} people${b.guestNames ? ` (${b.guestNames})` : ""} · ` : ""}
             {b.membership
-              ? `${b.membership.plan.name}${b.creditsUsed > 0 ? ` · ${b.creditsUsed} session${b.creditsUsed === 1 ? "" : "s"}` : ""}`
+              ? `${b.membership.plan.name}${b.usedIncluded ? " · included monthly session" : ""}${
+                  b.creditsUsed > 0
+                    ? ` · ${b.creditsUsed} ${b.packId ? "guest " : ""}session${b.creditsUsed === 1 ? "" : "s"}`
+                    : ""
+                }`
               : "Complimentary"}
             {b.bookedBy === "STAFF" ? " · booked by staff" : ""}
           </span>
@@ -224,6 +240,7 @@ export default async function AdminSaunaPage() {
                 name: `${m.firstName} ${m.lastName}`,
                 credits: credits.get(m.id)?.credits ?? 0,
                 unlimited: credits.get(m.id)?.unlimited ?? false,
+                included: credits.get(m.id)?.included ?? null,
               }))}
               days={availability
                 .filter((d) => d.slots.length > 0)

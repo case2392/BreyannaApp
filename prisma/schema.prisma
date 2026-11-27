@@ -154,6 +154,9 @@ model MembershipPlan {
   durationDays Int     @default(30)
   // Guest passes this plan grants each month (reset on renewal). 0 = none.
   guestPassesPerMonth Int @default(0)
+  // Class plans only: infrared sauna sessions included each calendar month.
+  // 0 = none, -1 = unlimited.
+  saunaPerMonth Int @default(0)
   // Optional sale: shown as the sale price with the regular price crossed out,
   // and charged at checkout, from saleStartsAt (blank = now) until saleEndsAt
   // (studio wall-clock times). Null salePriceCents = no sale.
@@ -281,9 +284,21 @@ model SaunaBooking {
   guestNames   String?
   // The sauna membership used, and how many sessions it was charged (refunded
   // on a timely cancel).
+  // The membership that covers the member: a sauna plan, or a class plan with
+  // sauna included.
   membershipId String?
   membership   Membership? @relation(fields: [membershipId], references: [id])
+  // Sauna sessions charged (from a sauna pack) — refunded on a timely cancel.
+  // packId is the pack charged when it isn't membershipId (e.g. guests of an
+  // Unlimited member).
   creditsUsed  Int      @default(0)
+  packId       String?
+  // Used one of a class plan's included monthly sauna sessions.
+  usedIncluded Boolean  @default(false)
+  // Cancelled too late to get the session back (still counts as used).
+  lateCancel   Boolean  @default(false)
+  // Day-before reminder sent.
+  reminderSentAt DateTime?
   status       String   @default("BOOKED")
   // "MEMBER" | "STAFF"
   bookedBy     String   @default("MEMBER")

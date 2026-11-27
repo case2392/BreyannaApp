@@ -6,6 +6,7 @@ import { MarketingHeader } from "@/components/MarketingHeader";
 import { Logo, DwellSeal } from "@/components/Brand";
 import { BrandImage } from "@/components/BrandImage";
 import { studioNow } from "@/lib/time";
+import { applySaunaIncludedDefaults } from "@/lib/saunaDefaults";
 import { saleEndsLabel } from "@/lib/sale";
 import { PlanCard, groupPlans, soonestSaleEnd } from "@/components/PlanCard";
 
@@ -47,6 +48,7 @@ export default async function LandingPage() {
   const weekEnd = new Date(now);
   weekEnd.setDate(weekEnd.getDate() + 7);
 
+  await applySaunaIncludedDefaults();
   const [classTypes, plans, upcoming] = await Promise.all([
     prisma.classType.findMany({ where: { active: true }, orderBy: { name: "asc" } }),
     prisma.membershipPlan.findMany({ where: { active: true }, orderBy: { priceCents: "asc" } }),

@@ -26,6 +26,8 @@ export type SaunaPlanOption = {
 export type SaunaAccess = {
   unlimitedName: string | null;
   credits: number;
+  // Class memberships with N sauna sessions a month included.
+  included: { name: string; perMonth: number; leftByMonth: Record<string, number> }[];
 };
 
 export function SaunaBooker({
@@ -82,15 +84,32 @@ export function SaunaBooker({
   }, [slot]);
 
   // What this booking costs and whether they can cover it.
-  const need = access.unlimitedName ? people - 1 : people;
+  const month = chosen?.start.slice(0, 7) ?? "";
+  const monthName = chosen
+    ? new Date(chosen.start).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" })
+    : "";
+  const inc = access.unlimitedName
+    ? null
+    : access.included.find((m) => (m.leftByMonth[month] ?? m.perMonth) > 0) ?? null;
+  const selfCovered = Boolean(access.unlimitedName || inc);
+  const need = selfCovered ? people - 1 : people;
   const covered = need <= access.credits;
-  const payLine = access.unlimitedName
-    ? need === 0
-      ? `Included in your ${access.unlimitedName}`
-      : `Included for you · ${need} guest session${need === 1 ? "" : "s"} from your ${access.credits} left`
-    : covered
-    ? `Uses ${need} of your ${access.credits} sauna session${access.credits === 1 ? "" : "s"}`
+  const selfLine = access.unlimitedName
+    ? `Included in your ${access.unlimitedName}`
+    : inc
+    ? (inc.leftByMonth[month] ?? inc.perMonth) === 1
+      ? `Uses your ${inc.perMonth === 1 ? "" : "last "}included sauna session for ${monthName} (${inc.name})`
+      : `Uses 1 of your ${inc.leftByMonth[month] ?? inc.perMonth} included sauna sessions left for ${monthName} (${inc.name})`
     : null;
+  const payLine = !covered
+    ? null
+    : selfLine
+    ? need === 0
+      ? selfLine
+      : `${selfLine} · ${need} guest session${need === 1 ? "" : "s"} from your ${access.credits} left`
+    : `Uses ${need} of your ${access.credits} sauna session${access.credits === 1 ? "" : "s"}`;
+  const usedUpIncluded =
+    !selfCovered && access.included.length > 0 ? access.included[0] : null;
 
   function book() {
     if (!slot) return;
@@ -273,7 +292,9 @@ export function SaunaBooker({
           ) : (
             <div className="mt-4">
               <p className="text-sm font-medium text-ink-800">
-                {access.credits > 0 || access.unlimitedName
+                {usedUpIncluded
+                  ? `You've used your ${usedUpIncluded.perMonth} included sauna session${usedUpIncluded.perMonth === 1 ? "" : "s"} for ${monthName}. To book more, choose one — we'll bring you right back:`
+                  : access.credits > 0 || selfCovered
                   ? "You need more sauna sessions for this booking — choose one:"
                   : "Choose how you'd like to pay — we'll bring you right back to finish booking:"}
               </p>
